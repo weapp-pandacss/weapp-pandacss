@@ -6,14 +6,14 @@ This repository is a pnpm/Turborepo monorepo managed by [repoctl](https://github
 
 ## Workspaces
 
-| Directory                 | Purpose                                                           |
-| ------------------------- | ----------------------------------------------------------------- |
-| `packages/weapp-pandacss` | Panda generation plugin, portable runtime, PostCSS and legacy CLI |
-| `examples/taro-app`       | Taro React mini-program                                           |
-| `examples/taro-app-vue3`  | Taro Vue mini-program                                             |
-| `examples/uni-app-vue3`   | Uni-app Vue mini-program                                          |
-| `examples/react-app`      | React web application                                             |
-| `examples/weapp-vite-app` | Weapp Vite + Wevu Vue SFC mini-program                            |
+| Directory                 | Purpose                                               |
+| ------------------------- | ----------------------------------------------------- |
+| `packages/weapp-pandacss` | Panda generation plugin, portable runtime and PostCSS |
+| `examples/taro-app`       | Taro React mini-program                               |
+| `examples/taro-app-vue3`  | Taro Vue mini-program                                 |
+| `examples/uni-app-vue3`   | Uni-app Vue mini-program                              |
+| `examples/react-app`      | React web application                                 |
+| `examples/weapp-vite-app` | Weapp Vite + Wevu Vue SFC mini-program                |
 
 The historical Linaria example remains in `examples/taro-app-linaria` as reference source. It does not use Panda and is outside the active workspace.
 
@@ -43,6 +43,6 @@ pnpm --filter @weapp-pandacss/react-app dev
 pnpm --filter @weapp-pandacss/weapp-vite-app dev
 ```
 
-Use `pnpm exec repo doctor` and `pnpm exec repo check` to validate workspace health. `pnpm change` records release intent; repoctl manages the release workflow. The package retains the published `1.5.5` baseline, and the major release intent prepares `2.0.0` when the release workflow runs. Generated `dist`, coverage and example `styled-system` directories are ignored; checked-in runtime fixtures remain available to the tests.
+Use `pnpm exec repo doctor` and `pnpm exec repo check` to validate workspace health. `pnpm change` records release intent; repoctl manages the release workflow. The package retains the published `1.5.5` baseline, and the major release intent prepares `2.0.0` when the release workflow runs. Generated `dist`, coverage and example `styled-system` directories are ignored; real Panda fixtures are generated in isolated temporary directories during tests.
 
 See the [2.0 plugin migration guide](./docs/panda-plugin-migration.md), [dependency compatibility notes](./docs/dependency-upgrade.md) for framework version cohorts and [the Wevu example guide](./examples/weapp-vite-app/README.md) for its development workflow.

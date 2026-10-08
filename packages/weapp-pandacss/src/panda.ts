@@ -1,6 +1,6 @@
 import type { PandaPlugin } from '@pandacss/types'
-import { getPandaVersion } from './core/codegen'
 import { transformArtifacts } from './panda/transform'
+import { getPandaVersion } from './panda/version'
 import { encodeClassName } from './runtime'
 
 // Panda 2.1.2 can emit ambiguous hexadecimal CSS escapes for numeric heads.

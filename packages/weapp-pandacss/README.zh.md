@@ -104,7 +104,6 @@ Panda 生成，adapter 不再替换变量名。小程序中手写变量必须使
 | 选项                                | 默认值             | 行为                                            |
 | ----------------------------------- | ------------------ | ----------------------------------------------- |
 | `target`                            | `weapp`            | `weapp` 转换平台 CSS；`web` 保留 Web 选择器语义 |
-| `naming`                            | `portable`         | `legacy` 仅配合弃用的文件补丁 CLI/API           |
 | `disabled`                          | `false`            | 禁用所有 adapter 子插件，包括 class 编码        |
 | `removeNegationPseudoClass`         | `true`             | 小程序移除 layer 插件生成的 `:not(#\#)`         |
 | `selectorReplacement.root`          | `page`             | 小程序的 `:root` / `:host` 替换                 |
@@ -122,9 +121,11 @@ runtime。缺少 runtime、结构变更或不支持的版本会抛出诊断。�
 接口，不修改上游或维护 fork。绕过 runtime、直接内联原始 class 的 Panda 源码
 优化流程暂不支持。
 
-原根 API、`weapp-panda` / `weapp-pandacss` 两个 CLI 名称保留为弃用的 legacy
-入口。新产物拒绝 legacy 补丁和 rollback。升级需要清理旧生成目录和备份，然后
-注册插件、重新 codegen；详见 [2.0 迁移指南](../../docs/panda-plugin-migration.md)。
+v2 直接移除旧的文件补丁/配置 API、`weapp-panda` / `weapp-pandacss` 两个 CLI
+和 PostCSS `naming` 选项。根入口仅导出 `weappPanda`、`postcssPlugin`、
+`encodeClassName`、`encodeClassList` 及 PostCSS 配置类型；子入口均提供 ESM/CJS
+和对应声明。升级需要清理旧生成目录和备份，然后注册插件、重新 codegen；
+详见 [2.0 迁移指南](../../docs/panda-plugin-migration.md)。
 
 ## 示例
 

@@ -3,15 +3,15 @@ import { resolve } from 'node:path'
 import postcss from 'postcss'
 import postcssPlugin from '@/postcss'
 import { useOptions } from '@/postcss/plugins'
-// import parser from 'postcss-selector-parser'
 import { cssRoot } from './util'
+
+const marker = '/*! weapp-pandacss:portable-v1 */\n'
 
 describe('postcss', () => {
   it('default', async () => {
     const rawCss = await fs.readFile(resolve(cssRoot, 'default.css'), 'utf8')
     const { css } = await postcss([
       postcssPlugin({
-        naming: 'legacy',
         removeNegationPseudoClass: false,
       }),
     ]).process(rawCss)
@@ -20,7 +20,7 @@ describe('postcss', () => {
 
   it('default removeNegationPseudoClass true', async () => {
     const rawCss = await fs.readFile(resolve(cssRoot, 'default.css'), 'utf8')
-    const { css } = await postcss([postcssPlugin({ naming: 'legacy' })]).process(rawCss)
+    const { css } = await postcss([postcssPlugin()]).process(rawCss)
     expect(css).toMatchSnapshot()
   })
 
@@ -31,7 +31,6 @@ describe('postcss', () => {
     )
     const { css } = await postcss([
       postcssPlugin({
-        naming: 'legacy',
         removeNegationPseudoClass: false,
       }),
     ]).process(rawCss)
@@ -43,14 +42,13 @@ describe('postcss', () => {
       resolve(cssRoot, 'default-without-layer.css'),
       'utf8',
     )
-    const { css } = await postcss([postcssPlugin({ naming: 'legacy' })]).process(rawCss)
+    const { css } = await postcss([postcssPlugin()]).process(rawCss)
     expect(css).toMatchSnapshot()
   })
 
   it('simple universal selector', async () => {
     const { css } = await postcss([
       postcssPlugin({
-        naming: 'legacy',
         removeNegationPseudoClass: false,
       }),
     ]).process(`*{}`)
@@ -58,13 +56,12 @@ describe('postcss', () => {
   })
 
   it('simple universal selector removeNegationPseudoClass true', async () => {
-    const { css } = await postcss([postcssPlugin({ naming: 'legacy' })]).process(`*{}`)
+    const { css } = await postcss([postcssPlugin()]).process(`*{}`)
     expect(css).toMatchSnapshot()
   })
   it('universal selector', async () => {
     const { css } = await postcss([
       postcssPlugin({
-        naming: 'legacy',
         removeNegationPseudoClass: false,
       }),
     ]).process(` *, *::before, *::after, ::backdrop{}`)
@@ -74,7 +71,6 @@ describe('postcss', () => {
   it(':root and :host pseudo', async () => {
     const { css } = await postcss([
       postcssPlugin({
-        naming: 'legacy',
         removeNegationPseudoClass: false,
       }),
     ]).process(`:root,:host{}`)
@@ -84,7 +80,6 @@ describe('postcss', () => {
   it('only :root pseudo', async () => {
     const { css } = await postcss([
       postcssPlugin({
-        naming: 'legacy',
         removeNegationPseudoClass: false,
       }),
     ]).process(`:root{}`)
@@ -94,7 +89,6 @@ describe('postcss', () => {
   it('is pseudo', async () => {
     const { css } = await postcss([
       postcssPlugin({
-        naming: 'legacy',
         removeNegationPseudoClass: false,
       }),
     ]).process(`.hovercbg_yellowd400:is(:hover,[data-hover]){}`)
@@ -104,7 +98,6 @@ describe('postcss', () => {
   it('_peerHover case ', async () => {
     const { css } = await postcss([
       postcssPlugin({
-        naming: 'legacy',
         removeNegationPseudoClass: false,
       }),
     ]).process(
@@ -117,12 +110,11 @@ describe('postcss', () => {
   it('_peerHover no :not(n) case ', async () => {
     const { css } = await postcss([
       postcssPlugin({
-        naming: 'legacy',
         removeNegationPseudoClass: false,
       }),
     ]).process(`.peer~.peerHovercbg_redd500{}`)
     // 前面不能有伪元素和 [data-*]
-    expect(css).toBe(`.peer~.peerHovercbg_redd500{}`)
+    expect(css).toBe(`${marker}.peer~.peerHovercbg_redd500{}`)
   })
 
   it('_peerHover case disabled enable', async () => {
@@ -130,7 +122,6 @@ describe('postcss', () => {
     .peer[data-hover]:not(n):not(n):not(n):not(n)~.peerHovercbg_redd500 {}`
     const { css } = await postcss([
       postcssPlugin({
-        naming: 'legacy',
         disabled: true,
       }),
     ]).process(testCase)
@@ -140,7 +131,6 @@ describe('postcss', () => {
   it('should not remove custom :not', async () => {
     const { css } = await postcss([
       postcssPlugin({
-        naming: 'legacy',
         removeNegationPseudoClass: false,
       }),
     ]).process(`.peer:not(.aa):not(#\\#){}`)
@@ -151,7 +141,6 @@ describe('postcss', () => {
     const testCase = `.peer:not(.aa):not(#\\#){}`
     const { css } = await postcss([
       postcssPlugin({
-        naming: 'legacy',
         disabled: true,
       }),
     ]).process(testCase)
@@ -159,30 +148,29 @@ describe('postcss', () => {
   })
 
   it('should not remove custom :not removeNegationPseudoClass true', async () => {
-    const { css } = await postcss([postcssPlugin({ naming: 'legacy' })]).process(
+    const { css } = await postcss([postcssPlugin()]).process(
       `.peer:not(.aa):not(#\\#){}`,
     )
     expect(css).toMatchSnapshot()
   })
 
   it('should not transform descendant combinator', async () => {
-    const { css } = await postcss([postcssPlugin({ naming: 'legacy' })]).process(
+    const { css } = await postcss([postcssPlugin()]).process(
       `.custom-tabs .tabs__scroll { background: red; }`,
     )
-    expect(css).toBe('.custom-tabs .tabs__scroll { background: red; }')
+    expect(css).toBe(`${marker}.custom-tabs .tabs__scroll { background: red; }`)
   })
 
   it('universal selector string literal', async () => {
     const { css } = await postcss([
       postcssPlugin({
-        naming: 'legacy',
         removeNegationPseudoClass: false,
         selectorReplacement: {
           universal: 'view',
         },
       }),
     ]).process(`*, *::before, *::after, ::backdrop{}`)
-    expect(css).toBe('view,view::before,view::after,::backdrop{}')
+    expect(css).toBe(`${marker}view,view::before,view::after,::backdrop{}`)
   })
 
   it('useOptions default', () => {
@@ -209,16 +197,15 @@ describe('postcss', () => {
   })
 
   it('... :where happy', async () => {
-    const { css } = await postcss([postcssPlugin({ naming: 'legacy' })]).process(
+    const { css } = await postcss([postcssPlugin()]).process(
       `:where(:root, :host, :happy) {}`,
     )
-    expect(css).toBe('page,page,:happy {}')
+    expect(css).toBe(`${marker}page,page,:happy {}`)
   })
 
   it('optionsRef disabled option', async () => {
     const { css } = await postcss([
       postcssPlugin({
-        naming: 'legacy',
         disabled: true,
       }),
     ]).process(`:where(:root, :host, :happy) {}`)

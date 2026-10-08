@@ -36,7 +36,6 @@ describe('portable naming', () => {
       .process('.a\\.b {} .a_wp_2e_b {}', { from: undefined })
     expect(result.css).toContain('.a_wp_2e_b {} .a_wp_5f_wp_2e_b {}')
     expect((await postcss([plugin({ target: 'web' })]).process(result.css, { from: undefined })).css).toBe(result.css)
-    await expect(postcss([plugin({ naming: 'legacy' })]).process(result.css, { from: undefined })).rejects.toThrow('Cannot mix portable and legacy')
   })
 
   it('fully disables all CSS transformations', async () => {

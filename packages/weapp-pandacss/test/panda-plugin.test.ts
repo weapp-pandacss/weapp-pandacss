@@ -15,7 +15,6 @@ const run = promisify(execFile)
 const packageRoot = path.resolve(import.meta.dirname, '..')
 const exampleRoot = path.resolve(packageRoot, '../../examples/react-app')
 const pandaBin = path.join(packageRoot, 'node_modules/@pandacss/dev/bin.js')
-const adapterBin = path.join(packageRoot, 'bin/weapp-pandacss.js')
 
 async function fixture(extension: string, hash = false, prefix?: string | { className: string, cssVar: string }) {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'panda-plugin-'))
@@ -151,8 +150,6 @@ describe('Panda generation plugin', () => {
         expect(weapp).toContain(`${values[name].slice(4, -1)}:`)
       }
       expect(values.negative).toContain(values.variable)
-      await expect(run(process.execPath, [adapterBin, 'codegen'], { cwd: root })).rejects.toThrow('cannot be patched')
-      await expect(run(process.execPath, [adapterBin, 'rollback'], { cwd: root })).rejects.toThrow('cannot use legacy rollback')
     }
     finally {
       await fs.rm(root, { recursive: true, force: true })

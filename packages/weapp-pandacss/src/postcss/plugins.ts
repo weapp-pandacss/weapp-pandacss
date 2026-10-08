@@ -7,7 +7,6 @@ import type { IPostcssPluginOptions } from '@/types'
 import type { Ref } from '@/utils'
 import createCascadeLayersPlugin from '@csstools/postcss-cascade-layers'
 import createIsPseudoClassPlugin from '@csstools/postcss-is-pseudo-class'
-import { escape } from '@weapp-core/escape'
 import selectorParser from 'postcss-selector-parser'
 import valueParser from 'postcss-value-parser'
 import { escapePostcssPlugin, wrapperPostcssPlugin } from '@/constants'
@@ -54,11 +53,6 @@ export const innerPlugin: PluginCreator<
   const utilitiesTransformer = selectorParser((selectors) => {
     const sr = getSelectorReplacement()
     selectors.walk((selector) => {
-      if (selector.type === 'class') {
-        if (optionsRef?.value.naming === 'legacy') {
-          selector.value = escape(selector.value)
-        }
-      }
       // https://developer.mozilla.org/en-US/docs/Web/CSS/Adjacent_sibling_combinator
       if (selector.type === 'combinator') {
         // ' ', + , > , ~
@@ -171,14 +165,6 @@ export const innerPlugin: PluginCreator<
         return {}
       }
       return {
-        Declaration(decl) {
-          if (optionsRef?.value.disabled) {
-            return
-          }
-          if (optionsRef?.value.naming === 'legacy') {
-            decl.prop = escape(decl.prop)
-          }
-        },
         Rule(rule) {
           if (optionsRef?.value.disabled) {
             return
@@ -220,52 +206,44 @@ export const creator: PluginCreator<IPostcssPluginOptions> = (options) => {
   const namingPlugin: Plugin = {
     postcssPlugin: 'weapp-pandacss-portable-naming',
     Once(root) {
-      const marked = root as typeof root & { [namingMarker]?: string }
-      const naming = optionsRef.value.naming
+      const marked = root as typeof root & { [namingMarker]?: boolean }
       const hasCssMarker = root.nodes.some(node => node.type === 'comment' && node.text === portableCssMarker)
       if (hasCssMarker) {
-        marked[namingMarker] = 'portable'
+        marked[namingMarker] = true
       }
-      if (marked[namingMarker]) {
-        if (marked[namingMarker] !== naming) {
-          throw root.error('Cannot mix portable and legacy weapp-pandacss naming in one stylesheet.')
-        }
+      if (!marked[namingMarker]) {
+        const parser = selectorParser(selectors => selectors.walkClasses((node) => {
+          node.value = encodeClassName(node.value)
+        }))
+        root.walkRules((rule) => {
+          parser.transformSync(rule, { lossless: false, updateSelector: true })
+        })
       }
-      if (naming === 'portable') {
-        if (!marked[namingMarker]) {
-          const parser = selectorParser(selectors => selectors.walkClasses((node) => {
-            node.value = encodeClassName(node.value)
-          }))
-          root.walkRules((rule) => {
-            parser.transformSync(rule, { lossless: false, updateSelector: true })
-          })
-        }
-        if (optionsRef.value.target === 'weapp') {
-          function assertVariable(name: string, node: { error: (message: string) => Error }) {
-            if (!/^--[\w-]+$/.test(name)) {
-              throw node.error(`Unsupported mini-program CSS variable "${name}". Use an ASCII identifier or a Panda token with hash.cssVar enabled.`)
-            }
+      if (optionsRef.value.target === 'weapp') {
+        function assertVariable(name: string, node: { error: (message: string) => Error }) {
+          if (!/^--[\w-]+$/.test(name)) {
+            throw node.error(`Unsupported mini-program CSS variable "${name}". Use an ASCII identifier or a Panda token with hash.cssVar enabled.`)
           }
-          root.walkDecls((decl) => {
-            if (decl.prop.startsWith('--')) {
-              assertVariable(decl.prop, decl)
-            }
-            valueParser(decl.value).walk((node) => {
-              if (node.type === 'function' && node.value.toLowerCase() === 'var') {
-                const argument = node.nodes.find(part => part.type !== 'space' && part.type !== 'comment')
-                if (argument?.type === 'word') {
-                  assertVariable(argument.value, decl)
-                }
-              }
-            })
-          })
-          root.walkAtRules('property', rule => assertVariable(rule.params.trim(), rule))
         }
+        root.walkDecls((decl) => {
+          if (decl.prop.startsWith('--')) {
+            assertVariable(decl.prop, decl)
+          }
+          valueParser(decl.value).walk((node) => {
+            if (node.type === 'function' && node.value.toLowerCase() === 'var') {
+              const argument = node.nodes.find(part => part.type !== 'space' && part.type !== 'comment')
+              if (argument?.type === 'word') {
+                assertVariable(argument.value, decl)
+              }
+            }
+          })
+        })
+        root.walkAtRules('property', rule => assertVariable(rule.params.trim(), rule))
       }
-      marked[namingMarker] = naming
-      if (naming === 'portable' && !hasCssMarker) {
+      marked[namingMarker] = true
+      if (!hasCssMarker) {
         // Persist the generation marker across parse/serialize boundaries too.
-        root.prepend({ text: portableCssMarker })
+        root.prepend({ text: portableCssMarker, raws: { left: '', right: ' ' } })
       }
     },
   }

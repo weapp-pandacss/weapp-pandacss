@@ -300,3 +300,9 @@ Uni-app 的 Tailwind 对比功能由 `WeappTailwindcss` 独立生成。移除直
 重复注册的 `@tailwindcss/postcss`；Tailwind 的绝对 `cssEntries` 与 Panda 虚拟
 CSS 入口分开，保留两套 runtime/selector 契约。见
 [插件迁移指南](./panda-plugin-migration.md)。
+
+v2 同时移除文件补丁与配置/CLI 兼容代码，删除适配包的直接依赖
+`@pandacss/config`、`@weapp-core/escape`、`c12`、`cac`、`colorette`、`dedent`、
+`defu`，以及仅供旧配置测试使用的 `lodash-es`、`@types/lodash-es`。
+`local-pkg` 保留用于生成插件的 Panda 版本验证；Babel 依赖保留用于 artifact AST
+转换。以上部分包仍由 Panda、Taro 等框架传递依赖，不能据此宣称从锁文件全部移除。

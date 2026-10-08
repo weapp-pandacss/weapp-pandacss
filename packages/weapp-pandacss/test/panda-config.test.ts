@@ -1,8 +1,8 @@
 import type { Config, PandaHooks } from '@pandacss/types'
-import { getPandaVersion } from '@/core/codegen'
 import { weappPanda } from '@/panda'
+import { getPandaVersion } from '@/panda/version'
 
-vi.mock('@/core/codegen', () => ({ getPandaVersion: vi.fn(() => '2.1.2') }))
+vi.mock('@/panda/version', () => ({ getPandaVersion: vi.fn(() => '2.1.2') }))
 
 function resolve(config: Config) {
   const hook = weappPanda().hooks!['config:resolved'] as PandaHooks['config:resolved']

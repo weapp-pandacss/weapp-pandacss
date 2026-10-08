@@ -58,13 +58,21 @@ prefix 的普通 class 前缀保留，变量前缀规范化；对象 prefix 的�
 插件仍使用受控 AST 改写生成内容，依赖已验证的 Panda 2.1.2 结构。它不执行
 适配子进程、不重新加载 Panda 配置、不自行覆盖 helper、不创建 backup。
 
-## 显式 legacy 路线
+## 删除的 v1 接口
 
-短期无法迁移的项目可以继续使用弃用的根 API 和两个 CLI 名称，在单独生成
-目录中运行旧 `panda codegen && weapp-panda codegen`，PostCSS 必须显式配置
-`{ naming: 'legacy', target: 'weapp' }`。不注册 `weappPanda()`；旧
-`escapePredicate` 与 adapter 配置只属于 legacy API/CLI。新插件产物会拒绝
-legacy codegen/rollback，portable 与 legacy CSS 不能混用。
+v2 是 breaking change，直接删除旧实现，不提供 deprecated 兼容入口。
+
+| v1 接口                                                                     | v2 迁移方式                                                      |
+| --------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| `createContext`、`inject`、`patch` 和 runtime 文件操作 API                  | 在 Panda 配置注册 `weappPanda()`，由 Panda 写入 artifacts        |
+| 适配器的 `defineConfig`、`getUserConfig`、`getPandacssConfig`、`initConfig` | 使用 `@pandacss/dev` 的 `defineConfig`；CSS 选项直接传给 PostCSS |
+| `UserConfig`、`ICreateContextOptions`、`PandacssConfigFileOptions`          | 使用 Panda 配置类型及 `IPostcssPluginOptions`                    |
+| `weapp-panda` / `weapp-pandacss` CLI、`codegen/init/rollback`               | 只运行 `panda codegen`，删除旧脚本和备份                         |
+| `escapePredicate`、PostCSS `naming` 和旧编码                                | 统一使用新编码，重新生成 runtime 与 CSS                          |
+| 内部文件的 wildcard 子路径导入                                              | 使用根入口或 `/panda`、`/postcss`、`/runtime`                    |
+
+根入口导出 `weappPanda`、`postcssPlugin`、`encodeClassName`、`encodeClassList`
+及 `IPostcssPluginOptions` 类型。旧 runtime、CSS 和配置不能与 v2 产物混用。
 
 Uni-app 示例保留 Tailwind 对比功能。`tailwind.css` 由 weapp-tailwindcss 处理，
 Panda 与手写 CSS 走 portable adapter；两个入口分开，避免不同 class 编码混用。
@@ -73,5 +81,4 @@ Tailwind PostCSS generator。`panda.css` 通过 Vite 虚拟入口先执行 Panda
 保留 Panda 的 layer 声明生成结果，再进入 adapter → rem/rpx。这样避免 Tailwind
 loader 提前移除仅含 layer 顺序声明的输入；生成依赖加入 Vite watch。
 
-legacy H5 仍需按旧方案处理其 runtime，不能通过 `target: 'web'` 获得新契约。
-新项目和五个活跃示例统一使用生成期插件。
+五个活跃示例统一使用生成期插件，H5 与小程序使用相同的 runtime 编码。
