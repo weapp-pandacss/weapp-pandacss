@@ -20,7 +20,14 @@ const adapterBin = path.join(packageRoot, 'bin/weapp-pandacss.js')
 async function fixture(extension: string, hash = false, prefix?: string | { className: string, cssVar: string }) {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'panda-plugin-'))
   try {
-    await fs.symlink(path.join(exampleRoot, 'node_modules'), path.join(root, 'node_modules'), process.platform === 'win32' ? 'junction' : 'dir')
+    // Resolve pnpm's links before linking packages into the isolated fixture.
+    // A junction to the whole node_modules directory leaves relative package
+    // links pointing outside the fixture on Windows during native ESM loading.
+    for (const name of ['@pandacss/dev', '@pandacss/preset-base', '@pandacss/preset-panda', 'weapp-pandacss', 'react', 'react-dom']) {
+      const destination = path.join(root, 'node_modules', name)
+      await fs.mkdir(path.dirname(destination), { recursive: true })
+      await fs.symlink(await fs.realpath(path.join(exampleRoot, 'node_modules', name)), destination, process.platform === 'win32' ? 'junction' : 'dir')
+    }
     await fs.writeFile(path.join(root, 'package.json'), '{"type":"module"}')
     await fs.writeFile(path.join(root, 'panda.config.mjs'), `import { weappPanda } from 'weapp-pandacss/panda'; import fs from 'node:fs';
       export default {
