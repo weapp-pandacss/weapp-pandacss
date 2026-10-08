@@ -75,7 +75,8 @@ v2 是 breaking change，直接删除旧实现，不提供 deprecated 兼容入�
 及 `IPostcssPluginOptions` 类型。旧 runtime、CSS 和配置不能与 v2 产物混用。
 
 Uni-app 示例保留 Tailwind 对比功能。`tailwind.css` 由 weapp-tailwindcss 处理，
-Panda 与手写 CSS 走 portable adapter；两个入口分开，避免不同 class 编码混用。
+其依赖链使用 `@weapp-tailwindcss/escape`。Panda 与手写 CSS 走 portable adapter；
+两个入口分开，各自使用匹配的 runtime/selector 编码。
 Tailwind generator 的 `cssEntries` 显式指向 `tailwind.css`，不再重复注册官方
 Tailwind PostCSS generator。`panda.css` 通过 Vite 虚拟入口先执行 Panda PostCSS，
 保留 Panda 的 layer 声明生成结果，再进入 adapter → rem/rpx。这样避免 Tailwind
