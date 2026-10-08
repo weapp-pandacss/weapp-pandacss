@@ -1,0 +1,24 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ]
+    }
+  },
+  "include": [
+    "src",
+    "test",
+    "test-d",
+    "bin",
+    "tsdown.config.ts"
+  ],
+  "exclude": [
+    "dist",
+    "node_modules",
+    "test/config",
+    "test/fixtures",
+    "test-d"
+  ]
+}

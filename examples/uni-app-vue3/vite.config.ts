@@ -1,6 +1,10 @@
 import path from 'node:path'
-import { defineConfig } from 'vite'
 import uni from '@dcloudio/vite-plugin-uni'
+import panda from '@pandacss/dev/postcss'
+import remToResponsivePixel from 'postcss-rem-to-responsive-pixel'
+import tailwindcss from 'tailwindcss'
+import { defineConfig } from 'vite'
+import weappPanda from 'weapp-pandacss/postcss'
 import { UnifiedViteWeappTailwindcssPlugin as uvwt } from 'weapp-tailwindcss/vite'
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -16,10 +20,10 @@ export default defineConfig({
   css: {
     postcss: {
       plugins: [
-        require('tailwindcss')(),
-        require('@pandacss/dev/postcss')(),
-        require('weapp-pandacss/postcss')(),
-        require('postcss-rem-to-responsive-pixel')({
+        tailwindcss(),
+        panda(),
+        weappPanda(),
+        remToResponsivePixel({
           // 32 意味着 1rem = 32rpx
           rootValue: 32,
           // 默认所有属性都转化

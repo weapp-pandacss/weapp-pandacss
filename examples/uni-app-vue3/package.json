@@ -1,9 +1,10 @@
 {
-  "name": "uni-preset-vue",
+  "name": "@weapp-pandacss/uni-app-vue3",
   "version": "0.0.0",
+  "private": true,
   "scripts": {
     "dev": "npm run dev:mp-weixin",
-    "build": "npm run build:mp-weixin",
+    "build": "pnpm codegen && uni build -p mp-weixin",
     "dev:app": "uni -p app",
     "dev:app-android": "uni -p app-android",
     "dev:app-ios": "uni -p app-ios",
@@ -39,10 +40,12 @@
     "build:quickapp-webview-huawei": "uni build -p quickapp-webview-huawei",
     "build:quickapp-webview-union": "uni build -p quickapp-webview-union",
     "type-check": "vue-tsc --noEmit",
-    "prepare": "panda codegen && weapp-panda codegen",
     "open:dev": "weapp open -p dist/dev/mp-weixin",
     "open:build": "weapp open -p dist/build/mp-weixin",
-    "postinstall": "weapp-tw patch"
+    "codegen": "panda codegen && weapp-panda codegen",
+    "lint": "eslint src panda.config.ts vite.config.ts && pnpm lint:styles",
+    "lint:styles": "stylelint --allow-empty-input \"src/**/*.{css,scss,vue}\"",
+    "typecheck": "vue-tsc --noEmit"
   },
   "dependencies": {
     "@dcloudio/uni-app": "3.0.0-alpha-4020120240618002",
@@ -71,10 +74,19 @@
     "@dcloudio/uni-cli-shared": "3.0.0-alpha-4020120240618002",
     "@dcloudio/uni-stacktracey": "3.0.0-alpha-4020120240618002",
     "@dcloudio/vite-plugin-uni": "3.0.0-alpha-4020120240618002",
+    "@pandacss/dev": "2.1.2",
+    "@pandacss/preset-base": "2.1.2",
+    "@pandacss/preset-panda": "2.1.2",
     "@vue/runtime-core": "^3.4.31",
     "@vue/tsconfig": "^0.5.1",
+    "cross-env": "^7.0.3",
+    "postcss": "catalog:",
+    "postcss-rem-to-responsive-pixel": "^6.0.1",
+    "tailwindcss": "^3.4.4",
     "typescript": "^5.5.3",
     "vite": "5.3.3",
-    "vue-tsc": "^2.0.26"
+    "vue-tsc": "^3.3.0",
+    "weapp-pandacss": "workspace:*",
+    "weapp-tailwindcss": "^3.3.7"
   }
 }

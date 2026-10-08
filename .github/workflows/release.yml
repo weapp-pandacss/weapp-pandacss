@@ -1,58 +1,124 @@
+# repoctl-managed: release/v2
 name: Release
 
-permissions:
-  contents: read
-
 on:
-  workflow_dispatch:
   push:
     branches:
       - main
-      - next
       - alpha
       - beta
+      - rc
+      - next
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Release operation
+        required: true
+        default: auto
+        type: choice
+        options:
+          - auto
+          - prepare
+          - publish
+          - publish-unpublished
+          - reconcile
+      package:
+        description: Package used for unpublished-version recovery
+        required: false
+        type: string
+      version:
+        description: Version used for unpublished-version recovery
+        required: false
+        type: string
+      dry-run:
+        description: Preview release reconciliation without changes
+        required: false
+        default: false
+        type: boolean
+      source-sha:
+        description: Original main commit to recover (publish modes only)
+        required: false
+        type: string
+
+env:
+  HUSKY: 0
+  NPM_CONFIG_PROVENANCE: true
+  npm_config_registry: https://registry.npmjs.org
+
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   release:
-    permissions:
-      contents: write # to be able to publish a GitHub release
-      issues: write # to be able to comment on released issues
-      pull-requests: write # to be able to comment on released pull requests
-      id-token: write # to enable use of OIDC for npm provenance
+    name: Release
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Validate GitHub App configuration
+        env:
+          APP_CLIENT_ID: ${{ vars.REPOCTL_APP_CLIENT_ID }}
+          APP_PRIVATE_KEY_CONFIGURED: ${{ secrets.REPOCTL_APP_PRIVATE_KEY != '' }}
+        run: |
+          if { [ -n "$APP_CLIENT_ID" ] && [ "$APP_PRIVATE_KEY_CONFIGURED" != 'true' ]; } ||
+             { [ -z "$APP_CLIENT_ID" ] && [ "$APP_PRIVATE_KEY_CONFIGURED" = 'true' ]; }; then
+            echo 'Configure both REPOCTL_APP_CLIENT_ID and REPOCTL_APP_PRIVATE_KEY.' >&2
+            exit 1
+          fi
+
+      - name: Create GitHub App token
+        if: ${{ vars.REPOCTL_APP_CLIENT_ID != '' }}
+        id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          client-id: ${{ vars.REPOCTL_APP_CLIENT_ID }}
+          private-key: ${{ secrets.REPOCTL_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+
+      - name: Checkout Repo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
-      # run before Set node , otherwise show Unable to locate executable file: pnpm error
-      - name: Install pnpm
-        uses: pnpm/action-setup@v2
+          token: ${{ steps.app-token.outputs.token || secrets.REPOCTL_RELEASE_TOKEN || secrets.CHANGESETS_RELEASE_TOKEN || github.token }}
 
-      - name: Set node
-        uses: actions/setup-node@v4
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+
+      - name: Setup Node.js environment
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: 20
+          node-version: 24
           cache: pnpm
-          registry-url: 'https://registry.npmjs.org'
+          registry-url: https://registry.npmjs.org
+
+      - name: Install npm with trusted publishing support
+        run: npm install --global npm@11.16.0 --registry=https://registry.npmjs.org
 
       - name: Install Dependencies
-        run: pnpm i
+        run: pnpm install --frozen-lockfile
 
-      - name: Build
-        run: pnpm run build
-      - name: Test
-        run: pnpm run test
-      - uses: codecov/codecov-action@v4
-      - name: Release
-        run: npx semantic-release
+      - name: Run repo release CI
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        # https://github.com/semantic-release/semantic-release/issues/2313
-        # continue-on-error: true
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token || secrets.REPOCTL_RELEASE_TOKEN || secrets.CHANGESETS_RELEASE_TOKEN || github.token }}
+          REPO_RELEASE_MODE: ${{ inputs.mode || 'auto' }}
+          REPO_RELEASE_PACKAGE: ${{ inputs.package }}
+          REPO_RELEASE_VERSION: ${{ inputs.version }}
+          REPO_RELEASE_DRY_RUN: ${{ inputs.dry-run }}
+          REPO_RELEASE_RECOVERY_SOURCE_SHA: ${{ inputs.source-sha }}
+        run: pnpm exec repo release ci
 
-      # - name: Publish to NPM
-      #   run: pnpm publish --access public --no-git-checks
-      #   env:
-      #     NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
-      #     NPM_CONFIG_PROVENANCE: true
+      - name: Preserve npm publish progress
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: npm-publish-progress-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            pnpm-publish-summary.json
+            repoctl-publish-progress.json
+            repoctl-release-progress.json
+          if-no-files-found: ignore
+          retention-days: 14

@@ -1,6 +1,6 @@
 module.exports = {
   env: {
-    NODE_ENV: '"production"'
+    NODE_ENV: '"production"',
   },
   defineConstants: {
   },
@@ -33,5 +33,5 @@ module.exports = {
     //       postProcess: (context) => ({ ...context, outputPath: path.join(staticDir, 'index.html') })
     //     }))
     // }
-  }
+  },
 }

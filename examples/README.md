@@ -1,12 +1,7 @@
 # Examples
 
-这是一个 `pnpm` 搭建的 `monorepo`
+The Panda examples are workspaces in the root monorepo. Install dependencies once at the repository root with `pnpm install`, then run `pnpm build` to build the adapter and all four applications. Each build generates Panda CSS 2.1.2 runtime files and applies the local weapp adapter through `workspace:*`.
 
-在运行之前，你需要先对根目录里的 `weapp-pandacss` 进行:
+Run one example with `pnpm --filter @weapp-pandacss/taro-app build` (or `taro-app-vue3`, `uni-app-vue3`, `react-app`). Build output and generated `styled-system` directories are ignored.
 
-1. `pnpm i`
-2. `pnpm build`
-
-接着在当前目录下执行 `pnpm i`
-
-这样才能运行这个目录里的这些项目用例
+`taro-app-linaria` is preserved as historical reference source and does not participate in the Panda workspace.

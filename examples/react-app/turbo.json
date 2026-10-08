@@ -1,0 +1,31 @@
+{
+  "extends": [
+    "//"
+  ],
+  "tasks": {
+    "build": {
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "postcss.config.cjs"
+      ],
+      "outputs": [
+        "dist/**",
+        "styled-system/**"
+      ],
+      "env": [
+        "NODE_ENV",
+        "TARO_ENV"
+      ]
+    },
+    "typecheck": {
+      "dependsOn": [
+        "build",
+        "^typecheck"
+      ],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "styled-system/**"
+      ]
+    }
+  }
+}
