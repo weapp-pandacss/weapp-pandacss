@@ -2,8 +2,8 @@ import type { UserConfigExport } from '@tarojs/cli'
 import path from 'node:path'
 import process from 'node:process'
 import { defineConfig } from '@tarojs/cli'
-// import { UnifiedWebpackPluginV5 } from 'weapp-tailwindcss/webpack';
 import TsconfigPathsPlugin from 'tsconfig-paths-webpack-plugin'
+import { ProgressPlugin } from 'webpack'
 import devConfig from './dev'
 import prodConfig from './prod'
 // https://taro-docs.jd.com/docs/next/config#defineconfig-辅助函数
@@ -72,6 +72,9 @@ export default defineConfig(async (merge) => {
         },
       },
       webpackChain(chain) {
+        // Taro's webpackbar mutates ProgressPlugin options and fails modern
+        // Webpack validation. Use the native plugin instead.
+        chain.plugin('webpackbar').use(ProgressPlugin, [{}])
         chain.resolve.plugin('tsconfig-paths').use(TsconfigPathsPlugin)
         chain.merge({
           module: {
@@ -83,14 +86,6 @@ export default defineConfig(async (merge) => {
               },
             ],
           },
-          // plugin: {
-          //   install: {
-          //     plugin: UnifiedWebpackPluginV5,
-          //     args: [{
-          //       appType: 'taro'
-          //     }]
-          //   }
-          // }
         })
       },
     },
@@ -120,6 +115,7 @@ export default defineConfig(async (merge) => {
         },
       },
       webpackChain(chain) {
+        chain.plugin('webpackbar').use(ProgressPlugin, [{}])
         chain.resolve.plugin('tsconfig-paths').use(TsconfigPathsPlugin)
       },
     },

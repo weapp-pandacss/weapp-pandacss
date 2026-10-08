@@ -13,23 +13,19 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
   },
   "devDependencies": {
     "@pandacss/dev": "2.1.2",
     "@pandacss/preset-base": "2.1.2",
     "@pandacss/preset-panda": "2.1.2",
-    "@types/react": "^18.3.3",
-    "@types/react-dom": "^18.2.22",
-    "@vitejs/plugin-react": "^4.3.1",
-    "cross-env": "^7.0.3",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
     "postcss": "catalog:",
-    "postcss-rem-to-responsive-pixel": "^6.0.1",
-    "tailwindcss": "^3.4.4",
-    "typescript": "^5.5.3",
-    "vite": "^5.3.3",
-    "weapp-pandacss": "workspace:*",
-    "weapp-tailwindcss": "^3.3.7"
+    "typescript": "catalog:",
+    "vite": "^8.3.3",
+    "weapp-pandacss": "workspace:*"
   }
 }

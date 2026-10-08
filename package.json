@@ -7,13 +7,13 @@
   "description": "Panda CSS adapters and examples for mini-programs, managed with repoctl",
   "author": "ice breaker <hi@sonofmagic.top>",
   "license": "MIT",
-  "homepage": "https://github.com/sonofmagic/weapp-pandacss",
+  "homepage": "https://github.com/weapp-pandacss/weapp-pandacss",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/sonofmagic/weapp-pandacss.git"
+    "url": "git+https://github.com/weapp-pandacss/weapp-pandacss.git"
   },
   "bugs": {
-    "url": "https://github.com/sonofmagic/weapp-pandacss/issues"
+    "url": "https://github.com/weapp-pandacss/weapp-pandacss/issues"
   },
   "keywords": [
     "pandacss",
@@ -68,21 +68,21 @@
   "devDependencies": {
     "@commitlint/cli": "^21.2.3",
     "@eslint/config-inspector": "^3.5.0",
-    "@types/node": "^26.6.3",
+    "@types/node": "^26.6.4",
     "@vitest/coverage-v8": "~5.0.3",
     "eslint": "^10.12.0",
-    "execa": "^10.0.1",
+    "execa": "^10.1.0",
     "husky": "^9.1.7",
     "lint-staged": "^17.6.0",
     "only-allow": "^1.2.2",
-    "repoctl": "^5.8.0",
+    "repoctl": "^5.8.1",
     "stylelint": "^17.16.0",
     "tailwindcss": "^4.3.3",
     "tsd": "^0.33.0",
     "tsdown": "0.23.0",
-    "turbo": "^2.11.6",
-    "typescript": "^6.0.3",
-    "vitest": "~5.0.3",
+    "turbo": "^2.11.7",
+    "typescript": "catalog:",
+    "vitest": "catalog:",
     "yaml": "^2.9.1"
   },
   "publishConfig": {

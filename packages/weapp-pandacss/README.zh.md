@@ -319,8 +319,13 @@ export default defineConfig({
 
 [Uni-app vue3 vite](../../examples/uni-app-vue3)
 
+[Weapp Vite + Wevu Vue SFC](../../examples/weapp-vite-app/README.md)：包含 `css()`、
+`cva()`、动态 class 和实际编译产物测试。全新安装先执行 `wv prepare`；Panda 2
+通过 `plugins[].hooks['codegen:done']` 同步调用适配 CLI，避免重新生成 runtime
+后丢失转义补丁。
+
 ## Bugs & Issues
 
 目前这个插件正在快速的开发中，如果遇到 `Bug` 或者想提出 `Issue`
 
-[欢迎提交问题](https://github.com/sonofmagic/weapp-pandacss/issues)
+[欢迎提交问题](https://github.com/weapp-pandacss/weapp-pandacss/issues)

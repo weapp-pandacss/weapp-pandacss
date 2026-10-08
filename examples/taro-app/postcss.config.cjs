@@ -1,7 +1,6 @@
 const process = require('node:process')
 
 const plugins = {
-  // 'tailwindcss': {},
   '@pandacss/dev/postcss': {},
 }
 // https://taro-docs.jd.com/docs/envs#processenvtaro_env

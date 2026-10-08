@@ -3,13 +3,12 @@
     "target": "es2017",
     "jsx": "preserve",
     "experimentalDecorators": true,
-    "baseUrl": ".",
     "rootDir": ".",
-    "module": "commonjs",
-    "moduleResolution": "node",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
     "paths": {
       "styled-system/*": [
-        "styled-system/*"
+        "./styled-system/*"
       ]
     },
     "resolveJsonModule": true,
@@ -21,6 +20,7 @@
     "noImplicitAny": false,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
+    "noEmit": true,
     "outDir": "lib",
     "preserveConstEnums": true,
     "removeComments": false,

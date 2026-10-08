@@ -5,14 +5,14 @@
   "description": "Use Panda CSS in WeChat and other mini-program runtimes",
   "author": "ice breaker <hi@sonofmagic.top>",
   "license": "MIT",
-  "homepage": "https://github.com/sonofmagic/weapp-pandacss",
+  "homepage": "https://github.com/weapp-pandacss/weapp-pandacss",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/sonofmagic/weapp-pandacss.git",
+    "url": "git+https://github.com/weapp-pandacss/weapp-pandacss.git",
     "directory": "packages/weapp-pandacss"
   },
   "bugs": {
-    "url": "https://github.com/sonofmagic/weapp-pandacss/issues"
+    "url": "https://github.com/weapp-pandacss/weapp-pandacss/issues"
   },
   "keywords": [
     "panda",
@@ -93,10 +93,10 @@
     "@pandacss/config": "2.1.2",
     "@weapp-core/escape": "8.0.0",
     "c12": "^3.3.4",
-    "cac": "^7.0.0",
+    "cac": "^7.0.1",
     "colorette": "^2.0.20",
-    "dedent": "^1.7.0",
-    "defu": "^6.1.4",
+    "dedent": "^1.7.2",
+    "defu": "^6.1.7",
     "local-pkg": "^1.2.1",
     "merge": "^2.1.1",
     "postcss-selector-parser": "^7.1.6"
@@ -105,12 +105,8 @@
     "@pandacss/dev": "2.1.2",
     "@pandacss/preset-base": "2.1.2",
     "@pandacss/preset-panda": "2.1.2",
-    "@types/babel__generator": "^7.6.8",
-    "@types/babel__traverse": "^7.20.7",
-    "@types/lodash": "^4.17.21",
     "@types/lodash-es": "^4.17.12",
-    "lodash": "^4.17.21",
-    "lodash-es": "^4.17.21",
+    "lodash-es": "^4.18.1",
     "tsdown": "0.23.0"
   },
   "publishConfig": {

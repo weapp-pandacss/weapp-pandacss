@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "path": "vitest.config.ts",
+  "source": {
+    "package": "@icebreakers/monorepo-templates",
+    "version": "2.3.1",
+    "assetPath": "vitest.config.ts",
+    "hash": "877732600228088446fcca30b7ec9742ab0f4387dc5235e6f21b32a07b60df7f"
+  },
+  "upstream": {
+    "hash": "877732600228088446fcca30b7ec9742ab0f4387dc5235e6f21b32a07b60df7f",
+    "content": "aW1wb3J0IHsgZGVmaW5lQ29uZmlnIH0gZnJvbSAndml0ZXN0L2NvbmZpZycKaW1wb3J0IHsgZGVmaW5lVml0ZXN0Q29uZmlnIH0gZnJvbSAncmVwb2N0bC90b29saW5nJwoKZXhwb3J0IGRlZmF1bHQgZGVmaW5lQ29uZmlnKGFzeW5jICgpID0+IGF3YWl0IGRlZmluZVZpdGVzdENvbmZpZygpKQo="
+  }
+}

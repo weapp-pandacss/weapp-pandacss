@@ -282,7 +282,6 @@ export default function Index() {
         Hello
       </dViewiv> */}
 
-      <View className="px-4 py-1 text-center bg-slate-400">TAILWIND</View>
     </View>
   )
 }

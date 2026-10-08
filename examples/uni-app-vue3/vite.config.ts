@@ -1,14 +1,14 @@
 import path from 'node:path'
 import uni from '@dcloudio/vite-plugin-uni'
 import panda from '@pandacss/dev/postcss'
+import tailwindcss from '@tailwindcss/postcss'
 import remToResponsivePixel from 'postcss-rem-to-responsive-pixel'
-import tailwindcss from 'tailwindcss'
 import { defineConfig } from 'vite'
 import weappPanda from 'weapp-pandacss/postcss'
-import { UnifiedViteWeappTailwindcssPlugin as uvwt } from 'weapp-tailwindcss/vite'
+import { WeappTailwindcss } from 'weapp-tailwindcss/vite'
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [uni(), uvwt()],
+  plugins: [uni(), WeappTailwindcss()],
   resolve: {
     alias: [
       {

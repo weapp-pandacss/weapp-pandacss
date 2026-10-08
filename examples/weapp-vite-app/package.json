@@ -1,0 +1,51 @@
+{
+  "name": "@weapp-pandacss/weapp-vite-app",
+  "type": "module",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Panda CSS 2 with weapp-vite and Wevu Vue SFCs",
+  "author": "ice breaker <1324318532@qq.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/weapp-pandacss/weapp-pandacss.git",
+    "directory": "examples/weapp-vite-app"
+  },
+  "bugs": {
+    "url": "https://github.com/weapp-pandacss/weapp-pandacss/issues"
+  },
+  "keywords": [],
+  "scripts": {
+    "dev": "pnpm prepare:types && pnpm codegen && wv dev -p weapp",
+    "dev:open": "pnpm dev --open",
+    "build": "pnpm prepare:types && pnpm codegen && wv build -p weapp",
+    "codegen": "panda codegen",
+    "prepare:types": "wv prepare",
+    "typecheck": "pnpm prepare:types && vue-tsc --noEmit -p .weapp-vite/tsconfig.app.json && tsc --noEmit -p tsconfig.node.json",
+    "lint": "eslint src test *.config.ts && pnpm lint:styles",
+    "lint:styles": "stylelint --allow-empty-input \"src/**/*.{css,vue}\"",
+    "test": "vitest run",
+    "open": "wv open"
+  },
+  "dependencies": {
+    "vue": "3.5.43",
+    "wevu": "7.4.0"
+  },
+  "devDependencies": {
+    "@mpcore/test": "0.1.15",
+    "@mpcore/vitest": "0.2.7",
+    "@mpcore/weapp-vite": "0.1.29",
+    "@pandacss/dev": "2.1.2",
+    "@pandacss/preset-base": "2.1.2",
+    "@pandacss/preset-panda": "2.1.2",
+    "@types/node": "^26.6.4",
+    "miniprogram-api-typings": "^5.2.3",
+    "postcss": "catalog:",
+    "postcss-rem-to-responsive-pixel": "^7.0.7",
+    "typescript": "catalog:",
+    "vitest": "catalog:",
+    "vue-tsc": "^3.3.12",
+    "weapp-pandacss": "workspace:*",
+    "weapp-vite": "7.4.0"
+  }
+}

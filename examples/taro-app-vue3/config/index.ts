@@ -2,6 +2,7 @@ import path from 'node:path'
 import process from 'node:process'
 import NutUIResolver from '@nutui/nutui-taro/dist/resolver'
 import Components from 'unplugin-vue-components/webpack'
+import { ProgressPlugin } from 'webpack'
 import devConfig from './dev'
 import prodConfig from './prod'
 
@@ -44,6 +45,8 @@ const config = {
   },
   mini: {
     webpackChain(chain) {
+      // Taro's webpackbar is incompatible with modern ProgressPlugin options.
+      chain.plugin('webpackbar').use(ProgressPlugin, [{}])
       chain.plugin('unplugin-vue-components').use(
         Components({
           resolvers: [NutUIResolver({ taro: true })],
@@ -85,6 +88,7 @@ const config = {
   },
   h5: {
     webpackChain(chain) {
+      chain.plugin('webpackbar').use(ProgressPlugin, [{}])
       chain.plugin('unplugin-vue-components').use(
         Components({
           resolvers: [NutUIResolver({ taro: true })],
