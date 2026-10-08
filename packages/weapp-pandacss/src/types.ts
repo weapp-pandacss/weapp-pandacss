@@ -2,21 +2,12 @@
 type CascadeLayersPluginOptions = import('@csstools/postcss-cascade-layers', { with: { 'resolution-mode': 'import' } }).pluginOptions
 type IsPseudoClassPluginOptions = import('@csstools/postcss-is-pseudo-class', { with: { 'resolution-mode': 'import' } }).pluginOptions
 
-export type PandacssConfigFileOptions = import('@pandacss/config', { with: { 'resolution-mode': 'import' } }).LoadConfigOptions
-
-export interface ICreateContextOptions {
-  /**
-   * @description 转义断言函数
-   */
-  escapePredicate?: string // ((className: string) => boolean) |
-  pandaConfig?: Partial<PandacssConfigFileOptions>
-  log?: boolean
-}
-
 /**
  * @description 核心插件 `weapp-pandacss/postcss` 的配置项
  */
 export interface IPostcssPluginOptions {
+  /** CSS target; both targets use the same portable class names. */
+  target?: 'weapp' | 'web'
   /**
    * @description 是否禁用
    * @default false
@@ -60,22 +51,4 @@ export interface IPostcssPluginOptions {
    * @description IsPseudoClassPluginOptions
    */
   isPseudoClassPluginOptions?: IsPseudoClassPluginOptions
-}
-
-/**
- * @description 用户在 `weapp-pandacss.config.ts` 文件里定义的配置
- */
-export interface UserConfig {
-  /**
-   * @description postcss 配置
-   */
-  postcss?: Pick<
-    IPostcssPluginOptions,
-    'selectorReplacement' | 'removeNegationPseudoClass' | 'disabled'
-  >
-
-  /**
-   * @description 代码生成器上下文配置
-   */
-  context?: Pick<ICreateContextOptions, 'escapePredicate' | 'pandaConfig'>
 }

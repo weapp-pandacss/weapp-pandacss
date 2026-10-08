@@ -1,5 +1,5 @@
 {
-  "miniprogramRoot": "dist/",
+  "miniprogramRoot": "dist/weapp/",
   "projectname": "taro-app-vue3",
   "description": "",
   "appid": "wxb3d842a4a7e3440d",
@@ -18,7 +18,7 @@
   },
   "compileType": "miniprogram",
   "libVersion": "3.1.2",
-  "srcMiniprogramRoot": "dist/",
+  "srcMiniprogramRoot": "dist/weapp/",
   "packOptions": {
     "ignore": [],
     "include": []

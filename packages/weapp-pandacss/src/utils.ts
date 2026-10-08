@@ -15,31 +15,4 @@ type Ref<T> = ReturnType<typeof ref<T>>
 
 export { normalizeString, ref, Ref }
 
-export { default as dedent } from 'dedent'
-
-export { defu } from 'defu'
-
 export { default as merge } from 'merge'
-
-export function createSingleExecutionFunction<T extends (...args: any[]) => Promise<any>>(fn: T) {
-  let promise: ReturnType<T> | null = null
-  let executed = false
-  const wrapFn = function (...args: Parameters<T>): ReturnType<T> {
-    if (!promise) {
-      promise = fn(...args).then(
-        (result) => {
-          executed = true
-          return result
-        },
-        (error) => {
-          executed = false
-          promise = null
-          throw error
-        },
-      ) as ReturnType<T>
-    }
-    return promise as ReturnType<T>
-  }
-  wrapFn.executed = executed
-  return wrapFn
-}

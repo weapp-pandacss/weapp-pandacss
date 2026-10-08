@@ -3,8 +3,9 @@ import { resolve } from 'node:path'
 import postcss from 'postcss'
 import postcssPlugin from '@/postcss'
 import { useOptions } from '@/postcss/plugins'
-// import parser from 'postcss-selector-parser'
 import { cssRoot } from './util'
+
+const marker = '/*! weapp-pandacss:portable-v1 */\n'
 
 describe('postcss', () => {
   it('default', async () => {
@@ -113,7 +114,7 @@ describe('postcss', () => {
       }),
     ]).process(`.peer~.peerHovercbg_redd500{}`)
     // 前面不能有伪元素和 [data-*]
-    expect(css).toBe(`.peer~.peerHovercbg_redd500{}`)
+    expect(css).toBe(`${marker}.peer~.peerHovercbg_redd500{}`)
   })
 
   it('_peerHover case disabled enable', async () => {
@@ -157,7 +158,7 @@ describe('postcss', () => {
     const { css } = await postcss([postcssPlugin()]).process(
       `.custom-tabs .tabs__scroll { background: red; }`,
     )
-    expect(css).toBe('.custom-tabs .tabs__scroll { background: red; }')
+    expect(css).toBe(`${marker}.custom-tabs .tabs__scroll { background: red; }`)
   })
 
   it('universal selector string literal', async () => {
@@ -169,7 +170,7 @@ describe('postcss', () => {
         },
       }),
     ]).process(`*, *::before, *::after, ::backdrop{}`)
-    expect(css).toBe('view,view::before,view::after,::backdrop{}')
+    expect(css).toBe(`${marker}view,view::before,view::after,::backdrop{}`)
   })
 
   it('useOptions default', () => {
@@ -199,7 +200,7 @@ describe('postcss', () => {
     const { css } = await postcss([postcssPlugin()]).process(
       `:where(:root, :host, :happy) {}`,
     )
-    expect(css).toBe('page,page,:happy {}')
+    expect(css).toBe(`${marker}page,page,:happy {}`)
   })
 
   it('optionsRef disabled option', async () => {

@@ -1,32 +1,22 @@
 # weapp-pandacss
 
-Use [Panda CSS 2.1.2](https://panda-css.com/) in WeChat and other mini-program runtimes.
-The package rewrites Panda's generated selectors for mini-program CSS rules while
-keeping the normal Panda authoring API intact.
+Use [Panda CSS 2.1.2](https://panda-css.com/) in mini-programs and Web with matching, portable class names. The Panda plugin transforms generated runtime artifacts through ASTs before Panda writes them. The PostCSS plugin converts the CSS using the same naming contract.
 
-## Install
+## Install and configure
+
+Use Node.js 22.18+ or 24.11+.
 
 ```bash
 pnpm add -D @pandacss/dev@2.1.2 @pandacss/preset-base@2.1.2 @pandacss/preset-panda@2.1.2 weapp-pandacss postcss
 ```
 
-Add the Panda and weapp plugins to `postcss.config.cjs`:
-
-```js
-module.exports = {
-  plugins: {
-    '@pandacss/dev/postcss': {},
-    'weapp-pandacss/postcss': {},
-  },
-}
-```
-
-Configure Panda for ESM runtime files in mini-program projects:
-
 ```ts
+// panda.config.ts
 import { defineConfig } from '@pandacss/dev'
+import { weappPanda } from 'weapp-pandacss/panda'
 
 export default defineConfig({
+  plugins: [weappPanda()],
   presets: ['@pandacss/preset-base', '@pandacss/preset-panda'],
   include: ['./src/**/*.{js,jsx,ts,tsx,vue}'],
   outdir: 'styled-system',
@@ -35,24 +25,37 @@ export default defineConfig({
 })
 ```
 
-Generate Panda's runtime and inject the mini-program escape layer together:
-
-```json
-{
-  "scripts": {
-    "prepare": "panda codegen && weapp-panda codegen"
-  }
+```js
+// postcss.config.cjs
+module.exports = {
+  plugins: {
+    '@pandacss/dev/postcss': {},
+    'weapp-pandacss/postcss': { target: 'weapp' },
+    // Put any rem/rpx conversion after the adapter.
+  },
 }
 ```
 
-`weapp-panda codegen` supports both Panda 2's default `helpers.js` and explicit
-`helpers.mjs` output. It is safe to run repeatedly; `weapp-panda rollback`
-restores the last generated helper backup.
+Add `@layer reset, base, tokens, recipes, utilities;` to your global CSS. Generate the runtime with `panda codegen` before building or starting development. Panda's PostCSS integration also runs the plugin when regenerating artifacts. Ignore `styled-system` in Git.
 
-The full Chinese guide and migration notes are in [README.zh.md](./README.zh.md).
-The repository includes Taro React, Taro Vue, Uni-app Vue, Vite React, and Weapp Vite + Wevu examples
-under [examples/](../../examples/).
+For Web/H5, register both plugins and use `target: 'web'`. Web keeps layers and pseudo-selector semantics; both targets use the same class names. Use separate generated directories and matching bundler aliases when building targets in parallel (see the Taro and Uni-app examples).
 
-The [Wevu example](../../examples/weapp-vite-app/README.md) uses a Panda 2 local
-plugin's synchronous `codegen:done` hook to patch each runtime regeneration.
-Run `wv prepare` before codegen on a fresh checkout to create its managed types.
+## Naming and public entries
+
+Ordinary ASCII identifiers stay readable. Special characters become `_wp_<hex codepoint>_`; original `_wp_` markers and leading digits/hyphens are escaped too. `c_red.500` becomes `c_red_wp_2e_500`. Encode hand-written class lists before passing them to the UI:
+
+```ts
+import { encodeClassList } from 'weapp-pandacss/runtime'
+
+const className = encodeClassList('custom/active 中文')
+```
+
+Keep authored CSS selectors in their original form (with normal CSS escapes). PostCSS encodes them. Do not encode `css()`, recipe outputs, or already encoded names again. `cx()` joins classes without encoding. Generated JS and CSS carry markers so the adapter can detect already converted artifacts.
+
+The plugin enables Panda's native `hash.cssVar` and normalizes its variable prefix; it preserves your `hash.className` setting. Configured class prefixes and recipe labels with unsafe heads or reserved markers are canonicalized before Panda escapes CSS. It never renames variable declarations. In mini-program mode, unsupported hand-written variable identifiers fail with a diagnostic; use ASCII identifiers. `disabled: true` disables the entire CSS adapter.
+
+`weapp-pandacss/panda`, `/postcss` and `/runtime` provide ESM and CJS entries with declarations. The root entry exports `weappPanda`, `postcssPlugin`, `encodeClassName` and `encodeClassList`. Version 2 removes the old file-patching/configuration APIs, both adapter CLI names and the PostCSS `naming` option. PostCSS options are passed directly to the plugin.
+
+Panda 2.1.2 with `.js` or `.mjs` output is supported. Panda source-transform optimizations that inline raw classes and bypass runtime are outside this release's scope. See the [Chinese guide](./README.zh.md) and [2.0 migration guide](../../docs/panda-plugin-migration.md) for configuration and breaking changes.
+
+The repository includes [Taro React, Taro Vue, Uni-app Vue, React Web and Weapp Vite + Wevu](../../examples/). The Wevu example runs `wv prepare` before Panda codegen on a clean checkout.

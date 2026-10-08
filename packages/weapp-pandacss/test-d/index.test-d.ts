@@ -1,16 +1,21 @@
+import type { PandaPlugin } from '@pandacss/types'
 import type { PluginCreator } from 'postcss'
-import type { UserConfig } from 'weapp-pandacss'
-import { expectAssignable, expectType } from 'tsd'
+import type { IPostcssPluginOptions } from 'weapp-pandacss'
+import { expectAssignable, expectError, expectType } from 'tsd'
+import * as api from 'weapp-pandacss'
 import {
-  createContext,
-  defineConfig,
   postcssPlugin,
 } from 'weapp-pandacss'
+import { weappPanda } from 'weapp-pandacss/panda'
+import { encodeClassList, encodeClassName } from 'weapp-pandacss/runtime'
 
-expectAssignable<UserConfig>(defineConfig({
-  context: {
-    escapePredicate: 'true',
-  },
-}))
 expectAssignable<PluginCreator<any>>(postcssPlugin)
-expectType<Promise<Awaited<ReturnType<typeof createContext>>>>(createContext())
+expectAssignable<PandaPlugin>(weappPanda())
+expectAssignable<PandaPlugin>(api.weappPanda())
+expectType<string>(encodeClassName('a.b'))
+expectType<string>(encodeClassList('a.b c'))
+expectAssignable<IPostcssPluginOptions>({ target: 'web', disabled: true })
+postcssPlugin({ target: 'web' })
+expectError(postcssPlugin({ naming: 'legacy' }))
+expectError(api.createContext())
+expectError(api.defineConfig({}))

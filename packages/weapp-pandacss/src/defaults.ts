@@ -1,18 +1,8 @@
-import type { ICreateContextOptions, IPostcssPluginOptions } from '@/types'
-import process from 'node:process'
-
-export function getCreateContextDefaults(): Required<ICreateContextOptions> {
-  return {
-    pandaConfig: {
-      cwd: process.cwd(),
-    },
-    log: false,
-    escapePredicate: 'true',
-  }
-}
+import type { IPostcssPluginOptions } from '@/types'
 // 有数组的情况会合并
 export function getPostcssPluginDefaults(): Required<IPostcssPluginOptions> {
   return {
+    target: 'weapp',
     selectorReplacement: {
       cascadeLayers: 'n',
       root: 'page',

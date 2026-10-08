@@ -1,6 +1,9 @@
+import process from 'node:process'
 import { defineConfig } from '@pandacss/dev'
+import { weappPanda } from 'weapp-pandacss/panda'
 
 export default defineConfig({
+  plugins: [weappPanda()],
   presets: ['@pandacss/preset-base', '@pandacss/preset-panda'],
   // Whether to use css reset
   preflight: true,
@@ -17,7 +20,8 @@ export default defineConfig({
   },
 
   // The output directory for your css system
-  outdir: 'styled-system',
+  outdir: `styled-system/${process.env.TARO_ENV || 'weapp'}`,
+  importMap: 'styled-system',
   outExtension: 'mjs',
   forceImportExtension: true,
 })

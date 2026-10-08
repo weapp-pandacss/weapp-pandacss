@@ -4,7 +4,7 @@
 
 原因在于，`pandacss` 在运行时使用了 `cascade-layers` 的特性来调配选择器的优先级。
 
-而微信小程序和那些旧的浏览器一样，`wxss`不支持 `@layer`，所以要安装这个包。
+而微信小程序和那些旧的浏览器一样，`wxss`不支持 `@layer`，adapter 内部包含这个插件，用户无需重复注册。`target: 'web'` 保留原生 layers。
 
 > - <https://developer.mozilla.org/en-US/docs/Web/CSS/@layer>
 > - <https://github.com/chakra-ui/panda/discussions/844>
@@ -17,7 +17,7 @@ module.exports = {
     '@pandacss/dev/postcss': {}, // [0]
     //  不需要注册它，因为 weapp-pandacss 里面已经包含了
     // '@csstools/postcss-cascade-layers': {}, // [1]
-    'weapp-pandacss/postcss': {} // [2]
+    'weapp-pandacss/postcss': { target: 'weapp' } // [2]
   }
 }
 ```
@@ -28,4 +28,5 @@ module.exports = {
 
 详见 `https://www.npmjs.com/package/@csstools/postcss-cascade-layers`
 
-这里由于 `:not(#\#)` 有小程序不兼容的字符，所以插件本身把它转换成了 `:not(n)`
+这里由于 `:not(#\#)` 有小程序不兼容的字符，默认移除该 layer 占位选择器。设置 `removeNegationPseudoClass: false` 时
+转换为 `:not(n)`，可通过 `selectorReplacement.cascadeLayers` 修改占位 tag

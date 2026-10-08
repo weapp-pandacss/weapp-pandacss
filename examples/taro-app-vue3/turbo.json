@@ -6,11 +6,12 @@
     "build": {
       "inputs": [
         "$TURBO_DEFAULT$",
-        "postcss.config.cjs"
+        "postcss.config.cjs",
+        "../run-platform.mjs"
       ],
       "outputs": [
-        "dist/**",
-        "styled-system/**"
+        "dist/weapp/**",
+        "styled-system/weapp/**"
       ],
       "env": [
         "NODE_ENV",

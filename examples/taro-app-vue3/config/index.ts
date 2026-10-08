@@ -22,7 +22,7 @@ const config = {
     375: 2 / 1,
   },
   sourceRoot: 'src',
-  outputRoot: 'dist',
+  outputRoot: `dist/${process.env.TARO_ENV || 'weapp'}`,
   plugins: ['@tarojs/plugin-html'],
   defineConstants: {},
   copy: {
@@ -30,7 +30,7 @@ const config = {
     options: {},
   },
   alias: {
-    'styled-system': path.resolve(__dirname, '..', 'styled-system'),
+    'styled-system': path.resolve(__dirname, '..', 'styled-system', process.env.TARO_ENV || 'weapp'),
   },
   framework: 'vue3',
   compiler: {

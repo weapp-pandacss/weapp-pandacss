@@ -11,7 +11,7 @@
         "./src/*"
       ],
       "styled-system/*": [
-        "./styled-system/*"
+        "./styled-system/weapp/*"
       ]
     },
     "resolveJsonModule": true,

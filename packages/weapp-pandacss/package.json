@@ -50,19 +50,35 @@
       "default": "./dist/postcss.js"
     },
     "./package.json": "./package.json",
-    "./*": "./*"
+    "./panda": {
+      "import": {
+        "types": "./dist/panda.d.ts",
+        "default": "./dist/panda.js"
+      },
+      "require": {
+        "types": "./dist/panda.d.cts",
+        "default": "./dist/panda.cjs"
+      },
+      "default": "./dist/panda.js"
+    },
+    "./runtime": {
+      "import": {
+        "types": "./dist/runtime.d.ts",
+        "default": "./dist/runtime.js"
+      },
+      "require": {
+        "types": "./dist/runtime.d.cts",
+        "default": "./dist/runtime.cjs"
+      },
+      "default": "./dist/runtime.js"
+    }
   },
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "bin": {
-    "weapp-pandacss": "bin/weapp-pandacss.js",
-    "weapp-panda": "bin/weapp-pandacss.js"
-  },
   "files": [
     "README.md",
     "README.zh.md",
-    "bin",
     "dist"
   ],
   "engines": {
@@ -71,7 +87,7 @@
   "scripts": {
     "dev": "tsdown --watch --sourcemap",
     "build": "tsdown",
-    "lint": "eslint src test test-d bin",
+    "lint": "eslint src test test-d",
     "test": "vitest run",
     "test:dev": "vitest",
     "test:types": "tsd --files \"test-d/*.test-d.*\"",
@@ -90,23 +106,16 @@
     "@babel/types": "^8.0.6",
     "@csstools/postcss-cascade-layers": "^6.0.2",
     "@csstools/postcss-is-pseudo-class": "^6.0.3",
-    "@pandacss/config": "2.1.2",
-    "@weapp-core/escape": "8.0.0",
-    "c12": "^3.3.4",
-    "cac": "^7.0.1",
-    "colorette": "^2.0.20",
-    "dedent": "^1.7.2",
-    "defu": "^6.1.7",
+    "@pandacss/types": "2.1.2",
     "local-pkg": "^1.2.1",
     "merge": "^2.1.1",
-    "postcss-selector-parser": "^7.1.6"
+    "postcss-selector-parser": "^7.1.6",
+    "postcss-value-parser": "^4.2.0"
   },
   "devDependencies": {
     "@pandacss/dev": "2.1.2",
     "@pandacss/preset-base": "2.1.2",
     "@pandacss/preset-panda": "2.1.2",
-    "@types/lodash-es": "^4.17.12",
-    "lodash-es": "^4.18.1",
     "tsdown": "0.23.0"
   },
   "publishConfig": {
