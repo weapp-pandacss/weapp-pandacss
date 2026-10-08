@@ -1,31 +1,32 @@
 {
   "compilerOptions": {
     "target": "es2017",
-    "module": "commonjs",
-    "removeComments": false,
-    "preserveConstEnums": true,
-    "moduleResolution": "node",
+    "jsx": "preserve",
     "experimentalDecorators": true,
-    "noImplicitAny": false,
-    "allowSyntheticDefaultImports": true,
-    "outDir": "lib",
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "strictNullChecks": true,
-    "sourceMap": true,
     "baseUrl": ".",
     "rootDir": ".",
-    "jsx": "preserve",
-    "allowJs": true,
-    "resolveJsonModule": true,
-    "typeRoots": [
-      "node_modules/@types"
-    ],
+    "module": "commonjs",
+    "moduleResolution": "node",
     "paths": {
       "styled-system/*": [
         "styled-system/*"
       ]
-    }
+    },
+    "resolveJsonModule": true,
+    "typeRoots": [
+      "node_modules/@types"
+    ],
+    "allowJs": true,
+    "strictNullChecks": true,
+    "noImplicitAny": false,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "outDir": "lib",
+    "preserveConstEnums": true,
+    "removeComments": false,
+    "sourceMap": true,
+    "allowSyntheticDefaultImports": true,
+    "skipLibCheck": true
   },
   "include": [
     "./src",

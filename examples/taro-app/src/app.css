@@ -3,9 +3,10 @@
 @layer reset {
   * {
     box-sizing: border-box;
-    margin: 0;
     padding: 0;
+    margin: 0;
   }
+
   /* ... */
 }
 
@@ -14,6 +15,7 @@
     color: #cc3b3b;
     text-decoration: none;
   }
+
   /* ... */
 }
 
@@ -25,6 +27,7 @@
   .button--variant-primary {
     background-color: blue;
   }
+
   /* ... */
 }
 
@@ -33,8 +36,8 @@
     --color-primary: #000;
     --color-secondary: #fff;
     --color-tertiary: #ccc;
-    --shadow-sm: 0 0 0 1px rgba(0, 0, 0, 0.05);
+    --shadow-sm: 0 0 0 1px rgb(0 0 0 / 5%);
   }
+
   /* ... */
 }
-

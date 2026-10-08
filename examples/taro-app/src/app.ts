@@ -6,7 +6,6 @@ import './app.css'
 function App({ children }: PropsWithChildren<any>) {
   useLaunch(() => {
     console.log('App launched.')
-    console.log(`[TARO_ENV]:`, process.env.TARO_ENV)
   })
 
   // children 是将要会渲染的页面

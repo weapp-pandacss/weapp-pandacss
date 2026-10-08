@@ -1,0 +1,123 @@
+{
+  "$schema": "https://turborepo.com/schema.json",
+  "globalDependencies": [
+    "pnpm-lock.yaml"
+  ],
+  "tasks": {
+    "build": {
+      "dependsOn": [
+        "^build"
+      ],
+      "inputs": [
+        "src/**",
+        "lib/**",
+        "worker/**",
+        "wrangler.{json,jsonc,toml}",
+        ".dev.vars*",
+        ".env*",
+        "package.json",
+        "tsconfig*.json",
+        "*.config.{js,ts,mjs,mts}",
+        "public/**",
+        "nimbus.json",
+        "index.html"
+      ],
+      "outputs": [
+        "dist/**",
+        "bin/**",
+        ".vitepress/dist/**"
+      ]
+    },
+    "lint": {
+      "dependsOn": [
+        "^lint"
+      ],
+      "inputs": [
+        "**/*.{js,jsx,cjs,mjs,ts,tsx,cts,mts,vue,astro,css,scss,less}",
+        "**/*.{json,html,md,mdx,yml,yaml}",
+        "*.config.{js,ts,mjs,mts}",
+        ".eslintrc*",
+        ".stylelintrc*",
+        "package.json",
+        "public/**",
+        "nimbus.json"
+      ],
+      "outputs": []
+    },
+    "dev": {
+      "dependsOn": [
+        "^build"
+      ],
+      "cache": false,
+      "persistent": true
+    },
+    "test": {
+      "dependsOn": [
+        "^test"
+      ],
+      "inputs": [
+        "src/**",
+        "lib/**",
+        "test/**",
+        "package.json",
+        "vitest.config.{js,ts}",
+        "tsconfig*.json"
+      ],
+      "outputs": [
+        "coverage/**"
+      ]
+    },
+    "test:types": {
+      "dependsOn": [
+        "build",
+        "^build"
+      ],
+      "inputs": [
+        "test-d/**",
+        "package.json",
+        "tsconfig*.json",
+        "dist/**"
+      ],
+      "outputs": []
+    },
+    "typecheck": {
+      "dependsOn": [
+        "^typecheck"
+      ],
+      "inputs": [
+        "src/**",
+        "lib/**",
+        "worker/**",
+        "wrangler.{json,jsonc,toml}",
+        ".dev.vars*",
+        ".env*",
+        "test/**",
+        "package.json",
+        "tsconfig*.json",
+        "public/**",
+        "nimbus.json",
+        "*.config.{js,ts,mjs,mts}"
+      ],
+      "outputs": []
+    },
+    "tsd": {
+      "dependsOn": [
+        "^tsd"
+      ],
+      "inputs": [
+        "src/**",
+        "lib/**",
+        "test-d/**",
+        "package.json",
+        "tsconfig*.json"
+      ],
+      "outputs": []
+    },
+    "release": {
+      "cache": false
+    },
+    "sync": {
+      "cache": false
+    }
+  }
+}

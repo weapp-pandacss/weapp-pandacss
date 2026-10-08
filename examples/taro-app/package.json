@@ -1,5 +1,5 @@
 {
-  "name": "taro-app",
+  "name": "@weapp-pandacss/taro-app",
   "version": "1.0.0",
   "private": true,
   "description": "",
@@ -8,9 +8,15 @@
     "typescript": true,
     "css": "sass"
   },
+  "browserslist": [
+    "last 3 versions",
+    "Android >= 4.1",
+    "ios >= 8"
+  ],
+  "author": "",
   "scripts": {
     "dev": "npm run dev:weapp",
-    "build": "npm run build:weapp",
+    "build": "pnpm codegen && taro build --type weapp",
     "build:weapp": "taro build --type weapp",
     "build:swan": "taro build --type swan",
     "build:alipay": "taro build --type alipay",
@@ -29,17 +35,12 @@
     "dev:qq": "npm run build:qq -- --watch",
     "dev:jd": "npm run build:jd -- --watch",
     "dev:quickapp": "npm run build:quickapp -- --watch",
-    "test": "jest",
-    "prepare": "panda codegen && weapp-panda codegen",
-    "-": " && weapp-panda codegen",
-    "open": "weapp open -p ."
+    "open": "weapp open -p .",
+    "codegen": "panda codegen && weapp-panda codegen",
+    "lint": "eslint src panda.config.ts vite.config.ts config --no-error-on-unmatched-pattern && pnpm lint:styles",
+    "lint:styles": "stylelint --allow-empty-input \"src/**/*.{css,scss,vue}\"",
+    "typecheck": "tsc --noEmit"
   },
-  "browserslist": [
-    "last 3 versions",
-    "Android >= 4.1",
-    "ios >= 8"
-  ],
-  "author": "",
   "dependencies": {
     "@babel/runtime": "^7.24.8",
     "@nutui/nutui-react-taro": "^2.6.13",
@@ -66,7 +67,9 @@
   },
   "devDependencies": {
     "@babel/core": "^7.24.8",
-    "@pandacss/dev": "^0.42.0",
+    "@pandacss/dev": "2.1.2",
+    "@pandacss/preset-base": "2.1.2",
+    "@pandacss/preset-panda": "2.1.2",
     "@pmmmwh/react-refresh-webpack-plugin": "^0.5.15",
     "@tarojs/cli": "3.6.34",
     "@tarojs/taro-loader": "3.6.34",
@@ -77,25 +80,21 @@
     "@types/ramda": "^0.30.1",
     "@types/react": "^18.3.3",
     "@types/webpack-env": "^1.18.5",
-    "@typescript-eslint/eslint-plugin": "^7.16.0",
-    "@typescript-eslint/parser": "^7.16.0",
     "babel-loader": "^9.1.3",
     "babel-preset-taro": "3.6.34",
-    "eslint": "^9.7.0",
-    "eslint-config-taro": "3.6.34",
-    "eslint-plugin-import": "^2.29.1",
-    "eslint-plugin-react": "^7.34.3",
-    "eslint-plugin-react-hooks": "^4.6.2",
+    "cross-env": "^7.0.3",
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0",
-    "postcss": "^8.4.39",
+    "postcss": "catalog:",
     "postcss-rem-to-responsive-pixel": "^6.0.1",
     "react-refresh": "^0.14.2",
     "sass": "^1.77.8",
-    "stylelint": "^16.7.0",
+    "tailwindcss": "^3.4.4",
     "ts-node": "^10.9.2",
     "tsconfig-paths-webpack-plugin": "^4.1.0",
     "typescript": "^5.5.3",
+    "weapp-pandacss": "workspace:*",
+    "weapp-tailwindcss": "^3.3.7",
     "webpack": "5.93.0"
   }
 }

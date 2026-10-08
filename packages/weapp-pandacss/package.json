@@ -1,0 +1,127 @@
+{
+  "name": "weapp-pandacss",
+  "type": "module",
+  "version": "1.5.5",
+  "description": "Use Panda CSS in WeChat and other mini-program runtimes",
+  "author": "ice breaker <hi@sonofmagic.top>",
+  "license": "MIT",
+  "homepage": "https://github.com/sonofmagic/weapp-pandacss",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sonofmagic/weapp-pandacss.git",
+    "directory": "packages/weapp-pandacss"
+  },
+  "bugs": {
+    "url": "https://github.com/sonofmagic/weapp-pandacss/issues"
+  },
+  "keywords": [
+    "panda",
+    "pandacss",
+    "css-in-js",
+    "weapp",
+    "wechat",
+    "miniprogram",
+    "taro",
+    "uni-app",
+    "postcss"
+  ],
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      },
+      "default": "./dist/index.js"
+    },
+    "./postcss": {
+      "import": {
+        "types": "./dist/postcss.d.ts",
+        "default": "./dist/postcss.js"
+      },
+      "require": {
+        "types": "./dist/postcss.d.cts",
+        "default": "./dist/postcss.cjs"
+      },
+      "default": "./dist/postcss.js"
+    },
+    "./package.json": "./package.json",
+    "./*": "./*"
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "weapp-pandacss": "bin/weapp-pandacss.js",
+    "weapp-panda": "bin/weapp-pandacss.js"
+  },
+  "files": [
+    "README.md",
+    "README.zh.md",
+    "bin",
+    "dist"
+  ],
+  "engines": {
+    "node": "^22.18.0 || >=24.11.0"
+  },
+  "scripts": {
+    "dev": "tsdown --watch --sourcemap",
+    "build": "tsdown",
+    "lint": "eslint src test test-d bin",
+    "test": "vitest run",
+    "test:dev": "vitest",
+    "test:types": "tsd --files \"test-d/*.test-d.*\"",
+    "typecheck": "tsc --noEmit",
+    "pack:check": "pnpm build && pnpm pack --dry-run",
+    "tsd": "tsd --files \"test-d/*.test-d.*\""
+  },
+  "peerDependencies": {
+    "@pandacss/dev": "2.1.2",
+    "postcss": "catalog:"
+  },
+  "dependencies": {
+    "@babel/generator": "^8.0.6",
+    "@babel/parser": "^8.0.7",
+    "@babel/traverse": "^8.0.7",
+    "@babel/types": "^8.0.6",
+    "@csstools/postcss-cascade-layers": "^6.0.2",
+    "@csstools/postcss-is-pseudo-class": "^6.0.3",
+    "@pandacss/config": "2.1.2",
+    "@weapp-core/escape": "8.0.0",
+    "c12": "^3.3.4",
+    "cac": "^7.0.0",
+    "colorette": "^2.0.20",
+    "dedent": "^1.7.0",
+    "defu": "^6.1.4",
+    "local-pkg": "^1.2.1",
+    "merge": "^2.1.1",
+    "postcss-selector-parser": "^7.1.6"
+  },
+  "devDependencies": {
+    "@pandacss/dev": "2.1.2",
+    "@pandacss/preset-base": "2.1.2",
+    "@pandacss/preset-panda": "2.1.2",
+    "@types/babel__generator": "^7.6.8",
+    "@types/babel__traverse": "^7.20.7",
+    "@types/lodash": "^4.17.21",
+    "@types/lodash-es": "^4.17.12",
+    "lodash": "^4.17.21",
+    "lodash-es": "^4.17.21",
+    "tsdown": "0.23.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
+  "tsd": {
+    "directory": "test-d",
+    "compilerOptions": {
+      "module": "node16",
+      "skipLibCheck": true
+    }
+  }
+}

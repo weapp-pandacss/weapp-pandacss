@@ -1,29 +1,35 @@
 {
-  "name": "react-app",
+  "name": "@weapp-pandacss/react-app",
   "type": "module",
   "version": "0.0.0",
   "private": true,
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
-    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "build": "pnpm codegen && tsc && vite build",
+    "lint": "eslint src panda.config.ts vite.config.ts && pnpm lint:styles",
     "preview": "vite preview",
-    "prepare": "panda codegen"
+    "codegen": "panda codegen && weapp-panda codegen",
+    "lint:styles": "stylelint --allow-empty-input \"src/**/*.{css,scss,vue}\"",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
+    "@pandacss/dev": "2.1.2",
+    "@pandacss/preset-base": "2.1.2",
+    "@pandacss/preset-panda": "2.1.2",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.2.22",
-    "@typescript-eslint/eslint-plugin": "^7.16.0",
-    "@typescript-eslint/parser": "^7.16.0",
     "@vitejs/plugin-react": "^4.3.1",
-    "eslint": "^9.7.0",
-    "eslint-plugin-react-hooks": "^4.6.0",
-    "eslint-plugin-react-refresh": "^0.4.8",
+    "cross-env": "^7.0.3",
+    "postcss": "catalog:",
+    "postcss-rem-to-responsive-pixel": "^6.0.1",
+    "tailwindcss": "^3.4.4",
     "typescript": "^5.5.3",
-    "vite": "^5.3.3"
+    "vite": "^5.3.3",
+    "weapp-pandacss": "workspace:*",
+    "weapp-tailwindcss": "^3.3.7"
   }
 }
