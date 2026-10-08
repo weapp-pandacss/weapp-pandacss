@@ -5,6 +5,8 @@ export default defineConfig({
     index: 'src/index.ts',
     cli: 'src/cli.ts',
     postcss: 'src/postcss.ts',
+    panda: 'src/panda.ts',
+    runtime: 'src/runtime.ts',
   },
   format: ['esm', 'cjs'],
   dts: true,

@@ -629,9 +629,6 @@ importers:
       '@pandacss/preset-panda':
         specifier: 2.1.2
         version: 2.1.2
-      '@tailwindcss/postcss':
-        specifier: ^4.3.3
-        version: 4.3.3
       '@vue/compiler-sfc':
         specifier: 3.4.21
         version: 3.4.21
@@ -744,6 +741,9 @@ importers:
       '@pandacss/config':
         specifier: 2.1.2
         version: 2.1.2
+      '@pandacss/types':
+        specifier: 2.1.2
+        version: 2.1.2
       '@weapp-core/escape':
         specifier: 8.0.0
         version: 8.0.0
@@ -774,6 +774,9 @@ importers:
       postcss-selector-parser:
         specifier: 7.1.6
         version: 7.1.6
+      postcss-value-parser:
+        specifier: ^4.2.0
+        version: 4.2.0
     devDependencies:
       '@pandacss/dev':
         specifier: 2.1.2
@@ -795,10 +798,6 @@ importers:
         version: 0.23.0(@arethetypeswrong/core@0.18.5)(@volar/typescript@2.4.28(typescript@6.0.3))(@vue/language-core@3.3.12)(publint@0.3.25)(typescript@6.0.3)(vue-tsc@3.3.12(typescript@6.0.3))
 
 packages:
-
-  '@alloc/quick-lru@5.3.0':
-    resolution: {integrity: sha512-U4+70Pc5ZS9osnCBCE5Jha/ciHM+Yp+CNMNC/7HvYbNRk1Ldd+f7qO65W5qfhu/TCv+/ozljlXXe9Nj8419DMA==}
-    engines: {node: '>=10'}
 
   '@ampproject/remapping@2.3.0':
     resolution: {integrity: sha512-30iZtAPgz+LTIYoeivqYo853f02jBYSd5uGnGpkFV0M3xOt9aN73erkgYAmZU43x4VfqcnLxW9Kpg3R5LC4YYw==}
@@ -6011,9 +6010,6 @@ packages:
   '@tailwindcss/oxide@4.3.3':
     resolution: {integrity: sha512-krXjAikiaFSPaK/FkAQT5UTx3VormQaiZ5hBFlJZ9UFQGB/rwg1MZIhHAG9smMQRTdyJxP6Qt5MwMtdyU5FWrA==}
     engines: {node: '>= 20'}
-
-  '@tailwindcss/postcss@4.3.3':
-    resolution: {integrity: sha512-JTSZZGQi1AyKirbLN3azmjVzef92tcX7h+iSqPdaeStyFpGpDlKvvpxeOE8njhbUanbRwr3z8DyzhICWnMtQeg==}
 
   '@tarojs/api@4.3.0':
     resolution: {integrity: sha512-sTsNEWE2iI3RzhuTqS/TlYJ3917j7Ak2U2VFOFkkDJCxafm4+rxLQ+yXZ5Of2NubYuEw5p4m1hQRilfckqUV0A==}
@@ -14989,8 +14985,6 @@ packages:
 
 snapshots:
 
-  '@alloc/quick-lru@5.3.0': {}
-
   '@ampproject/remapping@2.3.0':
     dependencies:
       '@jridgewell/gen-mapping': 0.3.13
@@ -20747,14 +20741,6 @@ snapshots:
       '@tailwindcss/oxide-wasm32-wasi': 4.3.3
       '@tailwindcss/oxide-win32-arm64-msvc': 4.3.3
       '@tailwindcss/oxide-win32-x64-msvc': 4.3.3
-
-  '@tailwindcss/postcss@4.3.3':
-    dependencies:
-      '@alloc/quick-lru': 5.3.0
-      '@tailwindcss/node': 4.3.3
-      '@tailwindcss/oxide': 4.3.3
-      postcss: 8.5.29
-      tailwindcss: 4.3.3
 
   '@tarojs/api@4.3.0(@tarojs/runtime@4.3.0)(@tarojs/shared@4.3.0)':
     dependencies:

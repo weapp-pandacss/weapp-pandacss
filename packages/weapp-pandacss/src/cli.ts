@@ -19,17 +19,17 @@ async function initCtx() {
 
 const cli = cac()
 
-cli.command('codegen', 'code generate').action(async () => {
+cli.command('codegen', 'Legacy runtime patch (deprecated; use Panda weappPanda plugin)').action(async () => {
   await initCtx()
   await ctx.codegen()
 })
 
-cli.command('rollback', 'rollback inject').action(async () => {
+cli.command('rollback', 'Restore legacy runtime backup (deprecated)').action(async () => {
   await initCtx()
   await ctx.rollback()
 })
 
-cli.command('init', 'init config file').action(async () => {
+cli.command('init', 'Create legacy adapter config (deprecated)').action(async () => {
   await initConfig(process.cwd())
   console.log('✨ weapp-pandacss config initialized!')
 })

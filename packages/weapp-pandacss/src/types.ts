@@ -17,6 +17,10 @@ export interface ICreateContextOptions {
  * @description 核心插件 `weapp-pandacss/postcss` 的配置项
  */
 export interface IPostcssPluginOptions {
+  /** CSS target; both targets use the same portable class names. */
+  target?: 'weapp' | 'web'
+  /** Use legacy only with the deprecated file-patching CLI/API. */
+  naming?: 'portable' | 'legacy'
   /**
    * @description 是否禁用
    * @default false
@@ -71,7 +75,7 @@ export interface UserConfig {
    */
   postcss?: Pick<
     IPostcssPluginOptions,
-    'selectorReplacement' | 'removeNegationPseudoClass' | 'disabled'
+    'selectorReplacement' | 'removeNegationPseudoClass' | 'disabled' | 'target' | 'naming'
   >
 
   /**

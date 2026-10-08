@@ -35,4 +35,5 @@ export function getUserConfig(options?: Pick<UserInputConfig, 'cwd'>): Promise<R
     },
   })
 }
+/** @deprecated Legacy adapter configuration; new PostCSS options are passed directly to the plugin. */
 export const defineConfig: DefineUserConfig = createDefineConfig<UserConfig>()

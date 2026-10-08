@@ -9,9 +9,11 @@ import createCascadeLayersPlugin from '@csstools/postcss-cascade-layers'
 import createIsPseudoClassPlugin from '@csstools/postcss-is-pseudo-class'
 import { escape } from '@weapp-core/escape'
 import selectorParser from 'postcss-selector-parser'
+import valueParser from 'postcss-value-parser'
 import { escapePostcssPlugin, wrapperPostcssPlugin } from '@/constants'
-import { createContext, getUserConfig } from '@/core'
-import { createSingleExecutionFunction, merge, normalizeString, ref } from '@/utils'
+import { getPostcssPluginDefaults } from '@/defaults'
+import { encodeClassName } from '@/runtime'
+import { merge, normalizeString, ref } from '@/utils'
 
 // postcss-selector-parser is a CommonJS package. Access its node factories
 // through the default export so the ESM build does not rely on synthetic named
@@ -19,30 +21,20 @@ import { createSingleExecutionFunction, merge, normalizeString, ref } from '@/ut
 const { selector: slt, tag } = selectorParser
 
 export function useOptions(options?: IPostcssPluginOptions) {
-  // 默认没有默认值了，默认值从异步插件中初始化
   const optionsRef = ref(
     merge.recursive(
-      true, // getPostcssPluginDefaults(),
+      true,
+      getPostcssPluginDefaults(),
       options,
     ) as Required<IPostcssPluginOptions>,
   )
 
-  // <Required<IPostcssPluginOptions>, Required<IPostcssPluginOptions>[]>
   function mergeOptions(options?: IPostcssPluginOptions) {
-    // merge(optionsRef.value, options)
-    optionsRef.value = merge.recursive({}, options, optionsRef.value)
+    optionsRef.value = merge.recursive(true, optionsRef.value, options)
   }
 
-  // const srRef = computed(() => {
-  //   return optionsRef.value.selectorReplacement
-  // })
-
-  // selectorReplacement as Required<
-  //   Required<IPostcssPluginOptions>['selectorReplacement']
-  // >
   return {
     optionsRef,
-    // srRef,
     mergeOptions,
   }
 }
@@ -63,7 +55,9 @@ export const innerPlugin: PluginCreator<
     const sr = getSelectorReplacement()
     selectors.walk((selector) => {
       if (selector.type === 'class') {
-        selector.value = escape(selector.value)
+        if (optionsRef?.value.naming === 'legacy') {
+          selector.value = escape(selector.value)
+        }
       }
       // https://developer.mozilla.org/en-US/docs/Web/CSS/Adjacent_sibling_combinator
       if (selector.type === 'combinator') {
@@ -181,7 +175,9 @@ export const innerPlugin: PluginCreator<
           if (optionsRef?.value.disabled) {
             return
           }
-          decl.prop = escape(decl.prop)
+          if (optionsRef?.value.naming === 'legacy') {
+            decl.prop = escape(decl.prop)
+          }
         },
         Rule(rule) {
           if (optionsRef?.value.disabled) {
@@ -213,9 +209,69 @@ innerPlugin.postcss = true
 // https://github.com/csstools/postcss-plugins/blob/main/plugins/postcss-cascade-layers/src/index.ts
 // https://github.com/csstools/postcss-plugins/blob/main/plugins/postcss-cascade-layers/src/adjust-selector-specificity.ts
 // ':not(#\\#)' raw: :not(#\\\\#)
-// 就近原则 postcss options > weapp-pandans.config.ts
+const namingMarker = Symbol.for('weapp-pandacss.postcss.naming')
+const portableCssMarker = '! weapp-pandacss:portable-v1'
+
 export const creator: PluginCreator<IPostcssPluginOptions> = (options) => {
-  const { mergeOptions, optionsRef } = useOptions(options)
+  const { optionsRef } = useOptions(options)
+  if (optionsRef.value.disabled) {
+    return { postcssPlugin: wrapperPostcssPlugin }
+  }
+  const namingPlugin: Plugin = {
+    postcssPlugin: 'weapp-pandacss-portable-naming',
+    Once(root) {
+      const marked = root as typeof root & { [namingMarker]?: string }
+      const naming = optionsRef.value.naming
+      const hasCssMarker = root.nodes.some(node => node.type === 'comment' && node.text === portableCssMarker)
+      if (hasCssMarker) {
+        marked[namingMarker] = 'portable'
+      }
+      if (marked[namingMarker]) {
+        if (marked[namingMarker] !== naming) {
+          throw root.error('Cannot mix portable and legacy weapp-pandacss naming in one stylesheet.')
+        }
+      }
+      if (naming === 'portable') {
+        if (!marked[namingMarker]) {
+          const parser = selectorParser(selectors => selectors.walkClasses((node) => {
+            node.value = encodeClassName(node.value)
+          }))
+          root.walkRules((rule) => {
+            parser.transformSync(rule, { lossless: false, updateSelector: true })
+          })
+        }
+        if (optionsRef.value.target === 'weapp') {
+          function assertVariable(name: string, node: { error: (message: string) => Error }) {
+            if (!/^--[\w-]+$/.test(name)) {
+              throw node.error(`Unsupported mini-program CSS variable "${name}". Use an ASCII identifier or a Panda token with hash.cssVar enabled.`)
+            }
+          }
+          root.walkDecls((decl) => {
+            if (decl.prop.startsWith('--')) {
+              assertVariable(decl.prop, decl)
+            }
+            valueParser(decl.value).walk((node) => {
+              if (node.type === 'function' && node.value.toLowerCase() === 'var') {
+                const argument = node.nodes.find(part => part.type !== 'space' && part.type !== 'comment')
+                if (argument?.type === 'word') {
+                  assertVariable(argument.value, decl)
+                }
+              }
+            })
+          })
+          root.walkAtRules('property', rule => assertVariable(rule.params.trim(), rule))
+        }
+      }
+      marked[namingMarker] = naming
+      if (naming === 'portable' && !hasCssMarker) {
+        // Persist the generation marker across parse/serialize boundaries too.
+        root.prepend({ text: portableCssMarker })
+      }
+    },
+  }
+  if (optionsRef.value.target === 'web') {
+    return { postcssPlugin: wrapperPostcssPlugin, plugins: [namingPlugin] }
+  }
   // cascadeLayersPluginOptions 和 isPseudoClassPluginOptions
   const cascadeLayersPlugin = createCascadeLayersPlugin(
     optionsRef?.value.cascadeLayersPluginOptions,
@@ -224,34 +280,10 @@ export const creator: PluginCreator<IPostcssPluginOptions> = (options) => {
     optionsRef?.value.isPseudoClassPluginOptions,
   ) as Plugin
 
-  async function codegen() {
-    const { config, configFile } = await getUserConfig()
-    mergeOptions(config?.postcss)
-    const contextOptions = { ...config?.context }
-    if (configFile) {
-      Object.assign(contextOptions, { configFile })
-    }
-    const ctx = await createContext(contextOptions)
-    await ctx.codegen()
-  }
-
-  const codegenOnce = createSingleExecutionFunction(codegen)
-
-  let inited = false
   return {
     postcssPlugin: wrapperPostcssPlugin,
     plugins: [
-      async function () {
-        if (!inited) {
-          try {
-            await codegenOnce()
-            inited = true
-          }
-          catch (error) {
-            console.log((<Error>error).message)
-          }
-        }
-      },
+      namingPlugin,
       cascadeLayersPlugin,
       isPseudoClassPlugin,
       innerPlugin(optionsRef),

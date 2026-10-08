@@ -5,6 +5,7 @@ import path from 'node:path'
 import { createTestProject } from '@mpcore/test'
 import { buildWeappViteTestArtifact } from '@mpcore/weapp-vite'
 import postcss from 'postcss'
+import { encodeClassName } from 'weapp-pandacss/runtime'
 
 const exampleRoot = path.resolve(import.meta.dirname, '..')
 let artifact: WeappViteTestArtifact
@@ -25,6 +26,10 @@ it('renders real Wevu output and keeps changing Panda classes in sync with WXSS'
   expect(stylesheet).not.toContain(':where')
   expect(stylesheet).not.toContain(':not(#')
   expect(stylesheet).toContain('16rpx')
+  expect(stylesheet).toContain('_wp_2e_')
+  for (const reference of stylesheet.matchAll(/var\(\s*(--[^,\s)]+)/g)) {
+    expect(reference[1]).toMatch(/^--[\w-]+$/)
+  }
 
   function expectMatchingClasses(node: MiniProgramNode) {
     const tokens = node.getAttribute('class').split(/\s+/).filter(Boolean)
@@ -41,6 +46,10 @@ it('renders real Wevu output and keeps changing Panda classes in sync with WXSS'
     expect(screen.getByAttribute('id', 'title')).toHaveTextContent('Panda CSS + Wevu')
     expectMatchingClasses(screen.getByAttribute('id', 'title'))
     expectMatchingClasses(screen.getByAttribute('id', 'card'))
+    expectMatchingClasses(screen.getByAttribute('id', 'token'))
+    const manual = screen.getByAttribute('id', 'manual')
+    expect(manual.getAttribute('class')).toBe(encodeClassName('manual/中文_wp_2e_'))
+    expectMatchingClasses(manual)
     const button = screen.getByRole('button', { name: '点击切换按钮样式' })
     expectMatchingClasses(button)
     const initialClasses = button.getAttribute('class')

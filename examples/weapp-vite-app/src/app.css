@@ -1,5 +1,10 @@
 @layer reset, base, tokens, recipes, utilities;
 
+/* stylelint-disable-next-line selector-class-pattern -- Exercise portable encoding of authored special classes. */
+.manual\/中文_wp_2e_ {
+  color: red;
+}
+
 page {
   color: #0f172a;
   background: #f8fafc;

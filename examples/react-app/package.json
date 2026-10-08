@@ -8,7 +8,7 @@
     "build": "pnpm codegen && tsc && vite build",
     "lint": "eslint src panda.config.ts vite.config.ts && pnpm lint:styles",
     "preview": "vite preview",
-    "codegen": "panda codegen && weapp-panda codegen",
+    "codegen": "panda codegen",
     "lint:styles": "stylelint --allow-empty-input \"src/**/*.{css,scss,vue}\"",
     "typecheck": "tsc --noEmit"
   },

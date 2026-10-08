@@ -10,6 +10,7 @@ exports[`config > get default config 1`] = `
     "cascadeLayersPluginOptions": {},
     "disabled": false,
     "isPseudoClassPluginOptions": {},
+    "naming": "portable",
     "removeNegationPseudoClass": true,
     "selectorReplacement": {
       "cascadeLayers": "n",
@@ -19,6 +20,7 @@ exports[`config > get default config 1`] = `
         "text",
       ],
     },
+    "target": "weapp",
   },
 }
 `;
@@ -34,6 +36,7 @@ exports[`config > get default config from 0.default dir 1`] = `
     "cascadeLayersPluginOptions": {},
     "disabled": true,
     "isPseudoClassPluginOptions": {},
+    "naming": "portable",
     "removeNegationPseudoClass": true,
     "selectorReplacement": {
       "cascadeLayers": "n",
@@ -43,6 +46,7 @@ exports[`config > get default config from 0.default dir 1`] = `
         "text",
       ],
     },
+    "target": "weapp",
   },
 }
 `;

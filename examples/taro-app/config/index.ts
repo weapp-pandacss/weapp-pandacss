@@ -26,7 +26,7 @@ export default defineConfig(async (merge) => {
       828: 1.81 / 2,
     },
     sourceRoot: 'src',
-    outputRoot: 'dist',
+    outputRoot: `dist/${process.env.TARO_ENV || 'weapp'}`,
     plugins: ['@tarojs/plugin-html'],
     defineConstants: {
     },
@@ -37,7 +37,7 @@ export default defineConfig(async (merge) => {
       },
     },
     alias: {
-      'styled-system': path.resolve(__dirname, '..', 'styled-system'),
+      'styled-system': path.resolve(__dirname, '..', 'styled-system', process.env.TARO_ENV || 'weapp'),
     },
     framework: 'react',
     compiler: {

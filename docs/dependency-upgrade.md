@@ -37,7 +37,7 @@ Uni 版本组合参考 [官方 uni-preset-vue 的 vite 分支](https://github.co
   保证不会将 SFC style 虚拟输入误判而跳过样式生成。
 - Uni 的 resolver 保留 symlink，CVA 的传递依赖无法从虚拟包路径解析。
   `clsx` 因此保留为显式依赖，不开启全局 hoist，也不改变框架 resolver。
-- 新示例的 Panda plugin 在同步 `codegen:done` hook 中调用适配 CLI，覆盖
+- 五个示例的 Panda plugin 在同步 `codegen:prepare` hook 中转换生成 artifacts，覆盖
   codegen 及 PostCSS 触发的 runtime 再生成；开发和构建先 prepare 再 codegen。
 - 不设全局 Vite 或 PostCSS major override。Taro、Uni 和 Web 示例各自拥有
   不同编译器批次。发布包的 ESM/CJS、PostCSS 入口和两个 CLI 名称保留。
@@ -293,3 +293,10 @@ registry TLS 在本次执行中恢复，已取得 `pnpm audit --json` 的实际�
 | webpack                              | Taro Vue                                  | ^5.93.0                      | ^5.111.1               | 当前 Webpack 5 稳定版；修复 Taro 进度插件  |
 | wevu                                 | Wevu                                      | 新增                         | 7.4.0                  | 统一 7.4.0 集成基线                        |
 | yaml                                 | root                                      | ^2.9.1                       | ^2.9.1                 | 已处于稳定且兼容的版本范围，保留           |
+
+## 生成期插件迁移后的调整
+
+Uni-app 的 Tailwind 对比功能由 `WeappTailwindcss` 独立生成。移除直接依赖和
+重复注册的 `@tailwindcss/postcss`；Tailwind 的绝对 `cssEntries` 与 Panda 虚拟
+CSS 入口分开，保留两套 runtime/selector 契约。见
+[插件迁移指南](./panda-plugin-migration.md)。

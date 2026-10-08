@@ -140,6 +140,9 @@ export function inject(
   content: string,
   options: { wrapperSpecifier?: string } = {},
 ) {
+  if (content.includes('weapp-pandacss:portable-v1')) {
+    throw new Error('Panda plugin output cannot be patched by the legacy inject API.')
+  }
   const wrapperSpecifier = options.wrapperSpecifier ?? defaultWrapperSpecifier
   const root = parse(content, {
     sourceType: 'unambiguous',

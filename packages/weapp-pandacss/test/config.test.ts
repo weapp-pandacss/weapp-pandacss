@@ -17,7 +17,7 @@ describe('config', () => {
       cwd: taroAppRoot,
     })
     expect(config).toBeDefined()
-    expect((config['config'] as { outdir?: string }).outdir === 'styled-system').toBe(true)
+    expect(config.config['outdir']).toBe('styled-system/weapp')
   })
 
   it('get default config', async () => {

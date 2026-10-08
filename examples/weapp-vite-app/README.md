@@ -17,8 +17,8 @@ pnpm --filter @weapp-pandacss/weapp-vite-app dev
 在本地配置自己的 AppID。
 
 构建和开发脚本先运行 `wv prepare`，生成 TypeScript 支持文件，再执行 Panda
-codegen。Panda 2 的本地 plugin 使用同步 `codegen:done` hook 调用
-`weapp-panda codegen`，每次重新生成 runtime 都会完成小程序转义补丁。
+codegen。`weappPanda()` 在同步 `codegen:prepare` hook 转换 artifacts，
+由 Panda 一次写入 runtime；无需适配 CLI、备份或 rollback。
 PostCSS 按 Panda → weapp 适配器 → rem/rpx 转换执行，`1rem = 32rpx`。
 
 Vue SFC 使用 `<script setup lang="ts">`，响应式 API 从 `wevu` 导入。

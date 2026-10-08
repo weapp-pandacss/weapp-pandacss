@@ -3,7 +3,7 @@ import { Button, Input, Text, View } from '@tarojs/components'
 import { useLoad } from '@tarojs/taro'
 import { css, cx } from 'styled-system/css/index.mjs'
 import { styled } from 'styled-system/jsx/index.mjs'
-import { escape } from 'styled-system/weapp-panda/index.mjs'
+import { encodeClassList } from 'weapp-pandacss/runtime'
 import IceButton from '@/components/Button'
 
 const StyledView = styled(View)
@@ -42,7 +42,7 @@ export default function Index() {
   const textContent
     = '`1234567890-= ~!@#$%^&*()_+ qwertyuiop[]\\ QWERTYUIOP{}| asdfghjkl;\' ASDFGHJKL:" zxcvbnm,./ ZXCVBNM<>?'
   const a = { b: 1 }
-  const aaa = escape(textContent)
+  const aaa = encodeClassList(textContent)
   console.log(a?.b)
   return (
     // nutui 样式错乱？

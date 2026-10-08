@@ -30,6 +30,7 @@ export interface Context {
   init: () => Promise<void>
 }
 
+/** @deprecated Configure weappPanda() in panda.config.ts instead. */
 export function initConfig(projectRoot: string) {
   return fs.writeFile(
     resolve(projectRoot, 'weapp-pandacss.config.ts'),
@@ -38,6 +39,7 @@ export function initConfig(projectRoot: string) {
   )
 }
 
+/** @deprecated File patching is legacy; use weapp-pandacss/panda. */
 export async function createContext(
   options?: ICreateContextOptions & { configFile?: string },
 ): Promise<Context> {
@@ -54,6 +56,9 @@ export async function createContext(
     const weappPandaDir = resolve(projectRoot, outdir, 'weapp-panda')
     const runtime = await findPandaRuntime(resolve(projectRoot, outdir))
     const content = await fs.readFile(runtime.helperPath, 'utf8')
+    if (content.includes('weapp-pandacss:portable-v1')) {
+      throw new Error('Panda plugin output cannot be patched by legacy weapp-panda codegen. Run panda codegen with weappPanda() instead.')
+    }
     const patched = inject(content, {
       wrapperSpecifier: `./weapp-panda/index.${runtime.extension}`,
     })
@@ -81,6 +86,9 @@ export async function createContext(
 
   async function rollback() {
     const runtime = await findPandaRuntime(resolve(projectRoot, outdir))
+    if ((await fs.readFile(runtime.helperPath, 'utf8')).includes('weapp-pandacss:portable-v1')) {
+      throw new Error('Panda plugin output cannot use legacy rollback. Remove weappPanda() and regenerate in a separate output directory.')
+    }
     if (await exists(runtime.backupPath)) {
       await writeGeneratedFile(runtime.helperPath, await fs.readFile(runtime.backupPath))
     }

@@ -13,6 +13,8 @@ export function getCreateContextDefaults(): Required<ICreateContextOptions> {
 // 有数组的情况会合并
 export function getPostcssPluginDefaults(): Required<IPostcssPluginOptions> {
   return {
+    target: 'weapp',
+    naming: 'portable',
     selectorReplacement: {
       cascadeLayers: 'n',
       root: 'page',

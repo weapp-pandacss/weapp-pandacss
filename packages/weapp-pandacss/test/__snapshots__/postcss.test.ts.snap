@@ -2258,7 +2258,22 @@ exports[`postcss > universal selector 1`] = `" view,text,view::before,text::befo
 
 exports[`postcss > useOptions default 1`] = `
 {
-  "value": {},
+  "value": {
+    "cascadeLayersPluginOptions": {},
+    "disabled": false,
+    "isPseudoClassPluginOptions": {},
+    "naming": "portable",
+    "removeNegationPseudoClass": true,
+    "selectorReplacement": {
+      "cascadeLayers": "n",
+      "root": "page",
+      "universal": [
+        "view",
+        "text",
+      ],
+    },
+    "target": "weapp",
+  },
 }
 `;
 
@@ -2272,6 +2287,17 @@ exports[`postcss > useOptions default 2`] = `
     "isPseudoClassPluginOptions": {
       "onPseudoElement": "warning",
     },
+    "naming": "portable",
+    "removeNegationPseudoClass": true,
+    "selectorReplacement": {
+      "cascadeLayers": "n",
+      "root": "page",
+      "universal": [
+        "view",
+        "text",
+      ],
+    },
+    "target": "weapp",
   },
 }
 `;
