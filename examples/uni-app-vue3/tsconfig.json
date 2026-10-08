@@ -1,22 +1,24 @@
 {
-  "extends": "@vue/tsconfig/tsconfig.json",
+  "extends": "@vue/tsconfig/tsconfig.dom.json",
   "compilerOptions": {
     "lib": [
       "esnext",
       "dom"
     ],
-    "baseUrl": ".",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
     "paths": {
       "@/*": [
         "./src/*"
       ],
       "styled-system/*": [
-        "styled-system/*"
+        "./styled-system/*"
       ]
     },
     "types": [
       "@dcloudio/types"
     ],
+    "noEmit": true,
     "sourceMap": true
   },
   "include": [

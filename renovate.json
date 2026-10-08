@@ -20,23 +20,120 @@
   "automergeType": "pr",
   "packageRules": [
     {
-      "matchUpdateTypes": [
-        "minor",
-        "patch",
-        "pin",
-        "digest"
-      ]
+      "matchPackageNames": [
+        "@pandacss/**"
+      ],
+      "groupName": "Panda CSS 2",
+      "allowedVersions": "<3"
     },
     {
-      "matchManagers": [
-        "npm"
+      "matchPackageNames": [
+        "@tarojs/**",
+        "babel-preset-taro"
+      ],
+      "groupName": "Taro framework"
+    },
+    {
+      "matchFileNames": [
+        "examples/taro-app/**",
+        "examples/taro-app-vue3/**"
       ],
       "matchPackageNames": [
-        "wrangler",
-        "@cloudflare/vite-plugin"
+        "@babel/core",
+        "@babel/runtime"
       ],
-      "groupName": "Cloudflare Workers tooling",
-      "groupSlug": "cloudflare-workers-tooling"
+      "allowedVersions": "<8"
+    },
+    {
+      "matchFileNames": [
+        "examples/taro-app/**"
+      ],
+      "matchPackageNames": [
+        "react",
+        "react-dom",
+        "@types/react",
+        "@types/react-dom"
+      ],
+      "allowedVersions": "<19"
+    },
+    {
+      "matchFileNames": [
+        "examples/taro-app/**"
+      ],
+      "matchPackageNames": [
+        "react-refresh"
+      ],
+      "allowedVersions": "<0.15"
+    },
+    {
+      "matchFileNames": [
+        "examples/taro-app-vue3/**"
+      ],
+      "matchPackageNames": [
+        "@vue/babel-plugin-jsx"
+      ],
+      "allowedVersions": "<2"
+    },
+    {
+      "matchFileNames": [
+        "examples/uni-app-vue3/**"
+      ],
+      "matchPackageNames": [
+        "@dcloudio/uni-**",
+        "@dcloudio/vite-plugin-uni"
+      ],
+      "groupName": "Uni-app Vue 3 release",
+      "allowedVersions": "/^3\\.0\\.0-\\d+$/",
+      "ignoreUnstable": false
+    },
+    {
+      "matchFileNames": [
+        "examples/uni-app-vue3/**"
+      ],
+      "matchPackageNames": [
+        "vite",
+        "vue",
+        "@vue/runtime-core",
+        "@vue/compiler-sfc",
+        "@dcloudio/types"
+      ],
+      "enabled": false,
+      "description": "Update with the official Uni-app Vue 3 release cohort."
+    },
+    {
+      "matchPackageNames": [
+        "typescript"
+      ],
+      "allowedVersions": "<7"
+    },
+    {
+      "matchPackageNames": [
+        "weapp-vite",
+        "wevu",
+        "@mpcore/**"
+      ],
+      "groupName": "Weapp Vite and Wevu integration"
+    },
+    {
+      "matchFileNames": ["examples/weapp-vite-app/**"],
+      "matchPackageNames": ["vue"],
+      "groupName": "Weapp Vite and Wevu integration"
+    },
+    {
+      "matchFileNames": [
+        "examples/uni-app-vue3/**"
+      ],
+      "matchPackageNames": [
+        "tailwindcss",
+        "@tailwindcss/**",
+        "weapp-tailwindcss"
+      ],
+      "groupName": "Uni-app Tailwind CSS integration"
     }
+  ],
+  "ignorePaths": [
+    "examples/taro-app-linaria/**",
+    ".repoctl/**",
+    "**/test/fixtures/**"
   ]
 }

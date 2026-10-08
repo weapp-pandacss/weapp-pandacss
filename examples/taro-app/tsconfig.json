@@ -3,16 +3,15 @@
     "target": "es2017",
     "jsx": "react-jsx",
     "experimentalDecorators": true,
-    "baseUrl": ".",
     "rootDir": ".",
-    "module": "commonjs",
-    "moduleResolution": "node",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
     "paths": {
       "@/*": [
-        "src/*"
+        "./src/*"
       ],
       "styled-system/*": [
-        "styled-system/*"
+        "./styled-system/*"
       ]
     },
     "resolveJsonModule": true,
@@ -24,6 +23,7 @@
     "noImplicitAny": false,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
+    "noEmit": true,
     "outDir": "lib",
     "preserveConstEnums": true,
     "removeComments": false,

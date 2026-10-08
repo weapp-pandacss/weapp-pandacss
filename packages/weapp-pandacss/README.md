@@ -50,5 +50,9 @@ Generate Panda's runtime and inject the mini-program escape layer together:
 restores the last generated helper backup.
 
 The full Chinese guide and migration notes are in [README.zh.md](./README.zh.md).
-The repository includes Taro React, Taro Vue, Uni-app Vue, and Vite React examples
+The repository includes Taro React, Taro Vue, Uni-app Vue, Vite React, and Weapp Vite + Wevu examples
 under [examples/](../../examples/).
+
+The [Wevu example](../../examples/weapp-vite-app/README.md) uses a Panda 2 local
+plugin's synchronous `codegen:done` hook to patch each runtime regeneration.
+Run `wv prepare` before codegen on a fresh checkout to create its managed types.

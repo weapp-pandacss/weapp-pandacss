@@ -1,0 +1,13 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "build": {
+      "inputs": ["$TURBO_DEFAULT$", "project.config.json"],
+      "outputs": ["dist/**", "styled-system/**", ".weapp-vite/**"]
+    },
+    "typecheck": {
+      "dependsOn": ["build", "^typecheck"],
+      "inputs": ["$TURBO_DEFAULT$", "styled-system/**", ".weapp-vite/**"]
+    }
+  }
+}

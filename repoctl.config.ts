@@ -9,6 +9,48 @@ export default {
     create: {
       defaultTemplate: 'tsdown',
       renameJson: false,
+      templateMap: {
+        'weapp-vite-wevu': {
+          source: 'templates/wevu',
+          target: 'examples/weapp-vite-app',
+          label: 'Weapp Vite + Wevu',
+          description: 'Vue SFC mini-program example with Panda CSS',
+          category: 'app',
+          remote: {
+            kind: 'npm',
+            packageName: 'create-weapp-vite',
+            version: '3.0.1',
+          },
+        },
+      },
+    },
+    deps: {
+      groups: [
+        {
+          name: 'wevu-vue3',
+          workspaces: ['examples/weapp-vite-app'],
+          dependencies: ['vue'],
+          reason: 'Pin the integration fixture to the tested Weapp Vite / Wevu 7.4.0 Vue cohort.',
+        },
+        {
+          name: 'taro-react18',
+          workspaces: ['examples/taro-app'],
+          dependencies: ['react', 'react-dom', '@types/react', '@types/react-dom'],
+          reason: 'Taro 4 supports React 18; the web example uses React 19.',
+        },
+        {
+          name: 'taro-babel7',
+          workspaces: ['examples/taro-app', 'examples/taro-app-vue3'],
+          dependencies: ['@babel/core', '@babel/runtime'],
+          reason: 'Taro webpack5 and its Babel preset require Babel 7.',
+        },
+        {
+          name: 'uni-vue3',
+          workspaces: ['examples/uni-app-vue3'],
+          dependencies: ['vite', 'vue', '@vue/runtime-core', '@vue/compiler-sfc'],
+          reason: 'Uni-app compiler and runtime follow its official Vue 3 release cohort.',
+        },
+      ],
     },
     clean: {
       autoConfirm: false,
@@ -16,7 +58,9 @@ export default {
     },
     upgrade: {
       skipOverwrite: false,
-      mergeTargets: true,
+      // Framework-owned Vite/PostCSS cohorts must not inherit global overrides.
+      targets: ['.agents', 'eslint.config.js', 'stylelint.config.js', 'vitest.config.ts', 'turbo.json', '.github/workflows/release-intent-auto.yml', '.github/ISSUE_TEMPLATE/config.yml'],
+      mergeTargets: false,
     },
   },
   tooling: {
@@ -25,7 +69,7 @@ export default {
     },
     eslint: {
       astro: true,
-      ignores: ['**/fixtures/**', 'examples/taro-app-linaria/**'],
+      ignores: ['**/fixtures/**', '**/.weapp-vite/**', '.repoctl/**', 'examples/taro-app-linaria/**'],
       svelte: true,
       vue: true,
     },

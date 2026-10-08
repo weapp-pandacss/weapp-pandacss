@@ -5,16 +5,28 @@ packages:
   - apps/*
 catalog:
   postcss: ^8.5.29
+  typescript: ~6.0.3
   vitest: ~5.0.3
 minimumReleaseAge: 0
 pmOnFail: error
+packageExtensions:
+  # Bind NutUI declarations to the consuming app's React types. Without this
+  # missing peer, pnpm resolves the web app's hoisted React 19 declarations.
+  '@nutui/nutui-react-taro@3.0.20':
+    peerDependencies:
+      '@types/react': ^16.8.0 || ^17.0.0 || ^18.0.0
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
 versioning:
   changelog:
     storage: repository
 allowBuilds:
+  '@nutui/nutui-react-taro': false
   '@parcel/watcher': true
   '@swc/core': true
   '@tarojs/binding': true
+  '@tarojs/cli': false
   core-js: false
   core-js-pure: false
   esbuild: true
@@ -25,4 +37,20 @@ allowBuilds:
   workerd: true
   weapp-tailwindcss: false
 overrides:
+  # NutUI publishes its documentation uploader as a runtime dependency; no
+  # distributed component imports it and its postinstall is disabled above.
+  '@nutui/nutui-react-taro>codesandbox': '-'
+  # Compatible security fixes for upstream exact/obsolete patch pins.
+  '@jimp/jpeg>jpeg-js': ^0.4.4
+  tinypool@2.1.0: 2.1.2
+  '@babel/core@7.25.2': ^7.29.7
+  '@intlify/message-resolver@9.1.9': 9.1.11
+  body-parser@1.20.3: ^1.20.6
+  lodash@4.17.21: ^4.18.1
+  lodash-es@4.17.21: ^4.18.1
+  postcss@8.5.6: ^8.5.29
+  qs@6.11.0: ^6.16.0
+  qs@6.13.0: ^6.16.0
+  source-map-js@1.2.1: ^1.2.2
+  ws@8.18.0: ^8.21.0
   postcss-selector-parser: 7.1.6

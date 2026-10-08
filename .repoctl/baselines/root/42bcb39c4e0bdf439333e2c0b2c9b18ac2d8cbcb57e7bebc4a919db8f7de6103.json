@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "path": "stylelint.config.js",
+  "source": {
+    "package": "@icebreakers/monorepo-templates",
+    "version": "2.3.1",
+    "assetPath": "stylelint.config.js",
+    "hash": "b918c271f34da7989c333696a198dd1e9ed8d66ace60f99a5a2a6a662d65d3d3"
+  },
+  "upstream": {
+    "hash": "b918c271f34da7989c333696a198dd1e9ed8d66ace60f99a5a2a6a662d65d3d3",
+    "content": "aW1wb3J0IHsgZGVmaW5lU3R5bGVsaW50Q29uZmlnIH0gZnJvbSAncmVwb2N0bC90b29saW5nJwoKZXhwb3J0IGRlZmF1bHQgYXdhaXQgZGVmaW5lU3R5bGVsaW50Q29uZmlnKCkK"
+  }
+}
