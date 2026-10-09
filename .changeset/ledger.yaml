@@ -13,3 +13,8 @@ weapp-pandacss@2.0.1:
   intents:
     - auto-pr-150
     - lucky-spiders-fly
+weapp-pandacss@2.1.0:
+  dir: packages/weapp-pandacss
+  intents:
+    - clever-tips-shave
+    - fast-keys-tap

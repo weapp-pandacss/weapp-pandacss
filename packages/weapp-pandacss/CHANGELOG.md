@@ -1,5 +1,15 @@
 # weapp-pandacss
 
+## 2.1.0
+
+### Minor Changes
+
+- Compile mini-program cascade layer order without generated specificity placeholders, preserve explicit legacy options, and add browser parity and real WeChat layer-style tests.
+
+### Patch Changes
+
+- Preserve selector context and expand all alternatives when adapting universal, root and :where selectors for mini-programs.
+
 ## 2.0.1
 
 ### Patch Changes
