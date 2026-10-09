@@ -24,4 +24,6 @@ export default defineConfig({
   importMap: 'styled-system',
   outExtension: 'mjs',
   forceImportExtension: true,
+  // Enable Panda's Vue SFC extractor, not only the .vue include glob.
+  jsxFramework: 'vue',
 })

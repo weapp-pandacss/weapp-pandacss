@@ -53,3 +53,8 @@ config.ts.timestamp-*.mjs
 **/styled-system/
 !packages/weapp-pandacss/test/fixtures/**/styled-system/
 !packages/weapp-pandacss/test/fixtures/**/styled-system/**
+
+# E2E reports and task-owned IDE evidence
+/playwright-report/
+/test-results/
+/e2e-artifacts/

@@ -57,5 +57,8 @@ overrides:
   qs@6.11.0: ^6.16.0
   qs@6.13.0: ^6.16.0
   source-map-js@1.2.1: ^1.2.2
+  # The official IDE automator's Jimp pins mkdirp 0.5.1, which pulls an
+  # obsolete minimist. Stay in mkdirp's compatible 0.5 patch line.
+  mkdirp@0.5.1: ^0.5.6
   ws@8.18.0: ^8.21.0
   postcss-selector-parser: 7.1.6

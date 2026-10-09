@@ -1,6 +1,6 @@
 import type { Plugin, PluginCreator } from 'postcss'
 import type {
-  Root,
+  Node,
   Selector,
 } from 'postcss-selector-parser'
 import type { IPostcssPluginOptions } from '@/types'
@@ -12,7 +12,7 @@ import valueParser from 'postcss-value-parser'
 import { escapePostcssPlugin, wrapperPostcssPlugin } from '@/constants'
 import { getPostcssPluginDefaults } from '@/defaults'
 import { encodeClassName } from '@/runtime'
-import { merge, normalizeString, ref } from '@/utils'
+import { merge, ref } from '@/utils'
 
 // postcss-selector-parser is a CommonJS package. Access its node factories
 // through the default export so the ESM build does not rely on synthetic named
@@ -52,83 +52,55 @@ export const innerPlugin: PluginCreator<
 
   const utilitiesTransformer = selectorParser((selectors) => {
     const sr = getSelectorReplacement()
-    selectors.walk((selector) => {
-      // https://developer.mozilla.org/en-US/docs/Web/CSS/Adjacent_sibling_combinator
-      if (selector.type === 'combinator') {
-        // ' ', + , > , ~
-        // has :not() and ~
-        // General sibling combinator
-
-        if (selector.value === '~' && selector.parent) {
-          const idx = selector.parent.nodes.indexOf(selector)
-          if (idx > -1) {
-            const beforeNode = selector.parent.nodes[idx - 1]
-            if (beforeNode && beforeNode.type !== 'class') {
-              selector.value = '+'
-            }
-          }
+    function expandSelector(selector: Selector): Selector[] {
+      let alternatives: Node[][] = [[]]
+      let previous: Node | undefined
+      for (const node of selector.nodes) {
+        let replacements: Node[][]
+        if (node.type === 'universal') {
+          const values = Array.isArray(sr.universal) ? sr.universal : [sr.universal]
+          replacements = values.map(value => [tag({ value })])
         }
-      }
-      if (
-        selector.type === 'universal'
-        && selector.parent?.type === 'selector'
-      ) {
-        if (Array.isArray(sr.universal)) {
-          const parent = selector.parent as Selector
-          const idx = parent.nodes.indexOf(selector)
-          if (idx > -1) {
-            const rests = parent.nodes.slice(idx + 1)
-            // root
-            const root = parent.parent as Root | undefined
-            if (root) {
-              const pidx = root.nodes.indexOf(parent)
-              if (pidx > -1) {
-                root.nodes.splice(
-                  pidx,
-                  1,
-                  ...sr.universal.map((x) => {
-                    return slt({
-                      nodes: [
-                        tag({
-                          value: x,
-                        }),
-                        ...rests,
-                      ],
-                      value: '',
-                    })
-                  }),
-                )
-              }
-            }
+        else if (node.type === 'pseudo' && (node.value === ':root' || node.value === ':host')) {
+          const values = Array.isArray(sr.root) ? sr.root : [sr.root]
+          replacements = values.map(value => [tag({ value })])
+        }
+        else if (node.type === 'pseudo' && node.value === ':where') {
+          const values = node.nodes.map(x => x.toString())
+          if (values.length === 2 && values[0] === ':root' && values[1] === ':host') {
+            const roots = Array.isArray(sr.root) ? sr.root : [sr.root]
+            replacements = roots.map(value => [tag({ value })])
+          }
+          else {
+            replacements = node.nodes.flatMap(child => expandSelector(child).map(x => x.nodes))
           }
         }
         else {
-          selector.value = sr.universal
+          const copy = node.clone()
+          if (copy.type === 'pseudo' && copy.nodes.length > 0) {
+            const children = copy.nodes.flatMap(expandSelector)
+            copy.removeAll()
+            for (const child of children) {
+              copy.append(child)
+            }
+          }
+          if (copy.type === 'combinator' && copy.value === '~' && previous && previous.type !== 'class') {
+            copy.value = '+'
+          }
+          replacements = [[copy]]
         }
+        // Expand at the node's position, preserving both sides. Never mutate
+        // the container being traversed or share nodes between alternatives.
+        alternatives = alternatives.flatMap(prefix => replacements.map(nodes => [...prefix, ...nodes]))
+        previous = node
       }
-
-      if (selector.type === 'pseudo' && selector.parent) {
-        // where case
-        if (selector.value === ':where' && selector.parent.parent) {
-          // :root,:host
-          const vals = selector.nodes.map(x => x.toString())
-          vals.length === 2 && vals[0] === ':root' && vals[1] === ':host'
-            ? (selector.parent.parent.nodes = [
-                tag({
-                  value: normalizeString(sr.root),
-                }),
-              ])
-            : (selector.parent.parent.nodes = selector.nodes)
-        }
-        else if (selector.value === ':root' || selector.value === ':host') {
-          selector.parent.nodes = [
-            tag({
-              value: normalizeString(sr.root),
-            }),
-          ]
-        }
-      }
-    })
+      return alternatives.map(nodes => slt({ nodes: nodes.map(node => node.clone()), value: '' }))
+    }
+    const expanded = selectors.nodes.flatMap(expandSelector)
+    selectors.removeAll()
+    for (const selector of expanded) {
+      selectors.append(selector)
+    }
   })
 
   const atLayerTransformer = selectorParser((selectors) => {

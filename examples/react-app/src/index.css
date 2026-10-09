@@ -1,1 +1,15 @@
 @layer reset, base, tokens, recipes, utilities;
+
+/* stylelint-disable selector-class-pattern -- Intentional special names demonstrate portable encoding and collision avoidance. */
+.manual\/中文_wp_2e_ {
+  border-left: 3px solid #0c4a6e;
+}
+
+.a\.b {
+  margin-left: 7px;
+}
+
+.a_wp_2e_b {
+  margin-left: 11px;
+}
+/* stylelint-enable selector-class-pattern */

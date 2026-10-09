@@ -86,7 +86,10 @@ it('packs the adapter with an exact runtime dependency and usable compatibility 
   // Reuse the locked build-time dependencies; the extracted adapter and its
   // runtime are real tarball contents, not source links. No registry resolution
   // is needed for an unpublished package or a fresh CI metadata cache.
-  for (const name of Object.keys({ ...adapter.dependencies, ...adapter.peerDependencies })) {
+  for (const name of Object.keys({
+    ...adapter.dependencies,
+    ...adapter.peerDependencies,
+  })) {
     if (name === '@weapp-pandacss/runtime') {
       continue
     }
