@@ -1,6 +1,15 @@
+"@weapp-pandacss/runtime@1.0.0":
+  dir: packages/runtime
+  intents:
+    - itchy-kids-rest
 weapp-pandacss@2.0.0:
   dir: packages/weapp-pandacss
   intents:
     - panda-two-monorepo
     - smart-eggs-lie
     - young-horses-shine
+weapp-pandacss@2.0.1:
+  dir: packages/weapp-pandacss
+  intents:
+    - auto-pr-150
+    - lucky-spiders-fly
