@@ -1,7 +1,7 @@
 {
   "name": "weapp-pandacss",
   "type": "module",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Use Panda CSS in WeChat and other mini-program runtimes",
   "author": "ice breaker <hi@sonofmagic.top>",
   "license": "MIT",

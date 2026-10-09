@@ -1,5 +1,13 @@
 # weapp-pandacss
 
+## 2.0.1
+
+### Patch Changes
+
+- docs: 升级 repoctl 并上线 Nimbus 双语文档与品牌素材 (#150)
+
+- Extract portable class encoding into @weapp-pandacss/runtime while preserving every existing adapter entry.
+
 ## 2.0.0
 
 ### Major Changes
