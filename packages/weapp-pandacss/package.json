@@ -5,7 +5,7 @@
   "description": "Use Panda CSS in WeChat and other mini-program runtimes",
   "author": "ice breaker <hi@sonofmagic.top>",
   "license": "MIT",
-  "homepage": "https://github.com/weapp-pandacss/weapp-pandacss",
+  "homepage": "https://panda.weapp.dev",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/weapp-pandacss/weapp-pandacss.git",

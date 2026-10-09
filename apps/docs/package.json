@@ -6,6 +6,7 @@
   "description": "English and Chinese documentation for weapp-pandacss",
   "author": "ice breaker <1324318532@qq.com>",
   "license": "MIT",
+  "homepage": "https://panda.weapp.dev",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/weapp-pandacss/weapp-pandacss.git",
