@@ -19,6 +19,7 @@ import { weappPanda } from 'weapp-pandacss/panda'
 
 export default defineConfig({
   plugins: [weappPanda()],
+  polyfill: false,
   presets: ['@pandacss/preset-base', '@pandacss/preset-panda'],
   include: ['./src/**/*.{js,jsx,ts,tsx,vue}'],
   outdir: 'styled-system',
@@ -67,3 +68,28 @@ The plugin enables Panda's native `hash.cssVar` and normalizes its variable pref
 Panda 2.1.2 with `.js` or `.mjs` output is supported. Panda source-transform optimizations that inline raw classes and bypass runtime are outside this release's scope. See the [Chinese guide](./README.zh.md) and [2.0 migration guide](../../docs/panda-plugin-migration.md) for configuration and breaking changes.
 
 The repository includes [Taro React, Taro Vue, Uni-app Vue, React Web and Weapp Vite + Wevu](../../examples/). The Wevu example runs `wv prepare` before Panda codegen on a clean checkout.
+
+## Cascade layer compatibility
+
+Mini-programs default to `cascadeLayers: { mode: 'ordered', onConflict: 'warning' }`. The compiler registers layer names in first-declaration order, flattens nested/anonymous/repeated layers, and emits ordinary selectors without generated `:not(n)` specificity placeholders. Normal declarations follow layer order, then unlayered declarations. Important declarations use the reverse order, with unlayered important declarations first. Source order inside each layer is preserved.
+
+This provides **order compatibility**, not a complete native-layer polyfill. In WXSS, a lower-priority layer with a more specific selector can still override a higher-priority layer. The adapter reports potential conflicts through PostCSS warnings, with layer names, selectors, properties and source positions. Shorthands, logical properties and unknown functional selectors are analyzed conservatively; a warning does not prove that both selectors match a real element. Set `onConflict: 'error'` to fail the build on these diagnostics.
+
+```js
+export default {
+  plugins: {
+    '@pandacss/dev/postcss': {},
+    'weapp-pandacss/postcss': {
+      cascadeLayers: { mode: 'ordered', onConflict: 'error' },
+    },
+  },
+}
+```
+
+Declare the full layer order outside conditional blocks before using layers in `@media` / `@supports`. Resolve imports and CSS nesting before the adapter. Unresolved `@import … layer(...)`, `revert-layer`, CSS nesting and already-polyfilled layer placeholders fail with actionable diagnostics. Keep Panda `polyfill: false`; regenerate CSS from its original layers. Web/H5 (`target: 'web'`) always retains native layers.
+
+Ordering is local to one PostCSS root. Combine layered inputs before adaptation if their relative layer order matters; independently compiled files and isolated component styles do not share a global layer registry. The Wevu example uses shared application WXSS and explicitly declares component `styleIsolation: 'apply-shared'`.
+
+Existing 2.x options remain supported: explicitly passing `removeNegationPseudoClass`, `selectorReplacement.cascadeLayers` or `cascadeLayersPluginOptions` selects the legacy pipeline. You can also choose `cascadeLayers: { mode: 'legacy' }`. Legacy is not a strict native-layer polyfill either. Combining an explicit `mode: 'ordered'` with old options is a configuration error. Ordinary authored `:not(...)` is preserved.
+
+`isPseudoClassPluginOptions` still configures the csstools `:is()` transformation. No runtime or class-encoding change is required for this migration.

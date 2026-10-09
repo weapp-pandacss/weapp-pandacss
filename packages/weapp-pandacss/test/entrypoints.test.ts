@@ -21,7 +21,13 @@ describe('built public entrypoints', () => {
       }
       if (typeof plugin !== 'function') throw new Error('Missing PostCSS factory');
       if (weappPanda().name !== 'weapp-pandacss' || encodeClassName('a.b') !== 'a_wp_2e_b') throw new Error('Missing plugin or runtime');
-      postcss([plugin({ disabled: true })]).process('.a { color: red }', { from: undefined }).then(result => console.log(JSON.stringify({ css: result.css })));
+      (async () => {
+        const disabled = await postcss([plugin({ disabled: true })]).process('.a { color: red }', { from: undefined });
+        const css = '@layer base,utilities; @layer utilities{.a{color:blue}} @layer base{.a{color:red}}';
+        const ordered = await postcss([plugin({cascadeLayers:{onConflict:'error'}})]).process(css, {from:undefined});
+        if (ordered.css.includes('@layer') || ordered.css.includes(':not(') || ordered.css.indexOf('color:red') > ordered.css.indexOf('color:blue')) throw new Error('Broken production layer compiler');
+        console.log(JSON.stringify({ css: disabled.css }));
+      })();
     `
     const args = format === 'esm' ? ['--input-type=module', '-e', script] : ['-e', script]
     const result = await run(process.execPath, args, { cwd })

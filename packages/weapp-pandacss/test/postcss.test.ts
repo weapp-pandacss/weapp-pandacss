@@ -37,12 +37,12 @@ describe('postcss', () => {
     expect(css).toMatchSnapshot()
   })
 
-  it('default without layer removeNegationPseudoClass true', async () => {
+  it('legacy polyfilled input removeNegationPseudoClass true', async () => {
     const rawCss = await fs.readFile(
       resolve(cssRoot, 'default-without-layer.css'),
       'utf8',
     )
-    const { css } = await postcss([postcssPlugin()]).process(rawCss)
+    const { css } = await postcss([postcssPlugin({ removeNegationPseudoClass: true })]).process(rawCss)
     expect(css).toMatchSnapshot()
   })
 
@@ -148,7 +148,7 @@ describe('postcss', () => {
   })
 
   it('should not remove custom :not removeNegationPseudoClass true', async () => {
-    const { css } = await postcss([postcssPlugin()]).process(
+    const { css } = await postcss([postcssPlugin({ removeNegationPseudoClass: true })]).process(
       `.peer:not(.aa):not(#\\#){}`,
     )
     expect(css).toMatchSnapshot()

@@ -4,6 +4,7 @@ import { weappPanda } from 'weapp-pandacss/panda'
 
 export default defineConfig({
   plugins: [weappPanda()],
+  polyfill: false, // The adapter compiles layer order for WXSS; Web keeps native layers.
   presets: ['@pandacss/preset-base', '@pandacss/preset-panda'],
   // Whether to use css reset
   preflight: true,

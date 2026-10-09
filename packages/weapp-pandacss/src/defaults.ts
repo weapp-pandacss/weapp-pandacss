@@ -3,6 +3,7 @@ import type { IPostcssPluginOptions } from '@/types'
 export function getPostcssPluginDefaults(): Required<IPostcssPluginOptions> {
   return {
     target: 'weapp',
+    cascadeLayers: { mode: 'ordered', onConflict: 'warning' },
     selectorReplacement: {
       cascadeLayers: 'n',
       root: 'page',

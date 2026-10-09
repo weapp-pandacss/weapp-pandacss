@@ -56,6 +56,7 @@ it('renders real Wevu output and keeps changing Panda classes in sync with WXSS'
   expect(stylesheet).not.toContain('@layer')
   expect(stylesheet).not.toContain(':where')
   expect(stylesheet).not.toContain(':not(#')
+  expect(stylesheet).not.toContain(':not(n)')
   expect(stylesheet).toContain('16rpx')
   expect(stylesheet).toContain('_wp_2e_')
   for (const reference of stylesheet.matchAll(/var\(\s*(--[^,\s)]+)/g)) {
@@ -78,6 +79,8 @@ it('renders real Wevu output and keeps changing Panda classes in sync with WXSS'
     expectMatchingClasses(screen.getByAttribute('id', 'title'))
     expectMatchingClasses(screen.getByAttribute('id', 'card'))
     expectMatchingClasses(screen.getByAttribute('id', 'token'))
+    expectMatchingClasses(screen.getByAttribute('id', 'layer-normal'))
+    expectMatchingClasses(screen.getByAttribute('id', 'layer-important'))
     const manual = screen.getByAttribute('id', 'manual')
     expect(manual.getAttribute('class')).toBe(encodeClassName('manual/中文_wp_2e_'))
     expectMatchingClasses(manual)
@@ -90,10 +93,16 @@ it('renders real Wevu output and keeps changing Panda classes in sync with WXSS'
     const activeButton = screen.getByRole('button', { name: '已切换到强调样式' })
     expect(activeButton.getAttribute('class')).not.toBe(initialClasses)
     expectMatchingClasses(activeButton)
+    expect(screen.getByAttribute('id', 'layer-normal').getAttribute('class')).toBe('layer-normal-accent')
+    expect(screen.getByAttribute('id', 'layer-important').getAttribute('class')).toBe('layer-important-accent')
+    expectMatchingClasses(screen.getByAttribute('id', 'layer-normal'))
+    expectMatchingClasses(screen.getByAttribute('id', 'layer-important'))
 
     await user.tap(activeButton)
     expect(screen.getByAttribute('id', 'status')).toHaveTextContent('neutral')
     expect(screen.getByRole('button').getAttribute('class')).toBe(initialClasses)
+    expect(screen.getByAttribute('id', 'layer-normal').getAttribute('class')).toBe('layer-normal-neutral')
+    expect(screen.getByAttribute('id', 'layer-important').getAttribute('class')).toBe('layer-important-neutral')
   }
   finally {
     await project.close()

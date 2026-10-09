@@ -37,14 +37,35 @@ For rem/rpx conversion, install `postcss-rem-to-responsive-pixel` and append:
 | --- | --- | --- |
 | `target` | `weapp` | Mini-program platform transforms; `web` preserves Web semantics |
 | `disabled` | `false` | Disables every adapter stage, including class encoding |
-| `removeNegationPseudoClass` | `true` | Removes generated `:not(#\\#)` in mini-program mode |
+| `cascadeLayers.mode` | `ordered` | Compiles layer order; explicit `legacy` retains the old pipeline |
+| `cascadeLayers.onConflict` | `warning` | Warns about potential semantic differences; `error` fails the build |
 | `selectorReplacement.root` | `page` | Replaces `:root` and `:host` |
 | `selectorReplacement.universal` | `['view', 'text']` | Replaces `*` |
-| `selectorReplacement.cascadeLayers` | `n` | Placeholder when retaining layer negation |
 
-`cascadeLayersPluginOptions` and `isPseudoClassPluginOptions` pass options to the underlying csstools plugins. Pass options directly to PostCSS; the adapter no longer loads a separate configuration file.
+## Cascade layer compatibility
 
-Mini-program transforms flatten cascade layers and handle `:where` / `:is` and platform selectors. Authored business `:not(...)` selectors are preserved. Web keeps the Web selector and layer semantics. Both targets use identical class encoding.
+Mini-programs default to `cascadeLayers: { mode: 'ordered', onConflict: 'warning' }`. The compiler registers layer names in first-declaration order, flattens nested/anonymous/repeated layers, and emits ordinary selectors without generated `:not(n)` specificity placeholders. Normal declarations follow layer order, then unlayered declarations. Important declarations use the reverse order, with unlayered important declarations first. Source order inside each layer is preserved.
+
+This provides **order compatibility**, not a complete native-layer polyfill. In WXSS, a lower-priority layer with a more specific selector can still override a higher-priority layer. The adapter reports potential conflicts through PostCSS warnings, with layer names, selectors, properties and source positions. Shorthands, logical properties and unknown functional selectors are analyzed conservatively; a warning does not prove that both selectors match a real element. Set `onConflict: 'error'` to fail the build on these diagnostics.
+
+```js
+export default {
+  plugins: {
+    '@pandacss/dev/postcss': {},
+    'weapp-pandacss/postcss': {
+      cascadeLayers: { mode: 'ordered', onConflict: 'error' },
+    },
+  },
+}
+```
+
+Declare the full layer order outside conditional blocks before using layers in `@media` / `@supports`. Resolve imports and CSS nesting before the adapter. Unresolved `@import … layer(...)`, `revert-layer`, CSS nesting and already-polyfilled layer placeholders fail with actionable diagnostics. Keep Panda `polyfill: false`; regenerate CSS from its original layers. Web/H5 (`target: 'web'`) always retains native layers.
+
+Ordering is local to one PostCSS root. Combine layered inputs before adaptation if their relative layer order matters; independently compiled files and isolated component styles do not share a global layer registry. The Wevu example uses shared application WXSS and explicitly declares component `styleIsolation: 'apply-shared'`.
+
+Existing 2.x options remain supported: explicitly passing `removeNegationPseudoClass`, `selectorReplacement.cascadeLayers` or `cascadeLayersPluginOptions` selects the legacy pipeline. You can also choose `cascadeLayers: { mode: 'legacy' }`. Legacy is not a strict native-layer polyfill either. Combining an explicit `mode: 'ordered'` with old options is a configuration error. Ordinary authored `:not(...)` is preserved.
+
+`isPseudoClassPluginOptions` still configures the csstools `:is()` transformation. No runtime or class-encoding change is required for this migration.
 
 ## Web/H5
 

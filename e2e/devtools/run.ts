@@ -49,6 +49,7 @@ async function main() {
     projectPath = await fs.mkdtemp(path.join(os.tmpdir(), 'weapp-panda-ide-'))
     await fs.cp(path.join(example, 'dist'), path.join(projectPath, 'dist'), { recursive: true })
     const config = JSON.parse(await fs.readFile(path.join(example, 'project.config.json'), 'utf8'))
+    assert.match(String(config.libVersion), /^\d+\.\d+\.\d+$/, 'Pin a formal base-library version in the fixture; trial/develop aliases are not accepted.')
     await fs.writeFile(path.join(projectPath, 'project.config.json'), JSON.stringify({ ...config, appid }, null, 2))
     await fs.writeFile(path.join(projectPath, 'project.private.config.json'), JSON.stringify({
       condition: { miniprogram: { list: [{ name: 'Panda E2E', pathName: 'pages/index/index', query: '' }] } },
@@ -80,9 +81,11 @@ async function main() {
     }
     miniProgram.on('exception', error => errors.push(error))
     const systemInfo = await miniProgram.systemInfo()
+    assert.equal(systemInfo.SDKVersion, config.libVersion, 'The connected runtime must use the fixture\'s pinned formal base-library release.')
     await fs.writeFile(path.join(evidence, 'environment.json'), JSON.stringify({
       provider: 'devtools',
       officialSource: 'https://developers.weixin.qq.com/miniprogram/dev/devtools/download.html',
+      officialConfigSource: 'https://devtools.wxqcloud.qq.com.cn/WechatWebDev/nightly/versions/config.json',
       checkedAt,
       stableVersion,
       installedVersion,
@@ -92,6 +95,22 @@ async function main() {
     }, null, 2))
     const stylesheet = await fs.readFile(path.join(projectPath, 'dist/app.wxss'), 'utf8')
     const selectors = new Set([...stylesheet.matchAll(/\.([\w-]+)/g)].map(match => match[1]!))
+    assert(!/@layer|:not\(n\)|:not\(#/.test(stylesheet), 'Ordered WXSS must not contain layers or generated specificity placeholders')
+    const observed: unknown[] = []
+    async function layerStyles(page: Page, active: boolean) {
+      const normal = await page.$('#layer-normal')
+      const important = await page.$('#layer-important')
+      assert(normal && important, 'Layer probes must render')
+      const expected = active ? ['layer-normal-accent', 'layer-important-accent'] : ['layer-normal-neutral', 'layer-important-neutral']
+      assert.equal(await normal.attribute('class'), expected[0])
+      assert.equal(await important.attribute('class'), expected[1])
+      expected.forEach(name => assert(selectors.has(name), `Missing WXSS selector ${name}`))
+      const color = await normal.style('color')
+      const importantColor = await important.style('color')
+      assert.equal(color, active ? 'rgb(22, 163, 74)' : 'rgb(2, 132, 199)')
+      assert.equal(importantColor, active ? 'rgb(234, 88, 12)' : 'rgb(124, 58, 237)')
+      observed.push({ active, color, importantColor, classes: expected })
+    }
     async function buttonOn(page: Page) {
       const component = await page.$('panda-button')
       assert(component, 'PandaButton component must be registered')
@@ -99,7 +118,14 @@ async function main() {
       assert(button, 'PandaButton must render its button')
       const classes = await button.attribute('class')
       assert(classes.trim(), 'The button must have generated classes')
-      for (const name of classes.trim().split(/\s+/)) {
+      assert('data' in component && typeof component.data === 'function', 'The registered component must expose runtime data')
+      const runtimeClasses = String(await component.data('buttonClass')).trim().split(/\s+/)
+      const renderedClasses = classes.trim().split(/\s+/).map(name => name.replace(/^PandaButton--/, ''))
+      // The WeChat renderer scopes component class attributes. Match its exact
+      // known scope to actual AppService data, then check the original WXSS.
+      // apply-shared can expose both scoped and original class attributes.
+      assert.deepEqual([...new Set(renderedClasses)].sort(), [...new Set(runtimeClasses)].sort(), 'Rendered class scoping must preserve the Panda runtime output')
+      for (const name of runtimeClasses) {
         assert.match(name, /^[\w-]+$/)
         assert(selectors.has(name), `Missing WXSS selector: ${name}`)
       }
@@ -122,18 +148,22 @@ async function main() {
       const page: Page | undefined = await miniProgram.reLaunch('/pages/index/index')
       assert(page, 'The example route must launch')
       await expectStatus(page, 'neutral')
+      await layerStyles(page, false)
       const initial = await (await buttonOn(page)).attribute('class')
       const background = await (await buttonOn(page)).style('background-color')
       await (await buttonOn(page)).tap()
       await expectStatus(page, 'accent')
+      await layerStyles(page, true)
       assert.notEqual(await (await buttonOn(page)).attribute('class'), initial)
       assert.notEqual(await (await buttonOn(page)).style('background-color'), background)
       await miniProgram.screenshot({ path: path.join(evidence, `accent-${scenario}.png`) })
       await (await buttonOn(page)).tap()
       await expectStatus(page, 'neutral')
+      await layerStyles(page, false)
       assert.equal(await (await buttonOn(page)).attribute('class'), initial)
     }
     assert.deepEqual(errors, [], 'Real AppService exceptions must not be swallowed')
+    await fs.writeFile(path.join(evidence, 'layer-styles.json'), JSON.stringify(observed, null, 2))
     process.stdout.write('DevTools E2E passed: rendered styles, toggles, WXSS matching and reLaunch reset.\n')
   }
   finally {

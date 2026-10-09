@@ -13,6 +13,20 @@ import { escapePostcssPlugin, wrapperPostcssPlugin } from '@/constants'
 import { getPostcssPluginDefaults } from '@/defaults'
 import { encodeClassName } from '@/runtime'
 import { merge, ref } from '@/utils'
+import { orderedLayersPlugin } from './layers'
+
+function resolveLayerMode(options?: IPostcssPluginOptions) {
+  // Inspect caller input, never the merged legacy defaults.
+  const legacy = options && (
+    Object.hasOwn(options, 'removeNegationPseudoClass')
+    || Object.hasOwn(options, 'cascadeLayersPluginOptions')
+    || (options.selectorReplacement && Object.hasOwn(options.selectorReplacement, 'cascadeLayers'))
+  )
+  if (options?.cascadeLayers?.mode === 'ordered' && legacy) {
+    throw new Error('cascadeLayers.mode "ordered" cannot be combined with legacy layer options. Remove the old options or select mode "legacy".')
+  }
+  return options?.cascadeLayers?.mode ?? (legacy ? 'legacy' : 'ordered')
+}
 
 // postcss-selector-parser is a CommonJS package. Access its node factories
 // through the default export so the ESM build does not rely on synthetic named
@@ -27,6 +41,7 @@ export function useOptions(options?: IPostcssPluginOptions) {
       options,
     ) as Required<IPostcssPluginOptions>,
   )
+  optionsRef.value.cascadeLayers.mode = resolveLayerMode(options)
 
   function mergeOptions(options?: IPostcssPluginOptions) {
     optionsRef.value = merge.recursive(true, optionsRef.value, options)
@@ -147,7 +162,7 @@ export const innerPlugin: PluginCreator<
           })
         },
         OnceExit(root) {
-          if (optionsRef?.value.disabled) {
+          if (optionsRef?.value.disabled || optionsRef?.value.cascadeLayers.mode === 'ordered') {
             return
           }
           root.walkRules(/:not\(#\\#\)/, (rule) => {
@@ -222,10 +237,9 @@ export const creator: PluginCreator<IPostcssPluginOptions> = (options) => {
   if (optionsRef.value.target === 'web') {
     return { postcssPlugin: wrapperPostcssPlugin, plugins: [namingPlugin] }
   }
-  // cascadeLayersPluginOptions 和 isPseudoClassPluginOptions
-  const cascadeLayersPlugin = createCascadeLayersPlugin(
-    optionsRef?.value.cascadeLayersPluginOptions,
-  ) as Plugin
+  const cascadeLayersPlugin = optionsRef.value.cascadeLayers.mode === 'legacy'
+    ? createCascadeLayersPlugin(optionsRef.value.cascadeLayersPluginOptions) as Plugin
+    : orderedLayersPlugin(optionsRef.value.cascadeLayers.onConflict!)
   const isPseudoClassPlugin = createIsPseudoClassPlugin(
     optionsRef?.value.isPseudoClassPluginOptions,
   ) as Plugin
@@ -234,9 +248,10 @@ export const creator: PluginCreator<IPostcssPluginOptions> = (options) => {
     postcssPlugin: wrapperPostcssPlugin,
     plugins: [
       namingPlugin,
-      cascadeLayersPlugin,
+      ...(optionsRef.value.cascadeLayers.mode === 'legacy' ? [cascadeLayersPlugin] : []),
       isPseudoClassPlugin,
       innerPlugin(optionsRef),
+      ...(optionsRef.value.cascadeLayers.mode === 'ordered' ? [cascadeLayersPlugin] : []),
     ],
   }
 }

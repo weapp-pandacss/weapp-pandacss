@@ -8,6 +8,12 @@ type IsPseudoClassPluginOptions = import('@csstools/postcss-is-pseudo-class', { 
 export interface IPostcssPluginOptions {
   /** CSS target; both targets use the same portable class names. */
   target?: 'weapp' | 'web'
+  /** Ordered layer compatibility for WXSS; Web always retains native layers. */
+  cascadeLayers?: {
+    mode?: 'ordered' | 'legacy'
+    /** Potential specificity/conditional-order differences: warn by default. */
+    onConflict?: 'warning' | 'error'
+  }
   /**
    * @description 是否禁用
    * @default false

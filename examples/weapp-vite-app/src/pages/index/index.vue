@@ -16,6 +16,8 @@ const cardClass = css({ bg: 'white', padding: '0.5rem', borderRadius: '1.5rem', 
 const descriptionClass = css({ color: 'slate.600', fontSize: '1.25rem' })
 const tokenClass = css({ padding: token.var('spacing.0.5') })
 const manualClass = encodeClassName('manual/中文_wp_2e_')
+const normalLayerClass = computed(() => selected.value ? 'layer-normal-accent' : 'layer-normal-neutral')
+const importantLayerClass = computed(() => selected.value ? 'layer-important-accent' : 'layer-important-neutral')
 </script>
 
 <template>
@@ -39,6 +41,12 @@ const manualClass = encodeClassName('manual/中文_wp_2e_')
     </PandaButton>
     <text id="status">
       {{ selected ? 'accent' : 'neutral' }}
+    </text>
+    <text id="layer-normal" :class="normalLayerClass">
+      普通声明：后声明的层优先
+    </text>
+    <text id="layer-important" :class="importantLayerClass">
+      important 声明：层顺序反转
     </text>
   </view>
 </template>

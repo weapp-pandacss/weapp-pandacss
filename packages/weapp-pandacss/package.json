@@ -106,9 +106,11 @@
     "@babel/types": "^8.0.6",
     "@csstools/postcss-cascade-layers": "^6.0.2",
     "@csstools/postcss-is-pseudo-class": "^6.0.3",
+    "@csstools/selector-specificity": "^6.0.1",
     "@pandacss/types": "2.1.2",
     "@weapp-pandacss/runtime": "workspace:*",
     "local-pkg": "^1.2.1",
+    "mdn-data": "^2.37.2",
     "merge": "^2.1.1",
     "postcss-selector-parser": "^7.1.6",
     "postcss-value-parser": "^4.2.0"
