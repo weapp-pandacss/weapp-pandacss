@@ -32,13 +32,13 @@ applies them for light and dark system themes. Verify computed token colors in b
 ## Automatic language / 自动语言选择
 
 On `/`, the client queries the same-origin `/api/locale` endpoint for Cloudflare's
-connection country: `CN` opens `/zh/`, other countries keep the English homepage.
-When country detection is unavailable, China time zones and the browser's preferred
+connection region: `CN/HK/MO/TW` open `/zh/`, other regions keep the English homepage.
+When country detection is unavailable, Chinese-region time zones and the browser's preferred
 language provide a fallback. Explicit `?lang=en` / `?lang=zh` and remembered manual
 language switches take priority. Deep links keep their selected language.
 
 访问 `/` 时，客户端通过本站 `/api/locale` 获取 Cloudflare 判定的访问地区：
-`CN` 自动进入 `/zh/`，其他地区保留英文。地区检测不可用时，以中国时区和浏览器
+`CN/HK/MO/TW` 自动进入 `/zh/`，其他地区保留英文。地区检测不可用时，以中文地区时区和浏览器
 首选语言兜底。手动切换会记住选择，`?lang=en` / `?lang=zh` 可显式指定语言；
 深层链接不自动跳转。Astro 的纯静态预览没有地区接口，使用客户端兜底。
 

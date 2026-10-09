@@ -22,6 +22,15 @@ test('other regions keep the English homepage', async ({ page }) => {
   await expect(page).toHaveURL(/\/$/)
 })
 
+for (const country of ['HK', 'MO', 'TW']) {
+  test(`${country} also defaults to Chinese`, async ({ page }) => {
+    await region(page, country)
+    await page.goto('/')
+    await expect(page).toHaveURL(/\/zh\/$/)
+    await expect(page.locator('html')).toHaveAttribute('lang', 'zh-CN')
+  })
+}
+
 test('a manual language switch is remembered without a redirect loop', async ({ page }) => {
   await region(page, 'CN')
   await page.goto('/')
@@ -129,6 +138,9 @@ test('locale rules accept supported preferences and country/browser signals', ()
   expect(parseLocale('en')).toBe('en')
   expect(parseLocale('fr')).toBeUndefined()
   expect(detectLocale('cn', 'UTC', ['en-US'])).toBe('zh')
+  expect(detectLocale('HK', 'UTC', ['en-US'])).toBe('zh')
+  expect(detectLocale('MO', 'UTC', ['en-US'])).toBe('zh')
+  expect(detectLocale('TW', 'UTC', ['en-US'])).toBe('zh')
   expect(detectLocale('US', 'Asia/Shanghai', ['zh-CN'])).toBe('en')
   expect(detectLocale(undefined, 'Asia/Urumqi', ['en-US'])).toBe('zh')
   expect(detectLocale(undefined, 'UTC', ['zh-TW'])).toBe('zh')
