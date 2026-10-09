@@ -104,7 +104,7 @@ it('packs the adapter with an exact runtime dependency and usable compatibility 
       if (api.encodeClassName !== runtime.encodeClassName) throw new Error('Duplicated root codec');
       for (const key of Object.keys(runtime)) if (old[key] !== runtime[key]) throw new Error('Duplicated compatibility codec: ' + key);
       if (api.weappPanda().name !== 'weapp-pandacss') throw new Error('Missing Panda plugin');
-      postcss([postcssPlugin()]).process('.a\\\\.b {}', {from:undefined}).then(result => console.log(result.css.includes('.' + runtime.encodeClassName('a.b'))));`
+      postcss([postcssPlugin()]).process('.a\\\\.b {} @layer a,b; @layer b{.probe{color:blue}} @layer a{.probe{color:red}}', {from:undefined}).then(result => console.log(result.css.includes('.' + runtime.encodeClassName('a.b')) && !result.css.includes('@layer') && !result.css.includes(':not(') && result.css.indexOf('color:red') < result.css.indexOf('color:blue')));`
     const args = format === 'esm' ? ['--input-type=module', '-e', script] : ['-e', script]
     expect((await run(process.execPath, args, { cwd: consumer })).stdout.trim()).toBe('true')
   }

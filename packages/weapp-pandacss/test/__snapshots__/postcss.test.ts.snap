@@ -572,43 +572,10 @@ page:not(n):not(n) {
 
 exports[`postcss > default removeNegationPseudoClass true 1`] = `
 "
-  @keyframes spin {
-    to {
-      -webkit-transform: rotate(1turn);
-      transform: rotate(1turn);
-    }
-  }
-  @keyframes ping {
-    100%,75% {
-      opacity: 0;
-      -webkit-transform: scale(2);
-      transform: scale(2);
-    }
-  }
-  @keyframes pulse {
-    50% {
-      opacity: 0.5;
-    }
-  }
-  @keyframes bounce {
-    0%,100% {
-      -webkit-animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
-      animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
-      -webkit-transform: translateY(-25%);
-      transform: translateY(-25%);
-    }
-    50% {
-      -webkit-animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
-      animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
-      -webkit-transform: none;
-      transform: none;
-    }
-  }
-/*! weapp-pandacss:portable-v1 */
-page {
+  page {
     --made-with-panda: "🐼";
   }
-::-webkit-backdrop {
+  ::-webkit-backdrop {
     --blur: ;
     --brightness: ;
     --contrast: ;
@@ -638,7 +605,7 @@ page {
     --scale-x: 1;
     --scale-y: 1;
   }
-view,text,view::after,text::after,view::before,text::before,::backdrop {
+  view,text,view::after,text::after,view::before,text::before,::backdrop {
     --blur: ;
     --brightness: ;
     --contrast: ;
@@ -668,7 +635,7 @@ view,text,view::after,text::after,view::before,text::before,::backdrop {
     --scale-x: 1;
     --scale-y: 1;
   }
-page {
+  page {
     --borders-none: none;
     --easings-default: cubic-bezier(0.4, 0, 0.2, 1);
     --easings-linear: linear;
@@ -1089,25 +1056,43 @@ page {
     --breakpoints-xl: 1280rpx;
     --breakpoints-2xl: 1536rpx;
   }
-@-webkit-keyframes spin {
+  @-webkit-keyframes spin {
     to {
       -webkit-transform: rotate(1turn);
       transform: rotate(1turn);
     }
   }
-@-webkit-keyframes ping {
+  @keyframes spin {
+    to {
+      -webkit-transform: rotate(1turn);
+      transform: rotate(1turn);
+    }
+  }
+  @-webkit-keyframes ping {
     100%,75% {
       opacity: 0;
       -webkit-transform: scale(2);
       transform: scale(2);
     }
   }
-@-webkit-keyframes pulse {
+  @keyframes ping {
+    100%,75% {
+      opacity: 0;
+      -webkit-transform: scale(2);
+      transform: scale(2);
+    }
+  }
+  @-webkit-keyframes pulse {
     50% {
       opacity: 0.5;
     }
   }
-@-webkit-keyframes bounce {
+  @keyframes pulse {
+    50% {
+      opacity: 0.5;
+    }
+  }
+  @-webkit-keyframes bounce {
     0%,100% {
       -webkit-animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
       animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
@@ -1121,12 +1106,27 @@ page {
       transform: none;
     }
   }
-.text_red_wp_2e_400 {
+  @keyframes bounce {
+    0%,100% {
+      -webkit-animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
+      animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
+      -webkit-transform: translateY(-25%);
+      transform: translateY(-25%);
+    }
+    50% {
+      -webkit-animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+      animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+      -webkit-transform: none;
+      transform: none;
+    }
+  }
+  .text_red_wp_2e_400 {
     color: var(--colors-red-400);
   }
-.bg_amber_wp_2e_800 {
+  .bg_amber_wp_2e_800 {
     background: var(--colors-amber-800);
   }
+  /*! weapp-pandacss:portable-v1 */
 "
 `;
 
@@ -1695,7 +1695,12 @@ page:not(n):not(n) {
 "
 `;
 
-exports[`postcss > default without layer removeNegationPseudoClass true 1`] = `
+exports[`postcss > is pseudo 1`] = `
+"/*! weapp-pandacss:portable-v1 */
+.hovercbg_yellowd400:hover,.hovercbg_yellowd400[data-hover]{}"
+`;
+
+exports[`postcss > legacy polyfilled input removeNegationPseudoClass true 1`] = `
 "/*! weapp-pandacss:portable-v1 */
 
 @keyframes spin {
@@ -2260,11 +2265,6 @@ page {
 "
 `;
 
-exports[`postcss > is pseudo 1`] = `
-"/*! weapp-pandacss:portable-v1 */
-.hovercbg_yellowd400:hover,.hovercbg_yellowd400[data-hover]{}"
-`;
-
 exports[`postcss > only :root pseudo 1`] = `
 "/*! weapp-pandacss:portable-v1 */
 page{}"
@@ -2298,6 +2298,10 @@ view,text,view::before,text::before,view::after,text::after,::backdrop{}"
 exports[`postcss > useOptions default 1`] = `
 {
   "value": {
+    "cascadeLayers": {
+      "mode": "ordered",
+      "onConflict": "warning",
+    },
     "cascadeLayersPluginOptions": {},
     "disabled": false,
     "isPseudoClassPluginOptions": {},
@@ -2318,6 +2322,10 @@ exports[`postcss > useOptions default 1`] = `
 exports[`postcss > useOptions default 2`] = `
 {
   "value": {
+    "cascadeLayers": {
+      "mode": "ordered",
+      "onConflict": "warning",
+    },
     "cascadeLayersPluginOptions": {
       "onConditionalRulesChangingLayerOrder": false,
     },

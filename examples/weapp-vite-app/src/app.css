@@ -1,11 +1,69 @@
 @layer reset, base, tokens, recipes, utilities;
+@layer layer-demo.base, layer-demo.utilities;
+
+/* Deliberately write the higher layer first; block order must not win. */
+@layer layer-demo.utilities {
+  .layer-normal-neutral {
+    color: #0284c7;
+  }
+
+  .layer-normal-accent {
+    color: #16a34a;
+  }
+
+  .layer-important-neutral,
+  .layer-important-accent {
+    color: blue !important;
+  }
+}
+
+@layer layer-demo.base {
+  .layer-normal-neutral,
+  .layer-normal-accent {
+    color: red;
+  }
+
+  .layer-important-neutral {
+    color: #7c3aed !important;
+  }
+
+  .layer-important-accent {
+    color: #ea580c !important;
+  }
+}
+
+/* Unlayered important declarations have the lowest important layer priority. */
+.layer-important-neutral,
+.layer-important-accent {
+  color: black !important;
+}
 
 /* stylelint-disable-next-line selector-class-pattern -- Exercise portable encoding of authored special classes. */
 .manual\/中文_wp_2e_ {
   color: red;
 }
 
-page {
-  color: #0f172a;
-  background: #f8fafc;
+/* stylelint-disable selector-class-pattern -- Encoding collision and unsafe-head acceptance probes. */
+.a\.b {
+  color: #dc2626;
+}
+
+.a_wp_2e_b {
+  color: #16a34a;
+}
+
+.\32 leading\/中文 {
+  color: #0369a1;
+}
+
+.-leading_wp_ {
+  color: #9333ea;
+}
+/* stylelint-enable selector-class-pattern */
+
+@layer base {
+  page {
+    color: #0f172a;
+    background: #f8fafc;
+  }
 }

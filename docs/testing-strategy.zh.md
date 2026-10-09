@@ -47,7 +47,7 @@ CI 保留 Windows/macOS/Linux × Node 22/24 六组完整验证，新增 Linux/No
 
 该入口显式启用，不在没有 GUI/账号的 CI 中静默跳过。运行前从 [官方稳定版下载页](https://developers.weixin.qq.com/miniprogram/dev/devtools/download.html) 核对最新稳定版，确认所选安装与实际宿主版本一致、已登录且服务端口已开启。不得因为失败而回退 RC/nightly 或其他安装。
 
-设置以下环境变量后运行 `pnpm test:e2e:devtools`：
+先运行 `pnpm exec playwright install chromium`，设置以下环境变量后运行 `pnpm test:e2e:devtools`：
 
 | 变量                                        | 含义                                                      |
 | ------------------------------------------- | --------------------------------------------------------- |
@@ -57,7 +57,11 @@ CI 保留 Windows/macOS/Linux × Node 22/24 六组完整验证，新增 Linux/No
 | `WEAPP_VITE_E2E_DEVTOOLS_INSTALLED_VERSION` | 本轮核对的实际 IDE 宿主版本，须与稳定版一致               |
 | `WEAPP_VITE_E2E_DEVTOOLS_CHECKED_AT`        | 核对时间 ISO 字符串，须在 24 小时内                       |
 
-版本值属于操作者提供的验收证据，SDK 不会自动判断发行渠道；记录不能替代实际核对。入口只启动一个自动化连接，通过 `reLaunch` 切换两轮场景，不重复启动 IDE。应用复制到唯一临时目录，在临时配置中注入 AppID 与调试路由；仓库保持 touristappid，避免提交个人配置。
+版本值属于操作者提供的验收证据，SDK 不会自动判断发行渠道；记录不能替代实际核对。入口先运行 `wv ide doctor`，通过 `wv auto` 为每个应用启动一次 IDE 自动化项目，应用内复用一个测试连接，通过 `reLaunch` 切换场景。每个应用复制到唯一临时目录，只在临时配置中注入 AppID、正式基础库及调试路由；仓库 AppID 配置保持不变。
+
+Wevu 独立验收页覆盖 css/cva/sva、named/slot compound recipes、patterns、cx/合并、token 返回值/变量、语义及负值 token、important、编码碰撞、Unicode 和前导字符。重复切换及重新启动后检查真实样式和 class/WXSS 匹配。Taro React、Taro Vue、Uni-app 串行执行真实 IDE 静态渲染探针，检查实际节点 class 对应的最终 WXSS 声明确实引用 Panda token，并精确对照最终变量值；这些静态探针不宣称具备 Wevu 同等的交互覆盖。释放 Wevu 测试连接后，`wv relaunch/current-page/screenshot/compare/tap/page-data` 复用其显式端口，保留 CLI 全屏 diff，再按实测 `screenTop` 裁出应用视口，逐像素要求视口差异为 0（排除 IDE 状态栏时钟），并断言 CLI 点击确实更新页面数据。CLI 命令不再启动新项目。
+
+证据包含 SDK/systemInfo、viewport 尺寸、样式探针、CLI 日志、异常和截图。框架探针用临时 headless Chromium 规范化最终 WXSS token 的颜色表示，并在 `finally` 关闭浏览器。Uni-app 后续工具链会把 OKLCH 转成 RGB，报告同时记录原始 token、最终 WXSS 值和 computed style，不放宽颜色断言；当前正式基础库的 WebView 将正 rpx 尺寸解析为整数 CSS 像素。验收环境是已安装的 IDE 模拟器，不是实体手机。
 
 证据写入 `e2e-artifacts/devtools/`，包括官方来源、核对时间、版本声明、实际 SDK/systemInfo 和截图。`finally` 断开连接、使用 `cli close --project <唯一临时目录>` 关闭该项目并删除临时文件；保留用户和其他任务的 IDE 窗口。清理错误导致失败。仓库锁防止两轮 IDE E2E 同时启动。强杀/断电后需先核对资源归属再清理遗留锁和临时项目，不运行全局 kill/close 命令。
 
@@ -68,3 +72,7 @@ CI 保留 Windows/macOS/Linux × Node 22/24 六组完整验证，新增 Linux/No
 每次库逻辑变化先补失败用例，再修复根因。Panda 生成结构变化同时更新真实 codegen、AST 诊断、打包类型和框架产物回归；不要仅更新快照使 CI 通过。新增公开 API、配置分支或产物形态必须保持逐文件门禁，新增页面状态应加入浏览器/小程序对应场景。视觉与真机兼容性采用实际环境验收，不能用源码覆盖率推断。
 
 2026-10-09 安全复核：新增官方 IDE SDK 带入的旧 minimist 已通过兼容的 mkdirp 补丁覆盖修复；审计告警与已有基线一致（low 6、moderate 33、high 24、critical 5），并非安全审计全通过。框架工具链的已有告警见 [依赖评估](./dependency-review-2026-10-09.md)。
+
+## 层顺序回归
+
+编译器单测覆盖嵌套、匿名、重复层、重要声明逆序、条件包装、诊断和显式 legacy 参数。三浏览器对安全输入比较展开后的 computed style 与原生 layer；高权重反例必须保留实际差异并产生警告/错误。Wevu 产物测试验证两个层演示节点的状态切换；真实 IDE 在点击前后及 `reLaunch` 后读取普通层顺序、重要层逆序的精确颜色，保存 `layer-styles.json` 与截图。mpcore 不验证 CSS 排版。真实 AppID 仅注入临时项目，不把其他 fixture 的 `trial` 当作正式基础库基线。

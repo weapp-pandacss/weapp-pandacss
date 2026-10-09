@@ -1,9 +1,10 @@
 import process from 'node:process'
 import { defineConfig } from '@pandacss/dev'
 import { weappPanda } from 'weapp-pandacss/panda'
-// *:not(#\#)
+
 export default defineConfig({
   plugins: [weappPanda()],
+  polyfill: false, // The adapter compiles layer order for WXSS; Web keeps native layers.
   presets: ['@pandacss/preset-base', '@pandacss/preset-panda'],
   // Whether to use css reset
   // 小程序没有必要使用
