@@ -1,8 +1,14 @@
 # weapp-pandacss
 
+<img src="./assets/brand/logo.svg" alt="weapp-pandacss logo" width="128" height="128">
+
 Use Panda CSS 2.1.2 in WeChat and other mini-program runtimes.
 
 This repository is a pnpm/Turborepo monorepo managed by [repoctl](https://github.com/icelib/repoctl). The published adapter lives in [packages/weapp-pandacss](./packages/weapp-pandacss); the [Chinese configuration guide](./packages/weapp-pandacss/README.zh.md) covers installation, PostCSS and runtime codegen.
+
+## Brand assets
+
+The selected logo is the Panda CSS P mark with a mini-program badge. All six designs, SVG sources, transparent PNGs and the comparison preview are available in [assets/brand](./assets/brand/README.md).
 
 ## Workspaces
 

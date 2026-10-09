@@ -1,0 +1,50 @@
+[
+  {
+    "code": "A",
+    "slug": "corner-badge",
+    "name": "角标组合",
+    "description": "官方 P 为主体，绿色小程序标识作角标。",
+    "use": "适合 GitHub 组织头像",
+    "file": "a-corner-badge"
+  },
+  {
+    "code": "B",
+    "slug": "twin-marks",
+    "name": "并列双标",
+    "description": "两个原始标志并列，双方身份一眼可见。",
+    "use": "适合文档和横版标识",
+    "file": "b-twin-marks"
+  },
+  {
+    "code": "C",
+    "slug": "split-seal",
+    "name": "双色圆章",
+    "description": "把 P 与小程序符号收进同一枚双色圆章。",
+    "use": "适合图标与品牌贴纸",
+    "file": "c-split-seal"
+  },
+  {
+    "code": "D",
+    "slug": "open-symbols",
+    "name": "开放组合",
+    "description": "去掉外框，用两个符号构成紧凑的组合标。",
+    "use": "适合极简页面和组件标识",
+    "file": "d-open-symbols"
+  },
+  {
+    "code": "E",
+    "slug": "mascot-badge",
+    "name": "熊猫徽章",
+    "description": "官方熊猫搭配小程序胸章，更有项目亲和力。",
+    "use": "适合社区头像和宣传物料",
+    "file": "e-mascot-badge"
+  },
+  {
+    "code": "F",
+    "slug": "mascot-peek",
+    "name": "熊猫探头",
+    "description": "熊猫探出绿色标章，突出小程序场景。",
+    "use": "适合头像和社群入口",
+    "file": "f-mascot-peek"
+  }
+]
