@@ -5,7 +5,7 @@
   "description": "Use Panda CSS in WeChat and other mini-program runtimes",
   "author": "ice breaker <hi@sonofmagic.top>",
   "license": "MIT",
-  "homepage": "https://github.com/weapp-pandacss/weapp-pandacss",
+  "homepage": "https://panda.weapp.dev",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/weapp-pandacss/weapp-pandacss.git",
@@ -107,6 +107,7 @@
     "@csstools/postcss-cascade-layers": "^6.0.2",
     "@csstools/postcss-is-pseudo-class": "^6.0.3",
     "@pandacss/types": "2.1.2",
+    "@weapp-pandacss/runtime": "workspace:*",
     "local-pkg": "^1.2.1",
     "merge": "^2.1.1",
     "postcss-selector-parser": "^7.1.6",

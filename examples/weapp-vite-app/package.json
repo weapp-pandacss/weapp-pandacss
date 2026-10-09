@@ -28,10 +28,12 @@
     "open": "wv open"
   },
   "dependencies": {
+    "@weapp-pandacss/runtime": "workspace:*",
     "vue": "3.5.43",
     "wevu": "7.4.0"
   },
   "devDependencies": {
+    "@babel/core": "^8.0.7",
     "@mpcore/test": "0.1.15",
     "@mpcore/vitest": "0.2.7",
     "@mpcore/weapp-vite": "0.1.29",

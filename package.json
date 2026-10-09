@@ -3,11 +3,11 @@
   "type": "module",
   "version": "0.0.0",
   "private": true,
-  "packageManager": "pnpm@12.9.1",
+  "packageManager": "pnpm@12.10.1+sha512.ba40a37eb1a370d60fea8c4cf1d364c13bcccef518e98ad2bcee954f539d38da37458e58261a3fa55e06523450ea0ffff9f497b135be41f2c15c1642bacace6c",
   "description": "Panda CSS adapters and examples for mini-programs, managed with repoctl",
   "author": "ice breaker <hi@sonofmagic.top>",
   "license": "MIT",
-  "homepage": "https://github.com/weapp-pandacss/weapp-pandacss",
+  "homepage": "https://panda.weapp.dev",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/weapp-pandacss/weapp-pandacss.git"
@@ -63,7 +63,7 @@
     "pr:exit": "repo release pre exit",
     "--------": "----------------",
     "build:examples": "turbo run build --filter=./examples/*",
-    "pack:check": "pnpm --filter weapp-pandacss pack:check"
+    "pack:check": "pnpm --filter @weapp-pandacss/runtime pack:check && pnpm --filter weapp-pandacss pack:check"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.3",
@@ -75,7 +75,7 @@
     "husky": "^9.1.7",
     "lint-staged": "^17.6.0",
     "only-allow": "^1.2.2",
-    "repoctl": "^5.8.1",
+    "repoctl": "5.9.0",
     "stylelint": "^17.16.0",
     "tailwindcss": "^4.3.3",
     "tsd": "^0.33.0",

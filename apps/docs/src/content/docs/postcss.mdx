@@ -1,0 +1,59 @@
+---
+title: PostCSS configuration
+description: Shared class encoding with separate mini-program and Web CSS behavior.
+sidebar:
+  order: 3
+---
+
+## Plugin order
+
+Panda generates CSS first, the adapter transforms it second, and optional rem/rpx conversion runs last.
+
+~~~js
+// postcss.config.cjs
+module.exports = {
+  plugins: {
+    '@pandacss/dev/postcss': {},
+    'weapp-pandacss/postcss': { target: 'weapp' },
+  },
+}
+~~~
+
+For rem/rpx conversion, install `postcss-rem-to-responsive-pixel` and append:
+
+~~~js
+'postcss-rem-to-responsive-pixel': {
+  rootValue: 32,
+  propList: ['*'],
+  transformUnit: 'rpx',
+}
+~~~
+
+`rootValue` is a project choice. The Wevu example uses `1rem = 32rpx`.
+
+## Options
+
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `target` | `weapp` | Mini-program platform transforms; `web` preserves Web semantics |
+| `disabled` | `false` | Disables every adapter stage, including class encoding |
+| `removeNegationPseudoClass` | `true` | Removes generated `:not(#\\#)` in mini-program mode |
+| `selectorReplacement.root` | `page` | Replaces `:root` and `:host` |
+| `selectorReplacement.universal` | `['view', 'text']` | Replaces `*` |
+| `selectorReplacement.cascadeLayers` | `n` | Placeholder when retaining layer negation |
+
+`cascadeLayersPluginOptions` and `isPseudoClassPluginOptions` pass options to the underlying csstools plugins. Pass options directly to PostCSS; the adapter no longer loads a separate configuration file.
+
+Mini-program transforms flatten cascade layers and handle `:where` / `:is` and platform selectors. Authored business `:not(...)` selectors are preserved. Web keeps the Web selector and layer semantics. Both targets use identical class encoding.
+
+## Web/H5
+
+~~~js
+'weapp-pandacss/postcss': { target: 'web' }
+~~~
+
+Register the Panda plugin for Web too. The same runtime class names work across targets without rollback.
+
+Keep CSS source selectors in their original form, using normal CSS escaping. Do not feed encoded CSS back as unmarked source or remove the portable-generation marker.
+
+`disabled: true` is a complete opt-out: a portable runtime combined with unencoded CSS can no longer match. Use it only when the stylesheet does not need adaptation or when another pipeline owns the matching runtime.

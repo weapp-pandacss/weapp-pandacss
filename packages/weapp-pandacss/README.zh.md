@@ -1,5 +1,7 @@
 # weapp-pandacss
 
+文档：[简体中文](https://panda.weapp.dev/zh/) · [English](https://panda.weapp.dev/)。
+
 在小程序和 Web 中使用 Panda CSS 2.1.2，并保持 runtime class 与 CSS selector 一致。
 适配分成 Panda 生成期插件和 PostCSS 插件：前者通过受控 AST 转换生成产物，
 由 Panda 负责写入；后者转换选择器和小程序平台 CSS。正常构建只执行 Panda
@@ -82,8 +84,14 @@ Web 保留 `@layer`、`:where`、`:is` 和其他选择器语义；默认 `weapp`
 
 手写特殊 class 时使用公共、无 Node 依赖的 runtime：
 
+```bash
+pnpm add @weapp-pandacss/runtime
+```
+
+独立包不引入 Panda、PostCSS 或 Babel。原有 `weapp-pandacss/runtime` 入口继续可用，包含 `createPortableRuntime()` 在内的导出共享同一实现。
+
 ```ts
-import { encodeClassList, encodeClassName } from 'weapp-pandacss/runtime'
+import { encodeClassList, encodeClassName } from '@weapp-pandacss/runtime'
 
 const single = encodeClassName('custom/active')
 const list = encodeClassList('custom/active 中文')

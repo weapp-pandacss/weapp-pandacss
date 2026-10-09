@@ -1,0 +1,52 @@
+---
+title: Framework examples
+description: Taro React, Taro Vue, Uni-app, React Web and Weapp Vite + Wevu.
+sidebar:
+  order: 5
+---
+
+## Run the repository examples
+
+Install once from the repository root and build the local adapter first:
+
+~~~sh
+corepack enable
+pnpm install
+pnpm --filter weapp-pandacss build
+~~~
+
+| Example | Workspace | Source |
+| --- | --- | --- |
+| Taro React | `@weapp-pandacss/taro-app` | [taro-app](https://github.com/weapp-pandacss/weapp-pandacss/tree/main/examples/taro-app) |
+| Taro Vue | `@weapp-pandacss/taro-app-vue3` | [taro-app-vue3](https://github.com/weapp-pandacss/weapp-pandacss/tree/main/examples/taro-app-vue3) |
+| Uni-app Vue | `@weapp-pandacss/uni-app-vue3` | [uni-app-vue3](https://github.com/weapp-pandacss/weapp-pandacss/tree/main/examples/uni-app-vue3) |
+| React Web | `@weapp-pandacss/react-app` | [react-app](https://github.com/weapp-pandacss/weapp-pandacss/tree/main/examples/react-app) |
+| Weapp Vite + Wevu | `@weapp-pandacss/weapp-vite-app` | [weapp-vite-app](https://github.com/weapp-pandacss/weapp-pandacss/tree/main/examples/weapp-vite-app) |
+
+~~~sh
+pnpm --filter @weapp-pandacss/weapp-vite-app build
+pnpm --filter @weapp-pandacss/weapp-vite-app dev
+pnpm --filter @weapp-pandacss/weapp-vite-app open
+~~~
+
+Replace the workspace name to build another example. Root `pnpm build` builds the adapter, all five applications and this documentation site.
+
+## Weapp Vite + Wevu
+
+The example uses weapp-vite/Wevu **7.4.0**, Vue SFC and `<script setup lang="ts">`. Import reactive APIs from `wevu`, rather than a second Vue runtime.
+
+Scripts run `wv prepare` before Panda codegen, creating the managed type files on a clean checkout. The button uses `styleIsolation: 'apply-shared'` to access application-level Panda styles. Tailwind integration is disabled.
+
+Open the example directory in WeChat DevTools or run the `open` script. The default AppID is a tourist AppID; configure your own locally for platform features. mpcore tests check real WXML/WXSS and class updates after a click; they do not assert pixel layout.
+
+## Taro and Uni-app
+
+Taro retains Webpack and React 18 for its React example. Web and mini-program targets use independent generated directories and matching aliases.
+
+Uni-app retains a Tailwind v4 comparison stylesheet. Its Tailwind pipeline and Panda stylesheet are separate; each owns its matching runtime and selector naming. Copy the full example configuration rather than applying the Panda adapter to Tailwind output.
+
+## React Web
+
+React Web uses PostCSS `target: 'web'`, retaining Web selectors and layers while sharing portable class encoding.
+
+Ignore `dist`, `styled-system` and `.weapp-vite` output. The historical Linaria example is archived and excluded from active workspace builds.

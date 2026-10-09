@@ -1,5 +1,7 @@
 # weapp-pandacss
 
+Documentation: [English](https://panda.weapp.dev/) · [简体中文](https://panda.weapp.dev/zh/).
+
 Use [Panda CSS 2.1.2](https://panda-css.com/) in mini-programs and Web with matching, portable class names. The Panda plugin transforms generated runtime artifacts through ASTs before Panda writes them. The PostCSS plugin converts the CSS using the same naming contract.
 
 ## Install and configure
@@ -44,8 +46,14 @@ For Web/H5, register both plugins and use `target: 'web'`. Web keeps layers and 
 
 Ordinary ASCII identifiers stay readable. Special characters become `_wp_<hex codepoint>_`; original `_wp_` markers and leading digits/hyphens are escaped too. `c_red.500` becomes `c_red_wp_2e_500`. Encode hand-written class lists before passing them to the UI:
 
+```bash
+pnpm add @weapp-pandacss/runtime
+```
+
+The standalone package does not install Panda, PostCSS or Babel. The existing `weapp-pandacss/runtime` entry remains supported and shares the same exports, including `createPortableRuntime()`.
+
 ```ts
-import { encodeClassList } from 'weapp-pandacss/runtime'
+import { encodeClassList } from '@weapp-pandacss/runtime'
 
 const className = encodeClassList('custom/active 中文')
 ```

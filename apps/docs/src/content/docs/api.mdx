@@ -1,0 +1,58 @@
+---
+title: Public API
+description: Stable package entries for Panda, PostCSS and browser runtime.
+sidebar:
+  order: 6
+---
+
+## Entries
+
+Every entry provides ESM, CommonJS and corresponding TypeScript declarations.
+
+| Entry | Exports |
+| --- | --- |
+| `weapp-pandacss` | `weappPanda`, `postcssPlugin`, `encodeClassName`, `encodeClassList`, `IPostcssPluginOptions` |
+| `weapp-pandacss/panda` | `weappPanda` |
+| `weapp-pandacss/postcss` | Default PostCSS plugin |
+| `@weapp-pandacss/runtime` | `encodeClassName`, `encodeClassList`, `createPortableRuntime` |
+| `weapp-pandacss/runtime` | Same exports; compatibility entry |
+
+## Panda plugin
+
+~~~ts
+import { weappPanda } from 'weapp-pandacss/panda'
+
+const plugin = weappPanda()
+~~~
+
+No options are required. The return type is Panda's `PandaPlugin`. It verifies the installed Panda version and adapts naming and artifacts; see [Panda configuration](/panda/).
+
+## PostCSS plugin
+
+~~~ts
+import postcssPlugin from 'weapp-pandacss/postcss'
+import type { IPostcssPluginOptions } from 'weapp-pandacss'
+
+const options: IPostcssPluginOptions = { target: 'weapp' }
+const plugin = postcssPlugin(options)
+~~~
+
+CommonJS consumers can use:
+
+~~~js
+const postcssPlugin = require('weapp-pandacss/postcss')
+const plugin = postcssPlugin({ target: 'weapp' })
+~~~
+
+The CJS PostCSS entry supports direct `require()`. See the [option reference](/postcss/) for the full configuration.
+
+## Runtime encoding
+
+~~~ts
+encodeClassName(value: string): string
+encodeClassList(value: string): string
+~~~
+
+Prefer the standalone `@weapp-pandacss/runtime` in application code; installing it does not bring in Panda, PostCSS or Babel. The existing `/runtime` entry remains compatible. `createPortableRuntime()` returns the two encoders for embedding a self-contained generation runtime. Encode only raw authored names, once; see [runtime and naming](/runtime/).
+
+The v1 file-patching APIs, adapter configuration loader, wildcard internal paths and adapter CLI binaries were removed. Their replacements are listed in the [migration guide](/migration/).

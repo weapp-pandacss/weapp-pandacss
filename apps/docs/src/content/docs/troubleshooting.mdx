@@ -1,0 +1,32 @@
+---
+title: Troubleshooting
+description: Diagnose codegen, missing styles and cross-target build problems.
+sidebar:
+  order: 8
+---
+
+## Unsupported Panda version or runtime
+
+Install `@pandacss/dev`, `@pandacss/preset-base` and `@pandacss/preset-panda` at **2.1.2**. Set `outExtension: 'mjs'` and `forceImportExtension: true`, then regenerate. Unsupported extensions, missing runtime or changed generation structures produce explicit errors; do not suppress them.
+
+## The class exists but styles do not apply
+
+Check that both the Panda plugin and PostCSS adapter are registered, the global layer CSS is imported, and codegen ran before the build. Runtime and CSS must come from the same configuration and portable generation.
+
+Do not encode Panda outputs twice. Keep authored CSS selectors raw with normal CSS escapes. Inspect the final WXML and WXSS rather than only the source class string.
+
+## Alias or generated-type errors
+
+Map `styled-system` in TypeScript and the framework bundler. In the Wevu example, run `wv prepare` before codegen on a clean checkout. Ensure the generated runtime is transpiled to the target mini-program's supported JavaScript; the adapter is not a language polyfill.
+
+## Web and mini-program builds interfere
+
+Use independent `outdir` values, output directories and aliases. Do not let two codegen processes write to the same directory or restore one platform's cache over another. Web uses `target: 'web'`, retaining the adapter for matching class names.
+
+## CSS variable diagnostic
+
+Mini-program custom properties need ASCII `--[A-Za-z0-9_-]+` names. Check declarations, `var()` references and `@property`. Use Panda tokens for generated variables; their hashing is handled natively.
+
+## Reporting an issue
+
+Include package and Panda versions, framework/target, relevant Panda/PostCSS configuration, a minimal source example and matching generated class/selector output. Report it in [GitHub Issues](https://github.com/weapp-pandacss/weapp-pandacss/issues). Remove secrets and private application data before sharing.

@@ -4,8 +4,8 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import { createTestProject } from '@mpcore/test'
 import { buildWeappViteTestArtifact } from '@mpcore/weapp-vite'
+import { encodeClassName } from '@weapp-pandacss/runtime'
 import postcss from 'postcss'
-import { encodeClassName } from 'weapp-pandacss/runtime'
 
 const exampleRoot = path.resolve(import.meta.dirname, '..')
 let artifact: WeappViteTestArtifact

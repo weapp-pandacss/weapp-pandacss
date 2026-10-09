@@ -1,0 +1,61 @@
+---
+title: Runtime 与命名
+description: 手写 class 编码一次，保持 Panda 原有 runtime 语义。
+sidebar:
+  order: 4
+---
+
+## Class 编码
+
+普通 ASCII 名称尽量保持可读。特殊字符使用 `_wp_<十六进制码点>_`，原始 `_wp_` 标记、前导数字和前导连字符也会转义，避免引入额外碰撞。
+
+| 输入 | 输出 |
+| --- | --- |
+| `card` | `card` |
+| `a.b` | `a_wp_2e_b` |
+| `a_wp_2e_b` | `a_wp_5f_wp_2e_b` |
+| `1card` | `_wp_31_card` |
+| `custom/active` | `custom_wp_2f_active` |
+
+Unicode 按完整码点编码。class 列表按空白拆分，再逐项编码。
+
+## 手写 class
+
+页面和组件库可以单独安装零依赖 runtime，无需安装 Panda、PostCSS 或 Babel：
+
+~~~bash
+pnpm add @weapp-pandacss/runtime
+~~~
+
+~~~ts
+import { encodeClassName, encodeClassList } from '@weapp-pandacss/runtime'
+
+const single = encodeClassName('custom/active')
+const list = encodeClassList('custom/active 中文')
+~~~
+
+样式源码使用普通 CSS 转义：
+
+~~~css
+.custom\/active {
+  color: green;
+}
+~~~
+
+PostCSS 生成匹配的编码。这两个 runtime 导出不依赖 Node，可以在页面代码中使用。
+
+原有 `weapp-pandacss/runtime` 入口仍兼容，转导出相同实现。主包打包后精确锁定 runtime 版本；独立发布组件时使用匹配版本。Panda 生成的 runtime 仍是自包含文件，不额外依赖包导入。独立包只负责 JS 编码；CSS 仍需经过 PostCSS adapter。
+
+## Panda 输出
+
+不要再次编码 `css()`、`cva()`、`sva()`、named/slot recipe 的返回值。patterns、styled、compound class 与公开 class 元数据都在生成期适配。
+
+`.raw`、变体信息和合并行为保持原有语义。`cx()` 只拼接，不重复编码。混合使用生成 class 与手写 class 时，可以写 `cx(css(...), encodeClassName('custom/active'))`。
+
+编码函数本身**不幂等**。生成 JS 与 CSS 中的标记负责识别已转换产物，让重复处理安全。
+
+## CSS 变量与 token
+
+Panda 原生 `hash.cssVar` 统一生成声明与引用。`token()`、`token.var()`、负值与语义 token 保持 Panda 行为，token 返回值再次传入 `css()` 也使用匹配的命名。
+
+小程序模式的手写变量使用 ASCII `--[A-Za-z0-9_-]+` 标识符。不支持的声明、`var()` 引用和 `@property` 名称会明确报错；适配器不重命名变量。

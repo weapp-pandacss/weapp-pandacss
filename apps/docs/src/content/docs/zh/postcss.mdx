@@ -1,0 +1,59 @@
+---
+title: PostCSS 配置
+description: 共享 class 编码，按小程序和 Web 分别处理 CSS。
+sidebar:
+  order: 3
+---
+
+## 插件顺序
+
+Panda 先生成 CSS，适配器随后转换，按需使用的 rem/rpx 单位转换最后执行。
+
+~~~js
+// postcss.config.cjs
+module.exports = {
+  plugins: {
+    '@pandacss/dev/postcss': {},
+    'weapp-pandacss/postcss': { target: 'weapp' },
+  },
+}
+~~~
+
+使用单位转换时，安装 `postcss-rem-to-responsive-pixel`，在适配器后加入：
+
+~~~js
+'postcss-rem-to-responsive-pixel': {
+  rootValue: 32,
+  propList: ['*'],
+  transformUnit: 'rpx',
+}
+~~~
+
+`rootValue` 按项目设计设置。Wevu 示例使用 `1rem = 32rpx`。
+
+## 配置选项
+
+| 选项 | 默认值 | 行为 |
+| --- | --- | --- |
+| `target` | `weapp` | 小程序平台转换；`web` 保留 Web 语义 |
+| `disabled` | `false` | 禁用全部 adapter 阶段，包括 class 编码 |
+| `removeNegationPseudoClass` | `true` | 小程序移除生成的 `:not(#\\#)` |
+| `selectorReplacement.root` | `page` | 替换 `:root` 与 `:host` |
+| `selectorReplacement.universal` | `['view', 'text']` | 替换 `*` |
+| `selectorReplacement.cascadeLayers` | `n` | 保留 layer 否定选择器时的占位 tag |
+
+`cascadeLayersPluginOptions` 与 `isPseudoClassPluginOptions` 透传到内部 csstools 插件。所有参数直接传给 PostCSS，不再读取单独的 adapter 配置文件。
+
+小程序模式展开 cascade layer，处理 `:where` / `:is` 和平台选择器；业务自定义 `:not(...)` 保留。Web 保留选择器与 layer 语义，两种目标使用相同的 class 编码。
+
+## Web/H5
+
+~~~js
+'weapp-pandacss/postcss': { target: 'web' }
+~~~
+
+Web 同样注册 Panda 插件。runtime class 可以跨目标共用，无需 rollback。
+
+CSS 源码保留原始 selector，并按普通 CSS 语法转义。不要把已编码 CSS 当作无标记源码再次处理，也不要移除 portable 生成标记。
+
+`disabled: true` 是完整退出：已编码 runtime 与未编码 CSS 将无法匹配。仅在样式无需适配，或其他流程负责配套 runtime 时使用。

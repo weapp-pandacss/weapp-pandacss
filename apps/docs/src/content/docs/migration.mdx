@@ -1,0 +1,37 @@
+---
+title: Migrating to 2.0
+description: Regenerate runtime and CSS together when upgrading from the legacy adapter.
+sidebar:
+  order: 7
+---
+
+Version 2.0 is a breaking change. Class encoding and default variable naming changed, so old runtime or page output cannot be mixed with new CSS.
+
+## Upgrade steps
+
+1. Stop build/watch processes. Remove your project's old generated `styled-system` directory, including helper backups and weapp-panda patch files. Do not restore legacy runtime with rollback before installing the plugin.
+2. Pin Panda and both presets to **2.1.2**. Register `weappPanda()` in Panda configuration. Use `.js` or `.mjs`; `.mjs` with explicit import extensions is recommended.
+3. Replace `panda codegen && weapp-panda codegen` with `panda codegen`. Remove adapter `execFileSync`, `codegen:done` hooks and platform rollback scripts.
+4. Use Panda → PostCSS adapter → optional rem/rpx. Web/H5 uses `target: 'web'`; mini-programs use `weapp`. Move CSS options directly into the PostCSS plugin.
+5. Replace generated escape-module imports with `encodeClassName` or `encodeClassList` from `weapp-pandacss/runtime`, only for authored raw names.
+6. Regenerate runtime and CSS, rebuild applications and clear stale framework caches. Parallel targets need separate generated directories and matching aliases.
+
+## Removed interfaces
+
+| v1 interface | v2 replacement |
+| --- | --- |
+| `createContext`, `inject`, `patch`, runtime file APIs | `weappPanda()` |
+| Adapter `defineConfig` and configuration loaders | Panda's `defineConfig`; direct PostCSS options |
+| `weapp-panda` / `weapp-pandacss` CLI | `panda codegen` |
+| `escapePredicate`, PostCSS `naming`, old encoding | Portable encoding and full regeneration |
+| Wildcard internal imports | Public root or `/panda`, `/postcss`, `/runtime` |
+
+There are no deprecated compatibility stubs. See the [public API](/api/).
+
+## Compatibility boundary
+
+Panda **2.1.2** codegen and PostCSS regeneration are verified, with `.js` / `.mjs` runtime. TS-only output, other Panda versions and raw-class source inlining are not supported.
+
+`css`, recipes, compounds, patterns and styled metadata use consistent runtime and CSS names. `cx` retains joining semantics. CSS generation markers must remain intact.
+
+The plugin still uses controlled AST transforms of generated artifacts. It does not modify upstream Panda, maintain a fork or patch files after generation.

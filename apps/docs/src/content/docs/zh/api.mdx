@@ -1,0 +1,58 @@
+---
+title: 公共 API
+description: Panda、PostCSS 与浏览器 runtime 的稳定包入口。
+sidebar:
+  order: 6
+---
+
+## 包入口
+
+所有入口都提供 ESM、CommonJS 和对应 TypeScript 声明。
+
+| 入口 | 导出 |
+| --- | --- |
+| `weapp-pandacss` | `weappPanda`、`postcssPlugin`、`encodeClassName`、`encodeClassList`、`IPostcssPluginOptions` |
+| `weapp-pandacss/panda` | `weappPanda` |
+| `weapp-pandacss/postcss` | 默认 PostCSS 插件 |
+| `@weapp-pandacss/runtime` | `encodeClassName`、`encodeClassList`、`createPortableRuntime` |
+| `weapp-pandacss/runtime` | 同上，兼容入口 |
+
+## Panda 插件
+
+~~~ts
+import { weappPanda } from 'weapp-pandacss/panda'
+
+const plugin = weappPanda()
+~~~
+
+无需参数，返回 Panda 的 `PandaPlugin`。插件校验安装的 Panda 版本，并适配命名配置与 artifacts；详见 [Panda 配置](/zh/panda/)。
+
+## PostCSS 插件
+
+~~~ts
+import postcssPlugin from 'weapp-pandacss/postcss'
+import type { IPostcssPluginOptions } from 'weapp-pandacss'
+
+const options: IPostcssPluginOptions = { target: 'weapp' }
+const plugin = postcssPlugin(options)
+~~~
+
+CommonJS 使用：
+
+~~~js
+const postcssPlugin = require('weapp-pandacss/postcss')
+const plugin = postcssPlugin({ target: 'weapp' })
+~~~
+
+CJS PostCSS 入口支持直接 `require()`。完整参数见 [PostCSS 配置](/zh/postcss/)。
+
+## Runtime 编码
+
+~~~ts
+encodeClassName(value: string): string
+encodeClassList(value: string): string
+~~~
+
+页面代码优先使用独立的 `@weapp-pandacss/runtime`，安装时不会引入 Panda、PostCSS 或 Babel。旧 `/runtime` 入口保持兼容。`createPortableRuntime()` 返回两个编码函数，供生成期嵌入自包含实现。仅对原始手写名称编码一次；详见 [runtime 与命名](/zh/runtime/)。
+
+v1 文件补丁 API、adapter 配置加载器、内部路径 wildcard 与两个 CLI 已删除，对应替代方案见[迁移指南](/zh/migration/)。

@@ -1,0 +1,52 @@
+---
+title: Panda configuration
+description: How generation-time adaptation fits Panda's codegen lifecycle.
+sidebar:
+  order: 2
+---
+
+## Configuration
+
+~~~ts
+// panda.config.ts
+import { defineConfig } from '@pandacss/dev'
+import { weappPanda } from 'weapp-pandacss/panda'
+
+export default defineConfig({
+  plugins: [weappPanda()],
+  presets: ['@pandacss/preset-base', '@pandacss/preset-panda'],
+  include: ['./src/**/*.{js,jsx,ts,tsx,vue}'],
+  preflight: false,
+  outdir: 'styled-system',
+  outExtension: 'mjs',
+  forceImportExtension: true,
+})
+~~~
+
+Scan all source formats you use. Vue SFC projects need `.vue` in `include`. Keep generated files outside the source scan.
+
+## Generation lifecycle
+
+`weappPanda()` returns a `PandaPlugin`. During `config:resolved` it normalizes naming configuration. During the synchronous `codegen:prepare` hook it transforms runtime artifacts and returns an adapter module for Panda to write.
+
+This also applies to Panda's PostCSS-driven regeneration. There are no subprocesses, runtime backups or `codegen:done` patches to configure.
+
+## Naming configuration
+
+The plugin always enables Panda's native `hash.cssVar`. Your `hash.className` setting remains independent:
+
+~~~ts
+hash: { className: true }
+~~~
+
+A string `prefix` is split into class and variable prefixes. Object prefixes keep those settings separate. Unsafe leading characters and reserved encoding markers in configured class prefixes or recipe labels are normalized before Panda performs CSS escaping. The variable prefix is normalized too.
+
+The adapter does not rename CSS variable declarations. See [runtime and naming](/runtime/) for authored classes and variables.
+
+## Output and parallel builds
+
+Use `outExtension: 'mjs'` with `forceImportExtension: true` for explicit ESM imports. Default `.js` output is also supported. TypeScript-only runtime and unknown generation structures fail with a diagnostic.
+
+Parallel Web and mini-program builds must use separate `outdir` values and bundler aliases. Taro uses `styled-system/weapp` and `styled-system/h5`; Uni-app uses `styled-system/mp-weixin` and `styled-system/h5`, with `importMap: 'styled-system'` for extraction.
+
+Panda optimizations that inline raw class strings and bypass the generated runtime are outside the supported scope.

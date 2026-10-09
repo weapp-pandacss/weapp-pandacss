@@ -2,6 +2,32 @@
   "schemaVersion": 1,
   "instances": [
     {
+      "id": "c85ee2819073b3b0dbe4afc1",
+      "target": "apps/docs",
+      "template": "nimbus",
+      "provenance": "created",
+      "source": {
+        "kind": "package",
+        "packageName": "@icebreakers/monorepo-templates",
+        "version": "2.3.1",
+        "templatePath": "templates/nimbus",
+        "digest": "f9d1beaad350871a9c870853a4204fdea9b86367f19ba962bef87395d1cc519b"
+      },
+      "generator": {
+        "profile": "repo-new-v1",
+        "version": "5.9.0"
+      },
+      "parameters": {
+        "packageName": "docs",
+        "renameJson": false
+      },
+      "baseline": {
+        "status": "available",
+        "original": "f9d1beaad350871a9c870853a4204fdea9b86367f19ba962bef87395d1cc519b",
+        "rendered": "a24bccab64eaf6bf6e9b7948e79681977dccccd7c5e3cd3f47f28fa4e3ee1f08"
+      }
+    },
+    {
       "id": "9189cea4df033a0639a7c526",
       "target": "examples/weapp-vite-app",
       "template": "weapp-vite-wevu",
@@ -31,6 +57,32 @@
         "status": "available",
         "original": "285b0dd651517d648bb4c0f482b178bedca05d18de67d506b1140951d60811bb",
         "rendered": "554a628457e9927b6a913a023364585a14e76968a2051af5675ccc87463ab165"
+      }
+    },
+    {
+      "id": "6d31d9e53b1f6de3d33543db",
+      "target": "packages/runtime",
+      "template": "tsdown",
+      "provenance": "created",
+      "source": {
+        "kind": "package",
+        "packageName": "@icebreakers/monorepo-templates",
+        "version": "2.3.1",
+        "templatePath": "templates/tsdown",
+        "digest": "48f02f9958e335e8fa400eca09bc622ad5f3acffb71f58969743e1066bcd16e9"
+      },
+      "generator": {
+        "profile": "repo-new-v1",
+        "version": "5.9.0"
+      },
+      "parameters": {
+        "packageName": "runtime",
+        "renameJson": false
+      },
+      "baseline": {
+        "status": "available",
+        "original": "48f02f9958e335e8fa400eca09bc622ad5f3acffb71f58969743e1066bcd16e9",
+        "rendered": "33e9cb628f62309bccc6a601f389ad40e09d7470b90bd19cd80f76d28dfd1cab"
       }
     }
   ]

@@ -9,12 +9,16 @@ const cwd = path.resolve(import.meta.dirname, '..')
 describe('built public entrypoints', () => {
   it.each(['esm', 'cjs'])('loads the %s API and PostCSS plugin in Node', async (format) => {
     const imports = format === 'esm'
-      ? `import * as api from 'weapp-pandacss'; import plugin from 'weapp-pandacss/postcss'; import {weappPanda} from 'weapp-pandacss/panda'; import {encodeClassName} from 'weapp-pandacss/runtime'; import postcss from 'postcss';`
-      : `const api = require('weapp-pandacss'); const plugin = require('weapp-pandacss/postcss'); const {weappPanda} = require('weapp-pandacss/panda'); const {encodeClassName} = require('weapp-pandacss/runtime'); const postcss = require('postcss');`
+      ? `import * as api from 'weapp-pandacss'; import plugin from 'weapp-pandacss/postcss'; import {weappPanda} from 'weapp-pandacss/panda'; import * as runtime from 'weapp-pandacss/runtime'; import * as standalone from '@weapp-pandacss/runtime'; import postcss from 'postcss';`
+      : `const api = require('weapp-pandacss'); const plugin = require('weapp-pandacss/postcss'); const {weappPanda} = require('weapp-pandacss/panda'); const runtime = require('weapp-pandacss/runtime'); const standalone = require('@weapp-pandacss/runtime'); const postcss = require('postcss');`
     const script = `${imports}
+      const {encodeClassName} = runtime;
       const publicNames = ['encodeClassList', 'encodeClassName', 'postcssPlugin', 'weappPanda'];
       if (JSON.stringify(Object.keys(api).sort()) !== JSON.stringify(publicNames)) throw new Error('Unexpected public API');
       if (api.weappPanda !== weappPanda || api.encodeClassName !== encodeClassName || api.postcssPlugin !== plugin) throw new Error('Mismatched public entries');
+      for (const name of ['encodeClassName', 'encodeClassList', 'createPortableRuntime']) {
+        if (runtime[name] !== standalone[name]) throw new Error('Mismatched runtime facade: ' + name);
+      }
       if (typeof plugin !== 'function') throw new Error('Missing PostCSS factory');
       if (weappPanda().name !== 'weapp-pandacss' || encodeClassName('a.b') !== 'a_wp_2e_b') throw new Error('Missing plugin or runtime');
       postcss([plugin({ disabled: true })]).process('.a { color: red }', { from: undefined }).then(result => console.log(JSON.stringify({ css: result.css })));
