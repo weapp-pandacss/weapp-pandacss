@@ -316,3 +316,14 @@ Panda 使用 `/runtime` 的 `_wp_<码点>_` 编码，负责字面编码标记碰
 前导字符；`@weapp-tailwindcss/escape` 的默认编码不同，例如 `a.b` 与原始 `a_db`
 都会得到 `a_db`。Panda 和 Tailwind 的样式入口各自保持 runtime/selector 一致，
 手写 Panda class 继续使用 `weapp-pandacss/runtime`。
+
+## Nimbus 文档站接入后的调整
+
+repoctl 升级到 `5.9.0`，通过内置 `nimbus` 模板创建 `apps/docs`，使用
+`@cloudflare/nimbus-docs@0.16.0` 与 `astro@7.3.7`。文档站使用 ESM 的
+`estree-walker@3`；Uni-app 的 `@dcloudio/uni-mp-vite` 在
+`independentMain` 插件中通过 `require()` 使用该包，却未在 manifest 中声明。
+在 `pnpm-workspace.yaml` 中为当前官方批次增加局部 `packageExtensions`，
+绑定 CommonJS 的 `estree-walker@2.0.2`，避免错误解析到提升的 ESM 版本。
+该修复只作用于 Uni-app 编译器，不覆盖 Nimbus 的依赖；升级 Uni-app 批次时
+应重新检查上游 manifest，移除已经由上游补齐的声明。

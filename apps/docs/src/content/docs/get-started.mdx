@@ -1,0 +1,75 @@
+---
+title: Installation
+description: Install both plugins and generate your first portable styles.
+sidebar:
+  order: 1
+---
+
+## Install
+
+Use Node.js 22.18+ or 24.11+ in their respective release lines, or Node 26+. Pin Panda and both presets to the verified **2.1.2** baseline.
+
+~~~sh
+pnpm add -D @pandacss/dev@2.1.2 @pandacss/preset-base@2.1.2 @pandacss/preset-panda@2.1.2 weapp-pandacss@^2 postcss
+~~~
+
+Panda 2 requires the presets to be installed and registered explicitly.
+
+## Register the Panda plugin
+
+~~~ts
+// panda.config.ts
+import { defineConfig } from '@pandacss/dev'
+import { weappPanda } from 'weapp-pandacss/panda'
+
+export default defineConfig({
+  plugins: [weappPanda()],
+  presets: ['@pandacss/preset-base', '@pandacss/preset-panda'],
+  include: ['./src/**/*.{js,jsx,ts,tsx,vue}'],
+  preflight: false,
+  outdir: 'styled-system',
+  outExtension: 'mjs',
+  forceImportExtension: true,
+})
+~~~
+
+## Register PostCSS
+
+~~~js
+// postcss.config.cjs
+module.exports = {
+  plugins: {
+    '@pandacss/dev/postcss': {},
+    'weapp-pandacss/postcss': { target: 'weapp' },
+  },
+}
+~~~
+
+In your application's global CSS:
+
+~~~css
+@layer reset, base, tokens, recipes, utilities;
+~~~
+
+Import that CSS from your framework's application entry. Add `styled-system/` to `.gitignore`.
+
+## Generate and build
+
+~~~sh
+pnpm exec panda codegen
+~~~
+
+Run codegen before your framework's development or build command. There is no separate weapp adapter CLI.
+
+~~~ts
+import { css } from './styled-system/css'
+
+const className = css({
+  color: 'red.500',
+  padding: '2.5',
+})
+~~~
+
+Adjust the relative import to your file's location, or configure a `styled-system` alias in **both** TypeScript and your bundler. Do not encode the result of `css()` again.
+
+For Web/H5 set PostCSS `target: 'web'`. Unit conversion is optional and runs after the adapter; see [PostCSS configuration](/postcss/) and [framework examples](/frameworks/).

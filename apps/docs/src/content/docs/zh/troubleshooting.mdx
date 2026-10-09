@@ -1,0 +1,32 @@
+---
+title: 故障排查
+description: 定位 codegen、样式缺失与跨平台构建问题。
+sidebar:
+  order: 8
+---
+
+## Panda 版本或 runtime 不支持
+
+将 `@pandacss/dev`、`@pandacss/preset-base` 和 `@pandacss/preset-panda` 安装为 **2.1.2**。使用 `outExtension: 'mjs'`、`forceImportExtension: true` 后重新生成。不支持的扩展名、缺少 runtime 或结构变化都会明确报错，不要吞掉诊断。
+
+## 有 class，但样式未生效
+
+确认 Panda 插件与 PostCSS adapter 均已注册，全局 layer CSS 已导入，构建前执行了 codegen。runtime 与 CSS 必须来自同一配置与配套的 portable 生成流程。
+
+不要重复编码 Panda 输出。手写 CSS selector 保留原名并按 CSS 语法转义。检查最终 WXML 和 WXSS，而不是仅看源码 class。
+
+## 别名或生成类型报错
+
+在 TypeScript 与框架 bundler 中同时配置 `styled-system` 别名。Wevu 全新安装先运行 `wv prepare` 再 codegen。生成 runtime 仍需转译为目标小程序支持的 JavaScript，适配器不提供语法 polyfill。
+
+## Web 与小程序构建相互覆盖
+
+分别配置 `outdir`、构建输出目录和别名。不要让多个 codegen 进程写同一目录，也不要用一个平台缓存覆盖另一个。Web 使用 `target: 'web'`，保留 adapter 以确保 class 匹配。
+
+## CSS 变量诊断
+
+小程序手写变量使用 ASCII `--[A-Za-z0-9_-]+` 名称。检查声明、`var()` 引用和 `@property`。生成变量优先使用 Panda token，由 Panda 原生 hash 保证一致。
+
+## 反馈问题
+
+提供包与 Panda 版本、框架/目标、Panda/PostCSS 配置、最小源码以及配套的生成 class/selector，提交到 [GitHub Issues](https://github.com/weapp-pandacss/weapp-pandacss/issues)。分享前移除密钥与应用私有数据。

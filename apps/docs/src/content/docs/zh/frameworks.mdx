@@ -1,0 +1,52 @@
+---
+title: 框架示例
+description: Taro React、Taro Vue、Uni-app、React Web 与 Weapp Vite + Wevu。
+sidebar:
+  order: 5
+---
+
+## 运行仓库示例
+
+在仓库根目录统一安装，先构建本地适配器：
+
+~~~sh
+corepack enable
+pnpm install
+pnpm --filter weapp-pandacss build
+~~~
+
+| 示例 | 工作区 | 源码 |
+| --- | --- | --- |
+| Taro React | `@weapp-pandacss/taro-app` | [taro-app](https://github.com/weapp-pandacss/weapp-pandacss/tree/main/examples/taro-app) |
+| Taro Vue | `@weapp-pandacss/taro-app-vue3` | [taro-app-vue3](https://github.com/weapp-pandacss/weapp-pandacss/tree/main/examples/taro-app-vue3) |
+| Uni-app Vue | `@weapp-pandacss/uni-app-vue3` | [uni-app-vue3](https://github.com/weapp-pandacss/weapp-pandacss/tree/main/examples/uni-app-vue3) |
+| React Web | `@weapp-pandacss/react-app` | [react-app](https://github.com/weapp-pandacss/weapp-pandacss/tree/main/examples/react-app) |
+| Weapp Vite + Wevu | `@weapp-pandacss/weapp-vite-app` | [weapp-vite-app](https://github.com/weapp-pandacss/weapp-pandacss/tree/main/examples/weapp-vite-app) |
+
+~~~sh
+pnpm --filter @weapp-pandacss/weapp-vite-app build
+pnpm --filter @weapp-pandacss/weapp-vite-app dev
+pnpm --filter @weapp-pandacss/weapp-vite-app open
+~~~
+
+替换工作区名称即可构建其他示例。根目录 `pnpm build` 会构建适配器、五个应用和本站。
+
+## Weapp Vite + Wevu
+
+示例使用 weapp-vite/Wevu **7.4.0**、Vue SFC 与 `<script setup lang="ts">`，响应式 API 从 `wevu` 导入，避免引入第二套 Vue runtime。
+
+脚本在 Panda codegen 前执行 `wv prepare`，全新安装会先生成受管类型文件。按钮通过 `styleIsolation: 'apply-shared'` 使用全局 Panda 样式，Tailwind 集成已关闭。
+
+在微信开发者工具导入示例目录，或运行 `open` 脚本。默认使用游客 AppID，平台能力所需 AppID 在本地设置。mpcore 测试检查真实 WXML/WXSS 和点击后的 class 更新，不验收像素布局。
+
+## Taro 与 Uni-app
+
+Taro 保留 Webpack，React 示例使用 React 18。Web 与小程序使用独立生成目录和对应别名。
+
+Uni-app 保留 Tailwind v4 对比样式。Tailwind 和 Panda 样式使用独立处理流程，各自维护配套的 runtime 与 selector 命名。请参考完整配置，不要将 Panda 适配器直接用于 Tailwind 产物。
+
+## React Web
+
+React Web 使用 PostCSS `target: 'web'`，保留 Web 选择器和 layer，同时共享安全 class 编码。
+
+`dist`、`styled-system` 与 `.weapp-vite` 是生成目录。历史 Linaria 示例已归档，不参与活跃工作区构建。

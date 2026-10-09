@@ -1,0 +1,34 @@
+---
+title: weapp-pandacss
+description: 在小程序与 Web 中使用 Panda CSS，保持 class 命名一致。
+sidebar:
+  order: 0
+---
+
+在 Taro、Uni-app 和 Weapp Vite 项目中使用 Panda CSS **2.1.2**。**2.0** 同时适配 Panda 生成的 runtime 和 CSS，让包含特殊字符的 class 在页面与样式中保持一致。
+
+## 开始使用
+
+按照[安装指南](/zh/get-started/)接入 [Panda 插件](/zh/panda/)和 [PostCSS 适配器](/zh/postcss/)，在框架构建前执行 Panda codegen。
+
+适配器使用 Panda 已有的插件接口，在生成期通过受控 AST 转换处理 artifacts，由 Panda 写入文件。PostCSS 只处理 CSS，不修改 JavaScript。
+
+## 兼容范围
+
+| 范围 | 验收基线 |
+| --- | --- |
+| Panda CSS 和两个 preset | 2.1.2 |
+| 生成 runtime | JavaScript `.js` 或 `.mjs` |
+| 包导入 | ESM 和 CommonJS |
+| 构建目标 | 小程序与 Web/H5 |
+| Node.js | Node 22 使用 22.18+，Node 24 使用 24.11+，或 26+ |
+
+参考[五种框架示例](/zh/frameworks/)与[公共 API](/zh/api/)。已有项目请先阅读 [2.0 迁移指南](/zh/migration/)。
+
+## 浏览器与机器可读文档
+
+核心文档域名为 [panda.weapp.dev](https://panda.weapp.dev/)。英文位于 `/`，中文位于 `/zh/`；语言切换会保留当前页面。
+
+每页提供 Markdown 链接。AI 工具可以使用 [llms.txt](/llms.txt)、[中文索引](/zh/llms.txt)或[完整文档](/llms-full.txt)。
+
+[源码与问题反馈](https://github.com/weapp-pandacss/weapp-pandacss) · [Panda CSS 文档](https://panda-css.com/docs) · [English](/)

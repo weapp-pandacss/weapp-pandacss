@@ -1,0 +1,34 @@
+---
+title: weapp-pandacss
+description: Panda CSS for mini-programs and Web, with matching class names.
+sidebar:
+  order: 0
+---
+
+Use Panda CSS **2.1.2** in Taro, Uni-app and Weapp Vite projects. Version **2.0** adapts Panda's generated runtime and CSS together, so special characters produce the same class names in your UI and stylesheet.
+
+## Get started
+
+Follow the [installation guide](/get-started/), configure the [Panda plugin](/panda/) and [PostCSS adapter](/postcss/), then run Panda codegen before your framework build.
+
+The adapter uses Panda's existing plugin API. It transforms artifacts with controlled AST changes during generation; Panda writes the files. PostCSS handles CSS and does not patch JavaScript.
+
+## What is supported?
+
+| Area | Baseline |
+| --- | --- |
+| Panda CSS and presets | 2.1.2 |
+| Generated runtime | JavaScript `.js` or `.mjs` |
+| Package imports | ESM and CommonJS |
+| Targets | Mini-programs and Web/H5 |
+| Node.js | 22.18+ on Node 22, 24.11+ on Node 24, or 26+ |
+
+See the [five framework examples](/frameworks/) and the [public API](/api/). For existing projects, start with the [2.0 migration guide](/migration/).
+
+## Read in your preferred format
+
+This is the canonical documentation site: [panda.weapp.dev](https://panda.weapp.dev/). English is at `/` and Chinese is at `/zh/`; the language switch keeps your current page.
+
+Every page has a Markdown link. AI tools can use [llms.txt](/llms.txt), the [Chinese index](/zh/llms.txt) or [all documentation](/llms-full.txt).
+
+[Source and issues](https://github.com/weapp-pandacss/weapp-pandacss) · [Panda CSS documentation](https://panda-css.com/docs) · [简体中文](/zh/)

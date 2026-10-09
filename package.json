@@ -7,7 +7,7 @@
   "description": "Panda CSS adapters and examples for mini-programs, managed with repoctl",
   "author": "ice breaker <hi@sonofmagic.top>",
   "license": "MIT",
-  "homepage": "https://github.com/weapp-pandacss/weapp-pandacss",
+  "homepage": "https://panda.weapp.dev",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/weapp-pandacss/weapp-pandacss.git"
@@ -75,7 +75,7 @@
     "husky": "^9.1.7",
     "lint-staged": "^17.6.0",
     "only-allow": "^1.2.2",
-    "repoctl": "^5.8.1",
+    "repoctl": "5.9.0",
     "stylelint": "^17.16.0",
     "tailwindcss": "^4.3.3",
     "tsd": "^0.33.0",

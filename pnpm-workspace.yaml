@@ -10,6 +10,11 @@ catalog:
 minimumReleaseAge: 0
 pmOnFail: error
 packageExtensions:
+  # Uni-app's independentMain plugin requires this CJS dependency but omits it
+  # from its manifest. Bind it locally so Nimbus's ESM v3 cannot satisfy it.
+  '@dcloudio/uni-mp-vite@3.0.0-5020620260917001':
+    dependencies:
+      estree-walker: 2.0.2
   # Bind NutUI declarations to the consuming app's React types. Without this
   # missing peer, pnpm resolves the web app's hoisted React 19 declarations.
   '@nutui/nutui-react-taro@3.0.20':

@@ -1,0 +1,52 @@
+---
+title: Panda 配置
+description: 生成期适配如何接入 Panda 的 codegen 生命周期。
+sidebar:
+  order: 2
+---
+
+## 基础配置
+
+~~~ts
+// panda.config.ts
+import { defineConfig } from '@pandacss/dev'
+import { weappPanda } from 'weapp-pandacss/panda'
+
+export default defineConfig({
+  plugins: [weappPanda()],
+  presets: ['@pandacss/preset-base', '@pandacss/preset-panda'],
+  include: ['./src/**/*.{js,jsx,ts,tsx,vue}'],
+  preflight: false,
+  outdir: 'styled-system',
+  outExtension: 'mjs',
+  forceImportExtension: true,
+})
+~~~
+
+扫描实际使用的源码格式，Vue SFC 项目需要包含 `.vue`。不要把生成目录纳入源码扫描。
+
+## 生成生命周期
+
+`weappPanda()` 返回标准 `PandaPlugin`。在 `config:resolved` 中统一命名配置，在同步 `codegen:prepare` hook 中转换 runtime artifacts，并返回适配模块，由 Panda 写入。
+
+Panda 的 PostCSS 自动生成流程同样运行这个插件。无需子进程、runtime 备份或 `codegen:done` 补丁 hook。
+
+## 命名配置
+
+插件始终启用 Panda 原生 `hash.cssVar`，保留用户独立设置的 `hash.className`：
+
+~~~ts
+hash: { className: true }
+~~~
+
+字符串 `prefix` 会拆成 class 与变量前缀；对象配置保留两项的独立性。class 前缀或 recipe 标签中不安全的前导字符、保留编码标记会先规范化，再交给 Panda 做 CSS 转义。变量前缀也会规范化。
+
+适配器不重命名 CSS 变量声明。手写 class 和变量规则详见 [runtime 与命名](/zh/runtime/)。
+
+## 输出与并行构建
+
+推荐 `outExtension: 'mjs'` 和 `forceImportExtension: true`，让 ESM 导入带显式扩展名；默认 `.js` 也受支持。仅 TypeScript runtime 或未知的生成结构会抛出诊断。
+
+并行构建 Web 与小程序时，必须设置独立 `outdir` 和 bundler 别名。Taro 使用 `styled-system/weapp` 与 `styled-system/h5`；Uni-app 使用 `styled-system/mp-weixin` 与 `styled-system/h5`，通过 `importMap: 'styled-system'` 提取源码。
+
+直接内联原始 class、绕过生成 runtime 的 Panda 源码优化流程暂不支持。

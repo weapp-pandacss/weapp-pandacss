@@ -1,0 +1,37 @@
+---
+title: 迁移到 2.0
+description: 升级旧适配器时，同步重新生成 runtime 与 CSS。
+sidebar:
+  order: 7
+---
+
+2.0 是 breaking change，class 编码与默认变量命名均已改变。旧 runtime 或页面产物不能与新 CSS 混用。
+
+## 升级步骤
+
+1. 停止构建和 watch，删除项目自己的旧 `styled-system` 目录，包括 helper 备份与 weapp-panda 补丁文件。不要先 rollback 恢复旧 runtime 再接入插件。
+2. 固定 Panda 与两个 preset 为 **2.1.2**，注册 `weappPanda()`。支持 `.js`、`.mjs`，推荐 `.mjs` 与显式 import 扩展名。
+3. 将 `panda codegen && weapp-panda codegen` 改为 `panda codegen`，移除 adapter `execFileSync`、`codegen:done` hook 和跨平台 rollback 脚本。
+4. 使用 Panda → PostCSS adapter → 按需 rem/rpx。Web/H5 使用 `target: 'web'`，小程序使用 `weapp`；CSS 参数直接放在 PostCSS 插件配置中。
+5. 把生成目录中的转义模块导入替换为 `weapp-pandacss/runtime` 的 `encodeClassName` / `encodeClassList`，仅用于原始手写名称。
+6. 重新生成 runtime 和 CSS，完整构建并清理框架旧缓存。并行目标设置独立生成目录与对应别名。
+
+## 已删除的接口
+
+| v1 接口 | v2 替代方案 |
+| --- | --- |
+| `createContext`、`inject`、`patch` 和 runtime 文件 API | `weappPanda()` |
+| Adapter `defineConfig` 与配置加载器 | Panda 的 `defineConfig`，PostCSS 直接传参数 |
+| `weapp-panda` / `weapp-pandacss` CLI | `panda codegen` |
+| `escapePredicate`、PostCSS `naming`、旧编码 | 新编码与完整重新生成 |
+| 内部 wildcard 路径导入 | 根入口或 `/panda`、`/postcss`、`/runtime` |
+
+不提供 deprecated 兼容占位实现。详见[公共 API](/zh/api/)。
+
+## 兼容边界
+
+已验证 Panda **2.1.2** codegen 与 PostCSS 自动生成，runtime 支持 `.js` / `.mjs`。仅 TypeScript 输出、其他 Panda 版本和原始 class 源码内联暂不支持。
+
+`css`、recipes、compounds、patterns 和 styled 元数据使用一致的 runtime/CSS 名称，`cx` 保持拼接语义。CSS 生成标记必须保留。
+
+插件内部仍通过受控 AST 转换生成 artifacts；不修改上游 Panda、不维护 fork，也不在生成之后补丁覆盖文件。

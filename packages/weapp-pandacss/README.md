@@ -1,5 +1,7 @@
 # weapp-pandacss
 
+Documentation: [English](https://panda.weapp.dev/) · [简体中文](https://panda.weapp.dev/zh/).
+
 Use [Panda CSS 2.1.2](https://panda-css.com/) in mini-programs and Web with matching, portable class names. The Panda plugin transforms generated runtime artifacts through ASTs before Panda writes them. The PostCSS plugin converts the CSS using the same naming contract.
 
 ## Install and configure

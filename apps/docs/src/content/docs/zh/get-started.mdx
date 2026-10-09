@@ -1,0 +1,75 @@
+---
+title: 安装与快速开始
+description: 注册两个插件，生成第一份可跨平台使用的样式。
+sidebar:
+  order: 1
+---
+
+## 安装依赖
+
+Node 22 使用 22.18+，Node 24 使用 24.11+，也支持 Node 26+。Panda 与两个 preset 固定为已验收的 **2.1.2**。
+
+~~~sh
+pnpm add -D @pandacss/dev@2.1.2 @pandacss/preset-base@2.1.2 @pandacss/preset-panda@2.1.2 weapp-pandacss@^2 postcss
+~~~
+
+Panda 2 的 preset 需要显式安装并注册。
+
+## 注册 Panda 插件
+
+~~~ts
+// panda.config.ts
+import { defineConfig } from '@pandacss/dev'
+import { weappPanda } from 'weapp-pandacss/panda'
+
+export default defineConfig({
+  plugins: [weappPanda()],
+  presets: ['@pandacss/preset-base', '@pandacss/preset-panda'],
+  include: ['./src/**/*.{js,jsx,ts,tsx,vue}'],
+  preflight: false,
+  outdir: 'styled-system',
+  outExtension: 'mjs',
+  forceImportExtension: true,
+})
+~~~
+
+## 注册 PostCSS
+
+~~~js
+// postcss.config.cjs
+module.exports = {
+  plugins: {
+    '@pandacss/dev/postcss': {},
+    'weapp-pandacss/postcss': { target: 'weapp' },
+  },
+}
+~~~
+
+在应用的全局 CSS 中加入：
+
+~~~css
+@layer reset, base, tokens, recipes, utilities;
+~~~
+
+从框架应用入口导入这份 CSS，并将 `styled-system/` 加入 `.gitignore`。
+
+## 生成与构建
+
+~~~sh
+pnpm exec panda codegen
+~~~
+
+在框架开发或构建命令之前执行 codegen，无需单独的 weapp 适配 CLI。
+
+~~~ts
+import { css } from './styled-system/css'
+
+const className = css({
+  color: 'red.500',
+  padding: '2.5',
+})
+~~~
+
+按源码位置调整相对路径，或在 **TypeScript 和 bundler** 中同时配置 `styled-system` 别名。不要再次编码 `css()` 的返回值。
+
+Web/H5 使用 PostCSS `target: 'web'`。单位转换按需安装，位于适配器之后；参考 [PostCSS 配置](/zh/postcss/)和[框架示例](/zh/frameworks/)。

@@ -1,0 +1,53 @@
+---
+title: Runtime and naming
+description: Encode authored classes once and preserve Panda's runtime semantics.
+sidebar:
+  order: 4
+---
+
+## Class encoding
+
+Ordinary ASCII names remain readable. Special characters use `_wp_<hex codepoint>_`. The original `_wp_` marker, leading digits and leading hyphens are escaped, preventing added collisions.
+
+| Input | Output |
+| --- | --- |
+| `card` | `card` |
+| `a.b` | `a_wp_2e_b` |
+| `a_wp_2e_b` | `a_wp_5f_wp_2e_b` |
+| `1card` | `_wp_31_card` |
+| `custom/active` | `custom_wp_2f_active` |
+
+Unicode is encoded by complete codepoint. Class lists are split on whitespace and each name is encoded separately.
+
+## Hand-written classes
+
+~~~ts
+import { encodeClassName, encodeClassList } from 'weapp-pandacss/runtime'
+
+const single = encodeClassName('custom/active')
+const list = encodeClassList('custom/active 中文')
+~~~
+
+Write the source stylesheet as ordinary escaped CSS:
+
+~~~css
+.custom\/active {
+  color: green;
+}
+~~~
+
+PostCSS applies the matching encoding. These browser-compatible runtime exports have no Node dependency.
+
+## Panda outputs
+
+Do not encode `css()`, `cva()`, `sva()`, named or slot recipe outputs again. Patterns, styled components, compound classes and public class metadata are adapted during generation.
+
+`.raw`, variant information and merging behavior are preserved. `cx()` joins class names without re-encoding them. Use `cx(css(...), encodeClassName('custom/active'))` when combining generated and authored classes.
+
+The encoding function itself is **not idempotent**. Generated JS and CSS markers make repeated artifact processing safe.
+
+## CSS variables and tokens
+
+Panda's native `hash.cssVar` creates consistent declarations and references. `token()`, `token.var()`, negative values and semantic tokens retain Panda's behavior, including token values passed back into `css()`.
+
+In mini-program mode, hand-written custom properties must use ASCII `--[A-Za-z0-9_-]+` identifiers. Unsupported declarations, `var()` references and `@property` names fail explicitly. The adapter does not rename variables.

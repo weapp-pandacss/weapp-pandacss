@@ -1,5 +1,7 @@
 # weapp-pandacss
 
+文档：[简体中文](https://panda.weapp.dev/zh/) · [English](https://panda.weapp.dev/)。
+
 在小程序和 Web 中使用 Panda CSS 2.1.2，并保持 runtime class 与 CSS selector 一致。
 适配分成 Panda 生成期插件和 PostCSS 插件：前者通过受控 AST 转换生成产物，
 由 Panda 负责写入；后者转换选择器和小程序平台 CSS。正常构建只执行 Panda
