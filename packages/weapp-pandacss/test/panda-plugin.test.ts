@@ -90,6 +90,8 @@ describe('Panda generation plugin', () => {
       await run(process.execPath, [pandaBin, 'codegen'], { cwd: root })
       const helper = path.join(root, `styled-system/helpers.${extension}`)
       const generated = await fs.readFile(helper, 'utf8')
+      const portable = await fs.readFile(path.join(root, `styled-system/weapp-panda/runtime.${extension}`), 'utf8')
+      expect(portable).not.toContain('@weapp-pandacss/runtime')
       const artifacts = JSON.parse(await fs.readFile(path.join(root, 'artifacts.json'), 'utf8'))
       const transformed = transformArtifacts(artifacts)
       expect(transformArtifacts(transformed)).toBe(transformed)

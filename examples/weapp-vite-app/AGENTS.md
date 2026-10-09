@@ -5,7 +5,7 @@ Read `node_modules/weapp-vite/dist/docs/vue-sfc.md` and `wevu-authoring.md`
 before changing Vue SFC or runtime behavior.
 
 - Import reactive APIs from `wevu`, and use native mini-program tags/events.
-- Build the adapter first: `pnpm --filter weapp-pandacss build`.
+- Build the adapter first: `pnpm exec turbo run build --filter=weapp-pandacss`.
 - Run `pnpm --filter @weapp-pandacss/weapp-vite-app build` or `dev` from the root.
 - Run `wv prepare` before Panda codegen on a clean checkout: Panda reads the
   solution tsconfig, which references `.weapp-vite` support files.

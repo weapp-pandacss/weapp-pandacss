@@ -1,0 +1,73 @@
+{
+  "name": "@weapp-pandacss/runtime",
+  "type": "module",
+  "version": "1.0.0",
+  "description": "Dependency-free portable class encoding for Panda CSS and mini-programs",
+  "author": "ice breaker <hi@sonofmagic.top>",
+  "license": "MIT",
+  "homepage": "https://panda.weapp.dev",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/weapp-pandacss/weapp-pandacss.git",
+    "directory": "packages/runtime"
+  },
+  "bugs": {
+    "url": "https://github.com/weapp-pandacss/weapp-pandacss/issues"
+  },
+  "keywords": [
+    "panda",
+    "pandacss",
+    "weapp",
+    "miniprogram",
+    "runtime"
+  ],
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.mts",
+        "default": "./dist/index.mjs"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      },
+      "default": "./dist/index.mjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
+  "files": [
+    "README.md",
+    "README.zh.md",
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
+  "scripts": {
+    "dev": "tsdown --watch --sourcemap",
+    "build": "tsdown",
+    "lint": "eslint src test test-d tsdown.config.ts",
+    "test": "vitest run",
+    "test:dev": "vitest",
+    "typecheck": "tsc --noEmit",
+    "test:types": "tsd --files \"test-d/*.test-d.*\"",
+    "tsd": "tsd --files \"test-d/*.test-d.*\"",
+    "pack:check": "pnpm build && pnpm pack --dry-run"
+  },
+  "devDependencies": {
+    "tsdown": "0.23.0",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "tsd": {
+    "compilerOptions": {
+      "module": "node16",
+      "skipLibCheck": true
+    }
+  }
+}

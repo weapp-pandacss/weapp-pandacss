@@ -58,6 +58,32 @@
         "original": "285b0dd651517d648bb4c0f482b178bedca05d18de67d506b1140951d60811bb",
         "rendered": "554a628457e9927b6a913a023364585a14e76968a2051af5675ccc87463ab165"
       }
+    },
+    {
+      "id": "6d31d9e53b1f6de3d33543db",
+      "target": "packages/runtime",
+      "template": "tsdown",
+      "provenance": "created",
+      "source": {
+        "kind": "package",
+        "packageName": "@icebreakers/monorepo-templates",
+        "version": "2.3.1",
+        "templatePath": "templates/tsdown",
+        "digest": "48f02f9958e335e8fa400eca09bc622ad5f3acffb71f58969743e1066bcd16e9"
+      },
+      "generator": {
+        "profile": "repo-new-v1",
+        "version": "5.9.0"
+      },
+      "parameters": {
+        "packageName": "runtime",
+        "renameJson": false
+      },
+      "baseline": {
+        "status": "available",
+        "original": "48f02f9958e335e8fa400eca09bc622ad5f3acffb71f58969743e1066bcd16e9",
+        "rendered": "33e9cb628f62309bccc6a601f389ad40e09d7470b90bd19cd80f76d28dfd1cab"
+      }
     }
   ]
 }

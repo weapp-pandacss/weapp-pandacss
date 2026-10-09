@@ -107,6 +107,7 @@
     "@csstools/postcss-cascade-layers": "^6.0.2",
     "@csstools/postcss-is-pseudo-class": "^6.0.3",
     "@pandacss/types": "2.1.2",
+    "@weapp-pandacss/runtime": "workspace:*",
     "local-pkg": "^1.2.1",
     "merge": "^2.1.1",
     "postcss-selector-parser": "^7.1.6",

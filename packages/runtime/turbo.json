@@ -1,0 +1,9 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "tsd": {
+      "dependsOn": ["build"],
+      "inputs": ["$TURBO_DEFAULT$", "dist/**"]
+    }
+  }
+}
