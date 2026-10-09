@@ -6,11 +6,8 @@ export function parseLocale(value: unknown): DocsLocale | undefined {
   return value === 'en' || value === 'zh' ? value : undefined
 }
 
-/** Country is authoritative; browser signals cover offline/static previews. */
-export function detectLocale(country: unknown, timeZone: string, languages: readonly string[]): DocsLocale {
-  if (typeof country === 'string' && /^[a-z]{2}$/i.test(country)) {
-    return ['CN', 'HK', 'MO', 'TW'].includes(country.toUpperCase()) ? 'zh' : 'en'
-  }
+/** Infer locale locally without IP lookup or server-side execution. */
+export function detectLocale(timeZone: string, languages: readonly string[]): DocsLocale {
   if (['Asia/Shanghai', 'Asia/Chongqing', 'Asia/Chungking', 'Asia/Harbin', 'Asia/Urumqi', 'Asia/Hong_Kong', 'Asia/Macau', 'Asia/Macao', 'Asia/Taipei'].includes(timeZone)) {
     return 'zh'
   }

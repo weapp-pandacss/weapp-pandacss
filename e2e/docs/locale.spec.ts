@@ -1,171 +1,147 @@
-import type { Page } from '@playwright/test'
+import { readFileSync } from 'node:fs'
 import { expect, test } from '@playwright/test'
 import { detectLocale, localePreferenceKey, parseLocale } from '../../apps/docs/src/lib/preferred-locale.ts'
-import worker from '../../apps/docs/worker/index.ts'
 
-async function region(page: Page, country: string | null) {
-  await page.route('**/api/locale', route => route.fulfill({ json: { country } }))
+for (const timezoneId of ['Asia/Shanghai', 'Asia/Hong_Kong', 'Asia/Macau', 'Asia/Taipei']) {
+  test.describe(timezoneId, () => {
+    test.use({ timezoneId, locale: 'en-US' })
+
+    test('Chinese region time zone redirects an English browser and preserves query/hash', async ({ page }) => {
+      await page.goto('/?source=home#main-content')
+      await expect(page).toHaveURL(/\/zh\/\?source=home#main-content$/)
+      await expect(page.locator('html')).toHaveAttribute('lang', 'zh-CN')
+    })
+  })
 }
 
-test('China redirects an English browser to Chinese and preserves query/hash', async ({ page }) => {
-  await region(page, 'CN')
-  await page.goto('/?source=home#main-content')
-  await expect(page).toHaveURL(/\/zh\/\?source=home#main-content$/)
-  await expect(page.locator('html')).toHaveAttribute('lang', 'zh-CN')
-})
-
-test('other regions keep the English homepage', async ({ page }) => {
-  await region(page, 'US')
+test('other clients keep the English homepage', async ({ page }) => {
   await page.goto('/')
   await page.waitForLoadState('networkidle')
   await expect(page.locator('html')).toHaveAttribute('lang', 'en')
   await expect(page).toHaveURL(/\/$/)
 })
 
-for (const country of ['HK', 'MO', 'TW']) {
-  test(`${country} also defaults to Chinese`, async ({ page }) => {
-    await region(page, country)
+test('a secondary Chinese browser language does not override the preferred language', async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'zh-CN'] })
+  })
+  await page.goto('/')
+  await page.waitForLoadState('networkidle')
+  await expect(page).toHaveURL(/\/$/)
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en')
+})
+
+test.describe('Chinese browser language', () => {
+  test.use({ locale: 'zh-CN' })
+
+  test('Chinese preferred language redirects outside Chinese region time zones', async ({ page }) => {
     await page.goto('/')
     await expect(page).toHaveURL(/\/zh\/$/)
     await expect(page.locator('html')).toHaveAttribute('lang', 'zh-CN')
   })
-}
-
-test('a manual language switch is remembered without a redirect loop', async ({ page }) => {
-  await region(page, 'CN')
-  await page.goto('/')
-  await expect(page).toHaveURL(/\/zh\/$/)
-  await page.locator('.language-link').click()
-  await expect(page).toHaveURL(/\/\?lang=en$/)
-  await expect(page.locator('html')).toHaveAttribute('lang', 'en')
-  await page.goto('/')
-  await page.waitForLoadState('networkidle')
-  await expect(page).toHaveURL(/\/$/)
-  await expect(page.locator('html')).toHaveAttribute('lang', 'en')
-  await page.locator('.language-link').click()
-  await expect(page).toHaveURL(/\/zh\/\?lang=zh$/)
-  await page.goto('/')
-  await expect(page).toHaveURL(/\/zh\/$/)
 })
 
-test('explicit language wins over stored preference and region', async ({ page }) => {
-  await region(page, 'CN')
-  await page.addInitScript((key) => {
-    localStorage.setItem(key, 'zh')
-  }, localePreferenceKey)
-  await page.goto('/?lang=en')
-  await expect(page).toHaveURL(/\/\?lang=en$/)
-  await expect(page.locator('html')).toHaveAttribute('lang', 'en')
-})
-
-test('the homepage content language link also remembers an explicit choice', async ({ page }) => {
-  await region(page, 'CN')
-  await page.goto('/')
-  await expect(page).toHaveURL(/\/zh\/$/)
-  await page.locator('article').getByRole('link', { name: 'English', exact: true }).click()
-  await expect(page).toHaveURL(/\/\?lang=en$/)
-  await page.goto('/')
-  await page.waitForLoadState('networkidle')
-  await expect(page.locator('html')).toHaveAttribute('lang', 'en')
-  await expect(page).toHaveURL(/\/$/)
-})
-
-test('deep English and Chinese links do not request a region or change locale', async ({ page }) => {
-  const requests: string[] = []
-  page.on('request', request => requests.push(request.url()))
-  await region(page, 'CN')
-  await page.goto('/get-started/')
-  await expect(page.locator('html')).toHaveAttribute('lang', 'en')
-  await page.goto('/zh/get-started/')
-  await expect(page.locator('html')).toHaveAttribute('lang', 'zh-CN')
-  expect(requests.filter(url => url.includes('/api/locale'))).toEqual([])
-})
-
-test('blocked storage still permits an explicit English switch', async ({ page }) => {
-  await region(page, 'CN')
-  await page.addInitScript(() => {
-    Object.defineProperty(window, 'localStorage', {
-      get: () => {
-        throw new Error('Storage blocked')
-      },
-    })
-  })
-  await page.goto('/')
-  await expect(page).toHaveURL(/\/zh\/$/)
-  await page.locator('.language-link').click()
-  await expect(page).toHaveURL(/\/\?lang=en$/)
-  await expect(page.locator('html')).toHaveAttribute('lang', 'en')
-})
-
-test.describe('Chinese client fallback', () => {
+test.describe('Chinese client preferences', () => {
   test.use({ timezoneId: 'Asia/Shanghai', locale: 'en-US' })
 
-  test('China time zone covers an unavailable region API', async ({ page }) => {
-    await page.route('**/api/locale', route => route.abort())
+  test('a manual language switch is remembered without a redirect loop', async ({ page }) => {
     await page.goto('/')
     await expect(page).toHaveURL(/\/zh\/$/)
-  })
-
-  test('a known non-China region overrides browser fallback signals', async ({ page }) => {
-    await region(page, 'GB')
+    await page.locator('.language-link').click()
+    await expect(page).toHaveURL(/\/\?lang=en$/)
+    await expect(page.locator('html')).toHaveAttribute('lang', 'en')
     await page.goto('/')
     await page.waitForLoadState('networkidle')
     await expect(page).toHaveURL(/\/$/)
     await expect(page.locator('html')).toHaveAttribute('lang', 'en')
-  })
-})
-
-test.describe('Chinese browser language fallback', () => {
-  test.use({ locale: 'zh-CN' })
-
-  test('Chinese browser language covers unknown country', async ({ page }) => {
-    await region(page, null)
+    await page.locator('.language-link').click()
+    await expect(page).toHaveURL(/\/zh\/\?lang=zh$/)
     await page.goto('/')
     await expect(page).toHaveURL(/\/zh\/$/)
   })
+
+  test('explicit language wins over stored preference and client detection', async ({ page }) => {
+    await page.addInitScript((key) => {
+      localStorage.setItem(key, 'zh')
+    }, localePreferenceKey)
+    await page.goto('/?lang=en')
+    await expect(page).toHaveURL(/\/\?lang=en$/)
+    await expect(page.locator('html')).toHaveAttribute('lang', 'en')
+  })
+
+  test('the homepage content language link also remembers an explicit choice', async ({ page }) => {
+    await page.goto('/')
+    await expect(page).toHaveURL(/\/zh\/$/)
+    await page.locator('article').getByRole('link', { name: 'English', exact: true }).click()
+    await expect(page).toHaveURL(/\/\?lang=en$/)
+    await page.goto('/')
+    await page.waitForLoadState('networkidle')
+    await expect(page.locator('html')).toHaveAttribute('lang', 'en')
+    await expect(page).toHaveURL(/\/$/)
+  })
+
+  test('deep English and Chinese links keep their locale', async ({ page }) => {
+    await page.goto('/get-started/')
+    await expect(page.locator('html')).toHaveAttribute('lang', 'en')
+    await page.goto('/zh/get-started/')
+    await expect(page.locator('html')).toHaveAttribute('lang', 'zh-CN')
+  })
+
+  test('blocked storage still permits an explicit English switch', async ({ page }) => {
+    await page.addInitScript(() => {
+      Object.defineProperty(window, 'localStorage', {
+        get: () => {
+          throw new Error('Storage blocked')
+        },
+      })
+    })
+    await page.goto('/')
+    await expect(page).toHaveURL(/\/zh\/$/)
+    await page.locator('.language-link').click()
+    await expect(page).toHaveURL(/\/\?lang=en$/)
+    await expect(page.locator('html')).toHaveAttribute('lang', 'en')
+  })
+
+  test('locale detection makes no API or geolocation requests', async ({ page }) => {
+    const requests: string[] = []
+    page.on('request', (request) => {
+      if (['fetch', 'xhr'].includes(request.resourceType())) {
+        requests.push(request.url())
+      }
+    })
+    await page.goto('/')
+    await expect(page).toHaveURL(/\/zh\/$/)
+    await page.waitForLoadState('networkidle')
+    expect(requests).toEqual([])
+  })
 })
 
-test('a stalled region request times out and leaves English usable', async ({ page }) => {
-  await page.route('**/api/locale', () => {})
-  await page.goto('/')
-  await page.waitForLoadState('networkidle')
-  await expect(page.getByRole('heading', { name: 'weapp-pandacss', exact: true })).toBeVisible()
-  await expect(page).toHaveURL(/\/$/)
+test('explicit Chinese wins over a remembered English preference', async ({ page }) => {
+  await page.addInitScript((key) => {
+    localStorage.setItem(key, 'en')
+  }, localePreferenceKey)
+  await page.goto('/?lang=zh')
+  await expect(page).toHaveURL(/\/zh\/\?lang=zh$/)
+  await expect(page.locator('html')).toHaveAttribute('lang', 'zh-CN')
 })
 
-test('locale rules accept supported preferences and country/browser signals', () => {
+test('locale rules use client signals and supported preferences', () => {
   expect(parseLocale('zh')).toBe('zh')
   expect(parseLocale('en')).toBe('en')
   expect(parseLocale('fr')).toBeUndefined()
-  expect(detectLocale('cn', 'UTC', ['en-US'])).toBe('zh')
-  expect(detectLocale('HK', 'UTC', ['en-US'])).toBe('zh')
-  expect(detectLocale('MO', 'UTC', ['en-US'])).toBe('zh')
-  expect(detectLocale('TW', 'UTC', ['en-US'])).toBe('zh')
-  expect(detectLocale('US', 'Asia/Shanghai', ['zh-CN'])).toBe('en')
-  expect(detectLocale(undefined, 'Asia/Urumqi', ['en-US'])).toBe('zh')
-  expect(detectLocale(undefined, 'UTC', ['zh-TW'])).toBe('zh')
-  expect(detectLocale(undefined, 'UTC', ['en-US', 'zh-CN'])).toBe('en')
-  expect(detectLocale(undefined, 'UTC', [])).toBe('en')
+  for (const timeZone of ['Asia/Shanghai', 'Asia/Chongqing', 'Asia/Chungking', 'Asia/Harbin', 'Asia/Urumqi', 'Asia/Hong_Kong', 'Asia/Macau', 'Asia/Macao', 'Asia/Taipei']) {
+    expect(detectLocale(timeZone, ['en-US'])).toBe('zh')
+  }
+  expect(detectLocale('UTC', ['zh-TW'])).toBe('zh')
+  expect(detectLocale('UTC', ['en-US', 'zh-CN'])).toBe('en')
+  expect(detectLocale('Asia/Singapore', ['en-US'])).toBe('en')
+  expect(detectLocale('UTC', [])).toBe('en')
 })
 
-test('region endpoint trusts connection metadata, never caches, and delegates assets', async () => {
-  const assets: Request[] = []
-  const env = {
-    ASSETS: {
-      fetch: async (request: Request) => {
-        assets.push(request)
-        return new Response('asset')
-      },
-    },
-  }
-  const request = Object.assign(new Request('https://panda.weapp.dev/api/locale'), { cf: { country: 'CN' } })
-  const response = await worker.fetch(request, env)
-  expect(await response.json()).toEqual({ country: 'CN' })
-  expect(response.headers.get('Cache-Control')).toBe('private, no-store')
-  const spoofed = new Request(request.url, { headers: { 'CF-IPCountry': 'CN' } })
-  expect(await (await worker.fetch(spoofed, env)).json()).toEqual({ country: null })
-  expect((await worker.fetch(new Request(request.url, { method: 'POST' }), env)).status).toBe(405)
-  const asset = new Request('https://panda.weapp.dev/zh/')
-  expect(await (await worker.fetch(asset, env)).text()).toBe('asset')
-  expect(assets).toEqual([asset])
+test('deployment is assets-only, without a Worker entry or execution routing', () => {
+  const config = JSON.parse(readFileSync(new URL('../../apps/docs/wrangler.jsonc', import.meta.url), 'utf8'))
+  expect(config).not.toHaveProperty('main')
+  expect(config.assets).not.toHaveProperty('binding')
+  expect(config.assets).not.toHaveProperty('run_worker_first')
+  expect(config.assets.directory).toBe('./dist')
 })

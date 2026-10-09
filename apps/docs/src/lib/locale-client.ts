@@ -19,28 +19,7 @@ function savePreference(locale: string) {
   }
 }
 
-async function getCountry(): Promise<unknown> {
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), 1500)
-  try {
-    const response = await fetch('/api/locale', { signal: controller.signal, cache: 'no-store' })
-    if (response.ok) {
-      const data: unknown = await response.json()
-      if (data && typeof data === 'object' && 'country' in data) {
-        return data.country
-      }
-    }
-  }
-  catch {
-    // Region detection is optional; time zone/language remain available.
-  }
-  finally {
-    clearTimeout(timer)
-  }
-  return undefined
-}
-
-export async function initializeLocale() {
+export function initializeLocale() {
   const url = new URL(location.href)
   const explicit = parseLocale(url.searchParams.get('lang'))
   if (explicit) {
@@ -69,12 +48,7 @@ export async function initializeLocale() {
   if (url.pathname !== '/') {
     return
   }
-  let preferred = explicit ?? readPreference()
-  if (!preferred) {
-    const country = await getCountry()
-    // A language switch while the request was pending takes precedence.
-    preferred = readPreference() ?? detectLocale(country, new Intl.DateTimeFormat().resolvedOptions().timeZone, navigator.languages)
-  }
+  const preferred = explicit ?? readPreference() ?? detectLocale(new Intl.DateTimeFormat().resolvedOptions().timeZone, navigator.languages)
   if (preferred === 'zh' && location.pathname === '/') {
     url.pathname = '/zh/'
     location.replace(url.href)
