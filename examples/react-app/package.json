@@ -25,7 +25,7 @@
     "@vitejs/plugin-react": "^6.1.2",
     "postcss": "catalog:",
     "typescript": "catalog:",
-    "vite": "^8.3.3",
+    "vite": "^8.3.4",
     "weapp-pandacss": "workspace:*"
   }
 }

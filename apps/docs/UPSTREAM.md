@@ -4,8 +4,8 @@ This template adapts the static empty starter from [Cloudflare Nimbus](https://g
 
 - Starter tag: `templates-v0.7.9`
 - Starter commit: `aae348048a8c659f84c39696ee6b20c2ad2f5ae2`
-- Nimbus package: `@cloudflare/nimbus-docs@0.16.0`
-- Astro: `7.3.6`
+- Initial template Nimbus package: `@cloudflare/nimbus-docs@0.16.0`
+- Initial template Astro: `7.3.6`
 
 Nimbus declares Astro `>=7.2.6 <8`; Astro requires Node `>=22.12.0`, so this workspace retains its stricter Node `>=22.13.0` baseline. Builds, Astro diagnostics and TypeScript checks were verified with the repository's TypeScript `6.0.3` and Vite `8.3.3` constraints. Resolved dependencies are recorded in the monorepo's root `pnpm-lock.yaml`; generated projects use their own root workspace lockfile.
 
@@ -14,3 +14,11 @@ Agent endpoint routes and the content-loading approach come from that starter. T
 The local head component emits page-specific language metadata because the upstream head uses the site-wide locale. Client scripts are emitted as external assets so Astro does not inline them before Vite finalizes Pagefind's dynamic import.
 
 The package version and starter tag were checked against published package metadata. `nimbus.json` records the reviewed package API baseline. The original full starter was not copied wholesale, so upstream starter diffs are not a claim that every local file is an unmodified upstream component.
+
+On 2026-10-09, the project reviewed Nimbus `0.17.0` and upgraded Astro to `7.3.8`.
+The site uses `docsCollection()` and static output, has no OpenAPI collections or
+project-local `skills/` folder, and owns no conflicting discovery routes. The
+0.17 review requires no source migration for this layout. New discovery files
+are framework-generated; the existing robots policy and project-owned UI stay
+in place. `nimbus-docs migrate --yes --json` records the reviewed baseline.
+The project-owned Shiki styles remain necessary for both system themes.
