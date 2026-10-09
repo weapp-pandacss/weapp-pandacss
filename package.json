@@ -63,7 +63,7 @@
     "pr:exit": "repo release pre exit",
     "--------": "----------------",
     "build:examples": "turbo run build --filter=./examples/*",
-    "pack:check": "pnpm --filter weapp-pandacss pack:check"
+    "pack:check": "pnpm --filter @weapp-pandacss/runtime pack:check && pnpm --filter weapp-pandacss pack:check"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.3",

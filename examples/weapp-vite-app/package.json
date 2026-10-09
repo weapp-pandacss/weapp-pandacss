@@ -28,6 +28,7 @@
     "open": "wv open"
   },
   "dependencies": {
+    "@weapp-pandacss/runtime": "workspace:*",
     "vue": "3.5.43",
     "wevu": "7.4.0"
   },

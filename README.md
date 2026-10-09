@@ -14,15 +14,16 @@ The selected logo is the Panda CSS P mark with a mini-program badge. All six des
 
 ## Workspaces
 
-| Directory                 | Purpose                                                   |
-| ------------------------- | --------------------------------------------------------- |
-| `packages/weapp-pandacss` | Panda generation plugin, portable runtime and PostCSS     |
-| `apps/docs`               | Nimbus + Astro bilingual documentation at panda.weapp.dev |
-| `examples/taro-app`       | Taro React mini-program                                   |
-| `examples/taro-app-vue3`  | Taro Vue mini-program                                     |
-| `examples/uni-app-vue3`   | Uni-app Vue mini-program                                  |
-| `examples/react-app`      | React web application                                     |
-| `examples/weapp-vite-app` | Weapp Vite + Wevu Vue SFC mini-program                    |
+| Directory                 | Purpose                                                         |
+| ------------------------- | --------------------------------------------------------------- |
+| `packages/weapp-pandacss` | Panda generation plugin, PostCSS and compatible runtime entries |
+| `packages/runtime`        | Dependency-free `@weapp-pandacss/runtime` class encoding        |
+| `apps/docs`               | Nimbus + Astro bilingual documentation at panda.weapp.dev       |
+| `examples/taro-app`       | Taro React mini-program                                         |
+| `examples/taro-app-vue3`  | Taro Vue mini-program                                           |
+| `examples/uni-app-vue3`   | Uni-app Vue mini-program                                        |
+| `examples/react-app`      | React web application                                           |
+| `examples/weapp-vite-app` | Weapp Vite + Wevu Vue SFC mini-program                          |
 
 The historical Linaria example remains in `examples/taro-app-linaria` as reference source. It does not use Panda and is outside the active workspace.
 

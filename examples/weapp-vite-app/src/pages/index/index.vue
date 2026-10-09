@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { encodeClassName } from 'weapp-pandacss/runtime'
+import { encodeClassName } from '@weapp-pandacss/runtime'
 import { computed, ref } from 'wevu'
 import { css } from '../../../styled-system/css/index.mjs'
 import { token } from '../../../styled-system/tokens/index.mjs'

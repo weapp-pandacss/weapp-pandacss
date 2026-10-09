@@ -84,8 +84,14 @@ Web 保留 `@layer`、`:where`、`:is` 和其他选择器语义；默认 `weapp`
 
 手写特殊 class 时使用公共、无 Node 依赖的 runtime：
 
+```bash
+pnpm add @weapp-pandacss/runtime
+```
+
+独立包不引入 Panda、PostCSS 或 Babel。原有 `weapp-pandacss/runtime` 入口继续可用，包含 `createPortableRuntime()` 在内的导出共享同一实现。
+
 ```ts
-import { encodeClassList, encodeClassName } from 'weapp-pandacss/runtime'
+import { encodeClassList, encodeClassName } from '@weapp-pandacss/runtime'
 
 const single = encodeClassName('custom/active')
 const list = encodeClassList('custom/active 中文')

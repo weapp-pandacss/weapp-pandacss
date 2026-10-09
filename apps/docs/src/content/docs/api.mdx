@@ -14,7 +14,8 @@ Every entry provides ESM, CommonJS and corresponding TypeScript declarations.
 | `weapp-pandacss` | `weappPanda`, `postcssPlugin`, `encodeClassName`, `encodeClassList`, `IPostcssPluginOptions` |
 | `weapp-pandacss/panda` | `weappPanda` |
 | `weapp-pandacss/postcss` | Default PostCSS plugin |
-| `weapp-pandacss/runtime` | `encodeClassName`, `encodeClassList` |
+| `@weapp-pandacss/runtime` | `encodeClassName`, `encodeClassList`, `createPortableRuntime` |
+| `weapp-pandacss/runtime` | Same exports; compatibility entry |
 
 ## Panda plugin
 
@@ -52,6 +53,6 @@ encodeClassName(value: string): string
 encodeClassList(value: string): string
 ~~~
 
-Use the `/runtime` entry in application code so Node-only generation and PostCSS dependencies are not pulled into a mini-program bundle. Encode only raw authored names, once; see [runtime and naming](/runtime/).
+Prefer the standalone `@weapp-pandacss/runtime` in application code; installing it does not bring in Panda, PostCSS or Babel. The existing `/runtime` entry remains compatible. `createPortableRuntime()` returns the two encoders for embedding a self-contained generation runtime. Encode only raw authored names, once; see [runtime and naming](/runtime/).
 
 The v1 file-patching APIs, adapter configuration loader, wildcard internal paths and adapter CLI binaries were removed. Their replacements are listed in the [migration guide](/migration/).

@@ -21,8 +21,14 @@ Unicode is encoded by complete codepoint. Class lists are split on whitespace an
 
 ## Hand-written classes
 
+Applications and component libraries can install the dependency-free runtime without Panda, PostCSS or Babel:
+
+~~~bash
+pnpm add @weapp-pandacss/runtime
+~~~
+
 ~~~ts
-import { encodeClassName, encodeClassList } from 'weapp-pandacss/runtime'
+import { encodeClassName, encodeClassList } from '@weapp-pandacss/runtime'
 
 const single = encodeClassName('custom/active')
 const list = encodeClassList('custom/active 中文')
@@ -37,6 +43,8 @@ Write the source stylesheet as ordinary escaped CSS:
 ~~~
 
 PostCSS applies the matching encoding. These browser-compatible runtime exports have no Node dependency.
+
+The existing `weapp-pandacss/runtime` entry remains compatible and re-exports the same implementation. The packed adapter pins an exact runtime version; use a matching version for independently published components. Panda artifacts remain self-contained and do not import this package. The standalone package only encodes JS names; CSS still needs the PostCSS adapter.
 
 ## Panda outputs
 
