@@ -1,0 +1,136 @@
+---
+title: CSS 兼容
+description: 理解 layer 顺序编译、选择器展开、权重边界与诊断修复。
+sidebar:
+  order: 5
+---
+
+## Target 会改变什么
+
+两个目标都会编码 class。`target: 'web'` 随后保留原生 CSS layer 与选择器；默认 `weapp` 目标还执行平台 selector 转换与 layer 顺序编译。
+
+这些转换适配样式语法和顺序，不会新增 CSS 引擎，也不能让每个属性都在 WXSS 中可用。不同小程序渲染器、基础库的行为仍需要实际验证。
+
+## 普通声明的 layer 顺序
+
+Panda 配置保持 `polyfill: false`，让 adapter 读到原始 layer。默认 `cascadeLayers.mode` 为 `ordered`，编译器在 layer 首次声明时登记顺序，即使样式块出现顺序不同，也按登记顺序输出。
+
+~~~css
+.probe { color: green; }
+@layer base, utilities;
+@layer utilities { .probe { color: blue; } }
+@layer base { .probe { color: red; } }
+~~~
+
+这组同权重规则的输出顺序为：
+
+~~~css
+/* 此片段省略命名标记。 */
+.probe { color: red; }
+.probe { color: blue; }
+.probe { color: green; }
+~~~
+
+未分层普通声明最后输出。编译器处理命名、重复、点分、嵌套与匿名层，并保留同层内的源码顺序。
+
+## Important 声明反转顺序
+
+重要声明中，较早的 layer 优先级更高，未分层重要声明的优先级更低：
+
+~~~css
+@layer base, utilities;
+@layer base { .probe { color: red !important; } }
+@layer utilities { .probe { color: blue !important; } }
+.probe { color: green !important; }
+~~~
+
+重要规则输出顺序为 green → blue → red，这组同权重规则最终由 red 胜出。同一规则混合普通与重要声明时，可能被拆开，以保留两种不同顺序。
+
+| 声明种类 | 输出顺序，从低优先级到高优先级 |
+| --- | --- |
+| 普通 | 较早 layer → 较晚 layer → 未分层 |
+| Important | 未分层 → 较晚 layer → 较早 layer |
+
+仓库测试覆盖上述顺序与嵌套 layer 规则。浏览器测试对安全输入比较原生 layer 结果，Wevu 示例也包含两个可交互的 layer 探针。
+
+## 权重是兼容边界
+
+Ordered 编译提供**顺序兼容**，不是完整的原生 layer polyfill。移除 layer 后，WXSS 仍按普通 selector 权重决定结果。
+
+~~~css
+@layer base, utilities;
+@layer base { #card .probe { color: red; } }
+@layer utilities { .probe { color: blue; } }
+~~~
+
+原生 layer 中，utilities 的更高层优先级胜出；展开后，先出现的 `#card .probe` 仍可能因权重更高而胜出。Adapter 给出 `WP_LAYER_SPECIFICITY`，浏览器回归有意保留并验证了这种差异。
+
+跨 layer 尽量保持 class selector 权重接近。应调整高权重规则或组件样式入口，而不是添加权重占位。希望潜在差异直接阻止构建时，启用严格诊断：
+
+~~~js
+// postcss.config.cjs
+module.exports = {
+  plugins: {
+    '@pandacss/dev/postcss': {},
+    'weapp-pandacss/postcss': {
+      cascadeLayers: { mode: 'ordered', onConflict: 'error' },
+    },
+  },
+}
+~~~
+
+默认 `onConflict: 'warning'` 通过 PostCSS warnings 报告风险，包含 layer、selector、属性与源码位置。诊断采用保守分析，不能证明两个 selector 一定命中同一元素；简写、逻辑属性与未知选择器函数尤其需要保守检查。
+
+## 条件 layer 与单 root 边界
+
+在 `@media` 或 `@supports` 中使用 layer 前，先在条件外声明完整顺序：
+
+~~~css
+@layer base, utilities;
+@layer base { .probe { color: red; } }
+@media (min-width: 700px) {
+  @layer utilities { .probe { color: blue; } }
+}
+~~~
+
+编译器保留条件包装。首次声明出现在条件中时，可能给出 `WP_LAYER_CONDITIONAL_ORDER`，因为登记行为可能与原生 CSS 不同。
+
+排序只覆盖**一个 PostCSS root**，分别编译的文件和隔离组件样式不共享全局 layer 注册表。需要跨文件统一顺序时，先合并输入，再执行 adapter；import 与 nesting 展开也应在前序阶段完成。最后再加载多个已独立展开的文件，无法恢复已经丢失的 layer 信息。
+
+## 选择器差异
+
+以下默认转换有 selector 测试覆盖：
+
+| 源码 selector | 小程序输出 |
+| --- | --- |
+| `:root` 或 `:host` | `page` |
+| `*` | `view,text` |
+| `.container * > text` | `.container view>text,.container text>text` |
+| `.container :where(.a, .b) > text` | `.container .a>text,.container .b>text` |
+| `* ~ *` | `view+view,view+text,text+view,text+text` |
+| `.a:not(.disabled)` | 保留业务手写否定条件 |
+
+展开后的 `:where()` 不再具有原生零权重语义。Universal 仅包含配置的标签，默认是 `view` 与 `text`。上例 `~` 被转换为相邻兄弟 `+`，不是通用兄弟关系的完整 polyfill。`:is()` 由 csstools 插件处理，通过 `isPseudoClassPluginOptions` 配置。
+
+使用目标渲染器支持的原生标签与 selector。伪类被保留不代表原生交互受支持：React 示例验收了 Web hover，小程序触摸状态应采用组件或框架支持的状态机制。Root/universal 替换可通过 [PostCSS 选项](/zh/postcss/)设置。
+
+## 诊断修复
+
+| 诊断或拒绝的输入 | 修复方式 |
+| --- | --- |
+| `WP_LAYER_SPECIFICITY` | 调整跨层权重，对照实际 cascade，或用 `onConflict: 'error'` 阻止构建 |
+| `WP_LAYER_CONDITIONAL_ORDER` | 在条件外提前声明命名 layer 顺序，避免依赖条件登记 |
+| `WP_LAYER_SELECTOR_UNKNOWN` | 改用受支持的 selector，或明确检查受影响的 cascade |
+| 生成的 `:not(#\#)` 占位 | 关闭 Panda polyfill，从原始 layer 重新生成 |
+| `@import ... layer(...)` | 在 ordered 编译之前内联 import |
+| CSS nesting / `&` selector | 在前序阶段展开 nesting |
+| `revert-layer` | 用明确规则改写，展开后无法还原 layer 回退 |
+| 无效或不支持的 layer 结构 | 修复诊断指向的源码位置，不要压掉错误 |
+
+无效 selector、小程序不支持的变量名也会报错。变量声明、`var()` 引用与 `@property` 名称需使用 ASCII 标识符或 Panda 生成 token。
+
+## 显式 legacy 模式
+
+显式传入 `removeNegationPseudoClass`、`selectorReplacement.cascadeLayers`、`cascadeLayersPluginOptions` 等旧选项时，会选择 legacy 路径，即使值与旧默认值相同。也可显式设置 `cascadeLayers: { mode: 'legacy' }`。
+
+这些选项与显式 `mode: 'ordered'` 混用会报配置错误。Legacy 也不保证完整原生 layer 语义，Web 始终保留原生 layer。保留旧配置前，先查[迁移指南](/zh/migration/)。

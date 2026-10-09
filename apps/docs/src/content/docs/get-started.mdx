@@ -1,21 +1,27 @@
 ---
 title: Installation
-description: Install both plugins and generate your first portable styles.
+description: Install both plugins, generate matching runtime and CSS, and render your first style.
 sidebar:
   order: 1
 ---
 
-## Install
+## Requirements
 
-Use Node.js 22.18+ or 24.11+ in their respective release lines, or Node 26+. Pin Panda and both presets to the verified **2.1.2** baseline.
+The adapter declares Node.js `^22.18.0 || >=24.11.0`. The repository CI checks Node 22 and 24; use a supported release satisfying that range. Panda and both presets must use the verified **2.1.2** version. The adapter checks Panda's installed version and rejects other versions.
 
 ~~~sh
 pnpm add -D @pandacss/dev@2.1.2 @pandacss/preset-base@2.1.2 @pandacss/preset-panda@2.1.2 weapp-pandacss@^2 postcss
 ~~~
 
-Panda 2 requires the presets to be installed and registered explicitly.
+Panda 2 requires explicit preset installation and registration. Add the separate runtime only when application code needs to encode authored class names:
 
-## Register the Panda plugin
+~~~sh
+pnpm add @weapp-pandacss/runtime
+~~~
+
+Choose your [framework integration](/frameworks/) for application entry files and bundler settings. The following configuration establishes the shared Panda/PostCSS contract.
+
+## 1. Register the Panda plugin
 
 ~~~ts
 // panda.config.ts
@@ -24,8 +30,10 @@ import { weappPanda } from 'weapp-pandacss/panda'
 
 export default defineConfig({
   plugins: [weappPanda()],
+  polyfill: false,
   presets: ['@pandacss/preset-base', '@pandacss/preset-panda'],
   include: ['./src/**/*.{js,jsx,ts,tsx,vue}'],
+  exclude: [],
   preflight: false,
   outdir: 'styled-system',
   outExtension: 'mjs',
@@ -33,7 +41,11 @@ export default defineConfig({
 })
 ~~~
 
-## Register PostCSS
+Include the source files where styles are authored; Vue projects need `.vue`. Keep generated directories outside that scan. `polyfill: false` lets the adapter read the original layer order. Panda's layer polyfill removes information needed by the default ordered conversion.
+
+The plugin adapts runtime artifacts in `codegen:prepare`, before Panda writes them. You do not run an adapter CLI or patch generated helpers. See [Panda configuration](/panda/) for hash, prefix and lifecycle details.
+
+## 2. Register PostCSS
 
 ~~~js
 // postcss.config.cjs
@@ -45,31 +57,54 @@ module.exports = {
 }
 ~~~
 
-In your application's global CSS:
+Keep Panda before the adapter. For Web/H5 change the adapter target to `web`; retain both plugins so runtime and selectors share the same class encoding. Optional rem/rpx conversion runs after the adapter and requires a separate dependency. See [units and component styles](/guides/component-styles/).
+
+## 3. Load the application stylesheet
+
+Add this declaration to the global CSS imported by your application's entry:
 
 ~~~css
+/* src/app.css, or your framework's global stylesheet */
 @layer reset, base, tokens, recipes, utilities;
 ~~~
 
-Import that CSS from your framework's application entry. Add `styled-system/` to `.gitignore`.
+The Panda PostCSS plugin expands this entry into generated styles. Defining it in an unused file will not load CSS into the application. Keep Panda styles global when components are meant to share them, and check the framework's [style isolation](/guides/component-styles/#component-isolation) settings.
 
-## Generate and build
+Add `styled-system/` to `.gitignore`. For multi-target projects ignore the whole generated directory, including its platform subdirectories.
+
+## 4. Generate and use a class
 
 ~~~sh
 pnpm exec panda codegen
 ~~~
 
-Run codegen before your framework's development or build command. There is no separate weapp adapter CLI.
+Run codegen before the framework's development or build command. In a Weapp Vite + Wevu project, run `wv prepare` first on a clean checkout so Panda can read the solution TypeScript configuration.
 
 ~~~ts
-import { css } from './styled-system/css'
+import { css } from './styled-system/css/index.mjs'
 
-const className = css({
+const cardClass = css({
   color: 'red.500',
-  padding: '2.5',
+  padding: '0.5rem',
+  borderRadius: '0.5rem',
 })
 ~~~
 
-Adjust the relative import to your file's location, or configure a `styled-system` alias in **both** TypeScript and your bundler. Do not encode the result of `css()` again.
+Adjust the relative import for the source file's location. Alternatively, configure `styled-system` in **both TypeScript and the bundler**; the logical import must resolve to the same generated directory Panda writes.
 
-For Web/H5 set PostCSS `target: 'web'`. Unit conversion is optional and runs after the adapter; see [PostCSS configuration](/postcss/) and [framework examples](/frameworks/).
+Bind `cardClass` to React's `className` or Vue/Wevu's `:class`. Native WXML needs the class string in page/component data before binding it to `class`. The framework must bundle and transpile the generated JavaScript for the target runtime. `css()` already returns portable names; do not encode its result again.
+
+## 5. Verify the complete build
+
+Build the application and inspect its final CSS/WXSS and rendered class values. A successful codegen command confirms runtime generation; it does not confirm that the application imported the CSS or selected the correct target.
+
+| Check | Expected result |
+| --- | --- |
+| Panda configuration | `weappPanda()`, fixed presets, `polyfill: false` |
+| CSS processing | Panda → adapter → optional unit conversion |
+| Application entry | Imports the global layer stylesheet |
+| Runtime imports | Resolve to the current target's generated directory |
+| Mini-program output | Matching encoded class and WXSS selector; no original `@layer` |
+| Web/H5 output | Matching encoded class; native layers and selectors retained |
+
+Continue with [class names](/guides/class-names/), [dynamic styles](/guides/dynamic-styles/) and [multi-target builds](/guides/build-targets/). If the class exists without the expected style, use the [diagnostic steps](/troubleshooting/#the-class-exists-but-styles-do-not-apply).

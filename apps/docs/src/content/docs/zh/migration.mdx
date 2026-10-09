@@ -1,37 +1,106 @@
 ---
 title: 迁移到 2.0
-description: 升级旧适配器时，同步重新生成 runtime 与 CSS。
+description: 用 Panda 生成期插件替代文件补丁与 rollback，再同步生成 runtime 和 CSS。
 sidebar:
   order: 7
 ---
 
-2.0 是 breaking change，class 编码与默认变量命名均已改变。旧 runtime 或页面产物不能与新 CSS 混用。
+2.0 改变 class 编码与默认变量命名，旧 runtime、页面产物不能与新生成 CSS 混用。迁移将生成文件补丁替换为 Panda 插件，不只是修改一个导入。
 
-## 升级步骤
+## 升级顺序
 
-1. 停止构建和 watch，删除项目自己的旧 `styled-system` 目录，包括 helper 备份与 weapp-panda 补丁文件。不要先 rollback 恢复旧 runtime 再接入插件。
-2. 固定 Panda 与两个 preset 为 **2.1.2**，注册 `weappPanda()`。支持 `.js`、`.mjs`，推荐 `.mjs` 与显式 import 扩展名。
-3. 将 `panda codegen && weapp-panda codegen` 改为 `panda codegen`，移除 adapter `execFileSync`、`codegen:done` hook 和跨平台 rollback 脚本。
-4. 使用 Panda → PostCSS adapter → 按需 rem/rpx。Web/H5 使用 `target: 'web'`，小程序使用 `weapp`；CSS 参数直接放在 PostCSS 插件配置中。
-5. 把生成目录中的转义模块导入替换为 `weapp-pandacss/runtime` 的 `encodeClassName` / `encodeClassList`，仅用于原始手写名称。
-6. 重新生成 runtime 和 CSS，完整构建并清理框架旧缓存。并行目标设置独立生成目录与对应别名。
+1. 停止项目中写入生成目录的 build/watch 进程，删除旧 `styled-system` 产物，包括 helper 备份与 weapp-panda 补丁文件。
+2. 固定 `@pandacss/dev`、`@pandacss/preset-base`、`@pandacss/preset-panda` 为 **2.1.2**。注册 `weappPanda()`，设置 `polyfill: false`，使用支持的 `.js` 或 `.mjs` runtime 输出。
+3. 将 `panda codegen && weapp-panda codegen` 改为 `panda codegen`，移除 adapter 子进程、`codegen:done` 补丁 hook 和跨平台 rollback 脚本。
+4. 按 Panda → PostCSS adapter → 按需 rem/rpx 转换注册插件，将旧 adapter 配置文件的 CSS 选项移到 PostCSS 参数。
+5. 手写 class helper 改用 `@weapp-pandacss/runtime`，只编码原始手写名称一次，保留 `css()`、recipe、pattern 与 `cx()` 结果。
+6. 对齐平台环境、生成/输出目录和 alias，再同步生成 runtime 与 CSS。仅清理受影响框架目标的旧缓存，重新构建。
+7. 对实际支持的目标检查最终 class、selector、token 引用与真实交互。
 
-## 已删除的接口
+不要先 rollback 恢复旧 runtime 再接入新插件。插件在写入前把转换 artifacts 返回给 Panda，不需要 helper 备份或生成后修改文件。
+
+## Panda 配置
+
+~~~ts
+// panda.config.ts
+import { defineConfig } from '@pandacss/dev'
+import { weappPanda } from 'weapp-pandacss/panda'
+
+export default defineConfig({
+  plugins: [weappPanda()],
+  polyfill: false,
+  presets: ['@pandacss/preset-base', '@pandacss/preset-panda'],
+  include: ['./src/**/*.{js,jsx,ts,tsx,vue}'],
+  preflight: false,
+  outdir: 'styled-system',
+  outExtension: 'mjs',
+  forceImportExtension: true,
+})
+~~~
+
+完整应用还需采用[安装与快速开始](/zh/get-started/)中的 PostCSS 配置和全局样式导入。源码导入与生成扩展名、目录保持一致。
+
+## 替换手写 class helper
+
+~~~ts
+// 替代旧 styled-system/weapp-panda/index.mjs 导入。
+import { encodeClassList, encodeClassName } from '@weapp-pandacss/runtime'
+
+const activeClass = encodeClassName('custom/active')
+const labels = encodeClassList('a.b 中文')
+~~~
+
+原公共入口 `weapp-pandacss/runtime` 继续作为独立实现的兼容转导出，它不同于已删除的内部生成 helper 路径。业务代码使用独立包时，将它安装为业务依赖。
+
+| 原始输入 | 新输出 |
+| --- | --- |
+| `a.b` | `a_wp_2e_b` |
+| `a_wp_2e_b` | `a_wp_5f_wp_2e_b` |
+| `1card` | `_wp_31_card` |
+| `中文` | `_wp_4e2d__wp_6587_` |
+
+不要在生成文件中全局替换旧转义字符串，猜测新结果。应从原始名称重新生成，让编码器完成转换。详见[类名处理](/zh/guides/class-names/)。
+
+## 已删除的 v1 接口
 
 | v1 接口 | v2 替代方案 |
 | --- | --- |
-| `createContext`、`inject`、`patch` 和 runtime 文件 API | `weappPanda()` |
+| `createContext`、`inject`、`patch` 与 runtime 文件操作 API | Panda 配置中注册 `weappPanda()` |
 | Adapter `defineConfig` 与配置加载器 | Panda 的 `defineConfig`，PostCSS 直接传参数 |
-| `weapp-panda` / `weapp-pandacss` CLI | `panda codegen` |
-| `escapePredicate`、PostCSS `naming`、旧编码 | 新编码与完整重新生成 |
-| 内部 wildcard 路径导入 | 根入口或 `/panda`、`/postcss`、`/runtime` |
+| `UserConfig`、`ICreateContextOptions` 等旧配置类型 | Panda 配置类型与 `IPostcssPluginOptions` |
+| `weapp-panda` / `weapp-pandacss` CLI、codegen/init/rollback | Panda codegen 与正常框架脚本 |
+| `escapePredicate`、PostCSS `naming` 与旧编码 | Portable 编码与配套完整重新生成 |
+| 内部 wildcard 路径导入 | 公共根入口、`/panda`、`/postcss`、`/runtime` 或独立 runtime |
 
-不提供 deprecated 兼容占位实现。详见[公共 API](/zh/api/)。
+已删除接口没有 deprecated 占位实现，公共签名与导入方式详见 [API 大全](/zh/api/)。
 
-## 兼容边界
+## Layer 与旧 PostCSS 参数
 
-已验证 Panda **2.1.2** codegen 与 PostCSS 自动生成，runtime 支持 `.js` / `.mjs`。仅 TypeScript 输出、其他 Panda 版本和原始 class 源码内联暂不支持。
+默认 ordered 路径需要原始 `@layer` 信息。Panda 保持 `polyfill: false` 并从源码重建，无法从旧 `:not(#\#)` 权重占位中恢复层顺序。
 
-`css`、recipes、compounds、patterns 和 styled 元数据使用一致的 runtime/CSS 名称，`cx` 保持拼接语义。CSS 生成标记必须保留。
+显式 `removeNegationPseudoClass`、`selectorReplacement.cascadeLayers`、`cascadeLayersPluginOptions` 会选择 legacy 模式。接入 ordered 时移除旧选项，使用 `cascadeLayers: { mode: 'ordered' }`，两者混用会报配置错误。
 
-插件内部仍通过受控 AST 转换生成 artifacts；不修改上游 Panda、不维护 fork，也不在生成之后补丁覆盖文件。
+Layer 转换提供顺序兼容，不是完整原生 cascade 等价。权重告警与单 root 边界详见 [CSS 兼容](/zh/guides/css-compatibility/)，layer 模式选择不会引入另一套 class 编码格式。
+
+## Web/H5 与构建隔离
+
+Web/H5 保留两个插件并使用 `target: 'web'`，保留原生 layer/selector，同时共享 portable class 命名，无需 runtime rollback。
+
+Taro 示例使用 `styled-system/weapp` 与 `styled-system/h5`，输出位于 `dist/<平台>`；Uni-app 使用 `styled-system/mp-weixin` 与 `styled-system/h5`，最终目录还区分 dev/build。平台先于 codegen 设置，`styled-system` 解析到对应目标，两个写入进程不能共用生成目录。
+
+Uni-app Tailwind 对比示例分开维护 Panda/Tailwind 流程，新 portable 编码不能替代 Tailwind 的 runtime 命名。环境、alias、watch 与缓存处理详见[多目标构建](/zh/guides/build-targets/)。
+
+## 兼容边界与完成条件
+
+| 能力 | 边界 |
+| --- | --- |
+| Panda 生成 | 仅 **2.1.2**，覆盖 codegen 与 PostCSS 自动生成 |
+| 生成 runtime 扩展名 | `.js` / `.mjs`，拒绝 TS-only、未知或不完整结构 |
+| Portable 生成范围 | `css`、`cva`、`sva`、命名/slot recipes、compounds、patterns 与 styled 元数据 |
+| Runtime 行为 | `cx` 保持拼接，原始样式对象与元数据保留 Panda 语义 |
+| 业务 JS | 框架负责为目标 runtime 打包与转译 |
+| 源码原始 class 内联 | 绕过生成 runtime 的流程不支持 |
+| 包消费 | ESM/CJS 公共入口及对应声明 |
+| CSS 再次处理 | 保留 portable 生成标记 |
+
+确认干净构建、第二次 codegen、recipe/slot 状态切换及最终 token 声明。需要时在真实 IDE/设备验证，源码覆盖率和产物匹配不能证明像素布局。某阶段失败时，按[故障排查](/zh/troubleshooting/)定位，不要保留新旧混合产物。

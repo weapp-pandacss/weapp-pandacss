@@ -1,58 +1,61 @@
 ---
-title: 公共 API
-description: Panda、PostCSS 与浏览器 runtime 的稳定包入口。
+title: API 大全
+description: 适配器全部公共函数与参数，以及页面开发中常用的 Panda API。
 sidebar:
   order: 6
 ---
 
+按执行位置选择 API：构建阶段配置适配器，样式代码使用 Panda 生成函数，页面中的手写 class 使用 runtime 编码。
+
+## 适配器 API
+
+| 参考 | 函数与配置 | 执行位置 |
+| --- | --- | --- |
+| [Panda 插件](/zh/api/panda-plugin/) | `weappPanda()` 与生成生命周期 | Panda 配置 |
+| [PostCSS 插件](/zh/api/postcss-plugin/) | `postcssPlugin()` 与全部 `IPostcssPluginOptions` 字段 | CSS 构建 |
+| [Runtime 编码](/zh/api/runtime/) | `encodeClassName()`、`encodeClassList()`、`createPortableRuntime()` | 页面或生成的 runtime |
+
+## Panda 生成 API
+
+这些函数属于 **Panda CSS 2.1.2**，从项目生成的 `styled-system` 目录导入，不是 `weapp-pandacss` 的包导出。
+
+| 参考 | API | 用途 |
+| --- | --- | --- |
+| [css 与 cx](/zh/api/styling/) | `css()`、`css.raw()`、`cx()` | 原子样式、样式组合与 class 列表 |
+| [Recipes](/zh/api/recipes/) | `cva()`、`sva()`、named/slot recipes 与变体辅助函数 | 组件变体及多个部件 |
+| [Tokens、patterns 与 styled](/zh/api/tokens-patterns/) | `token()`、`token.var()`、patterns、`styled` | 主题值、布局辅助函数与 React Web 组件 |
+
 ## 包入口
 
-所有入口都提供 ESM、CommonJS 和对应 TypeScript 声明。
+所有 JavaScript 入口都提供 ESM、CommonJS 和对应 TypeScript 声明。`IPostcssPluginOptions` 是类型导出。
 
 | 入口 | 导出 |
 | --- | --- |
 | `weapp-pandacss` | `weappPanda`、`postcssPlugin`、`encodeClassName`、`encodeClassList`、`IPostcssPluginOptions` |
 | `weapp-pandacss/panda` | `weappPanda` |
-| `weapp-pandacss/postcss` | 默认 PostCSS 插件 |
+| `weapp-pandacss/postcss` | 默认导出的 `postcssPlugin` 工厂 |
 | `@weapp-pandacss/runtime` | `encodeClassName`、`encodeClassList`、`createPortableRuntime` |
-| `weapp-pandacss/runtime` | 同上，兼容入口 |
+| `weapp-pandacss/runtime` | 同上三个 runtime 导出，兼容入口 |
+| 两个包各自的 `/package.json` | 包元数据 |
 
-## Panda 插件
+页面代码使用 `@weapp-pandacss/runtime`，它不依赖 Panda、PostCSS、Babel 或 Node。主适配器包属于构建工具；独立 runtime 也适合单独发布的组件库。
 
-~~~ts
+```ts
 import { weappPanda } from 'weapp-pandacss/panda'
-
-const plugin = weappPanda()
-~~~
-
-无需参数，返回 Panda 的 `PandaPlugin`。插件校验安装的 Panda 版本，并适配命名配置与 artifacts；详见 [Panda 配置](/zh/panda/)。
-
-## PostCSS 插件
-
-~~~ts
 import postcssPlugin from 'weapp-pandacss/postcss'
 import type { IPostcssPluginOptions } from 'weapp-pandacss'
+import { encodeClassName } from '@weapp-pandacss/runtime'
 
+const panda = weappPanda()
 const options: IPostcssPluginOptions = { target: 'weapp' }
-const plugin = postcssPlugin(options)
-~~~
+const postcss = postcssPlugin(options)
+const authored = encodeClassName('custom/active')
+```
 
-CommonJS 使用：
+主包根入口不导出 `createPortableRuntime`，内部辅助函数也不是公共 API。v1 文件补丁 API、adapter 配置加载器、内部路径 wildcard 与两个 CLI 已删除，替代方式见[迁移指南](/zh/migration/)。
 
-~~~js
-const postcssPlugin = require('weapp-pandacss/postcss')
-const plugin = postcssPlugin({ target: 'weapp' })
-~~~
+## 使用生成 API 前
 
-CJS PostCSS 入口支持直接 `require()`。完整参数见 [PostCSS 配置](/zh/postcss/)。
+注册 `weappPanda()` 和 PostCSS adapter，执行 `panda codegen`，并导入生成的全局 CSS。runtime 与 CSS 必须来自相同配置。接入步骤见 [Panda 配置](/zh/panda/)和 [PostCSS 配置](/zh/postcss/)。
 
-## Runtime 编码
-
-~~~ts
-encodeClassName(value: string): string
-encodeClassList(value: string): string
-~~~
-
-页面代码优先使用独立的 `@weapp-pandacss/runtime`，安装时不会引入 Panda、PostCSS 或 Babel。旧 `/runtime` 入口保持兼容。`createPortableRuntime()` 返回两个编码函数，供生成期嵌入自包含实现。仅对原始手写名称编码一次；详见 [runtime 与命名](/zh/runtime/)。
-
-v1 文件补丁 API、adapter 配置加载器、内部路径 wildcard 与两个 CLI 已删除，对应替代方案见[迁移指南](/zh/migration/)。
+Panda 输出已经编码，只有原始手写名称需要编码一次。适配器调整命名及 CSS 产物，不会在运行时生成 CSS、让任意动态样式可被提取，或补齐目标平台缺失的 CSS 能力。生成 class 没有对应样式时，按[排障指南](/zh/troubleshooting/)检查。

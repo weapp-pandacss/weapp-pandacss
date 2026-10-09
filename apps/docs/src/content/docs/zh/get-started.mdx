@@ -1,21 +1,27 @@
 ---
 title: 安装与快速开始
-description: 注册两个插件，生成第一份可跨平台使用的样式。
+description: 注册两个插件，生成配套 runtime 与 CSS，再渲染第一份样式。
 sidebar:
   order: 1
 ---
 
-## 安装依赖
+## 环境要求
 
-Node 22 使用 22.18+，Node 24 使用 24.11+，也支持 Node 26+。Panda 与两个 preset 固定为已验收的 **2.1.2**。
+适配器声明的 Node.js 范围为 `^22.18.0 || >=24.11.0`。仓库 CI 验证 Node 22 与 24，建议使用满足该范围的受支持版本。Panda 与两个 preset 必须使用已验收的 **2.1.2**；适配器会检查实际安装的 Panda 版本，其他版本会报错。
 
 ~~~sh
 pnpm add -D @pandacss/dev@2.1.2 @pandacss/preset-base@2.1.2 @pandacss/preset-panda@2.1.2 weapp-pandacss@^2 postcss
 ~~~
 
-Panda 2 的 preset 需要显式安装并注册。
+Panda 2 需要显式安装并注册 preset。仅当业务代码需要编码手写 class 时，再安装独立 runtime：
 
-## 注册 Panda 插件
+~~~sh
+pnpm add @weapp-pandacss/runtime
+~~~
+
+应用入口和 bundler 配置按[框架接入指南](/zh/frameworks/)选择。下面先建立各框架共用的 Panda/PostCSS 配套关系。
+
+## 1. 注册 Panda 插件
 
 ~~~ts
 // panda.config.ts
@@ -24,8 +30,10 @@ import { weappPanda } from 'weapp-pandacss/panda'
 
 export default defineConfig({
   plugins: [weappPanda()],
+  polyfill: false,
   presets: ['@pandacss/preset-base', '@pandacss/preset-panda'],
   include: ['./src/**/*.{js,jsx,ts,tsx,vue}'],
+  exclude: [],
   preflight: false,
   outdir: 'styled-system',
   outExtension: 'mjs',
@@ -33,7 +41,11 @@ export default defineConfig({
 })
 ~~~
 
-## 注册 PostCSS
+扫描实际编写样式的源码，Vue 项目需要包含 `.vue`，生成目录应排除在外。`polyfill: false` 让适配器读取原始 layer 顺序；Panda 的 layer polyfill 会提前移除默认 ordered 转换需要的信息。
+
+插件在 `codegen:prepare` 中适配 runtime artifacts，再由 Panda 写入。无需运行适配 CLI 或修改生成的 helper。hash、prefix 与生命周期详见 [Panda 配置](/zh/panda/)。
+
+## 2. 注册 PostCSS
 
 ~~~js
 // postcss.config.cjs
@@ -45,31 +57,54 @@ module.exports = {
 }
 ~~~
 
-在应用的全局 CSS 中加入：
+Panda 位于适配器之前。Web/H5 把 adapter 的 target 改成 `web`，保留两个插件，让 runtime 与 selector 使用同一编码。按需使用的 rem/rpx 转换位于适配器之后，需要单独安装依赖，详见[单位与组件样式](/zh/guides/component-styles/)。
+
+## 3. 加载应用样式
+
+在应用入口实际导入的全局 CSS 中加入：
 
 ~~~css
+/* src/app.css，或框架对应的全局样式文件 */
 @layer reset, base, tokens, recipes, utilities;
 ~~~
 
-从框架应用入口导入这份 CSS，并将 `styled-system/` 加入 `.gitignore`。
+Panda PostCSS 插件把这个入口展开为生成样式；写在未被导入的文件里不会加载到应用。需要共享 Panda 样式的组件应检查框架的[样式隔离设置](/zh/guides/component-styles/#组件样式隔离)。
 
-## 生成与构建
+将 `styled-system/` 加入 `.gitignore`。多目标项目应忽略整个生成目录及其平台子目录。
+
+## 4. 生成并使用 class
 
 ~~~sh
 pnpm exec panda codegen
 ~~~
 
-在框架开发或构建命令之前执行 codegen，无需单独的 weapp 适配 CLI。
+在框架开发或构建命令之前执行 codegen。Weapp Vite + Wevu 项目全新安装后先运行 `wv prepare`，让 Panda 能读取 solution TypeScript 配置。
 
 ~~~ts
-import { css } from './styled-system/css'
+import { css } from './styled-system/css/index.mjs'
 
-const className = css({
+const cardClass = css({
   color: 'red.500',
-  padding: '2.5',
+  padding: '0.5rem',
+  borderRadius: '0.5rem',
 })
 ~~~
 
-按源码位置调整相对路径，或在 **TypeScript 和 bundler** 中同时配置 `styled-system` 别名。不要再次编码 `css()` 的返回值。
+按源码位置调整相对路径，或者在 **TypeScript 和 bundler** 中同时配置 `styled-system` 别名。逻辑导入必须指向 Panda 正在写入的生成目录。
 
-Web/H5 使用 PostCSS `target: 'web'`。单位转换按需安装，位于适配器之后；参考 [PostCSS 配置](/zh/postcss/)和[框架示例](/zh/frameworks/)。
+React 把 `cardClass` 绑定到 `className`，Vue/Wevu 绑定到 `:class`。原生 WXML 需要先把 class 字符串放到页面或组件 data，再绑定到 `class`。框架负责打包并将生成的 JavaScript 转译到目标运行时。`css()` 已返回适配后的名称，不要再次编码。
+
+## 5. 验证完整构建
+
+构建应用后核对最终 CSS/WXSS 与节点的 class。codegen 成功只表示 runtime 已生成，不能证明应用已导入 CSS 或选对目标。
+
+| 检查项 | 预期结果 |
+| --- | --- |
+| Panda 配置 | 注册 `weappPanda()`，固定 preset，设置 `polyfill: false` |
+| CSS 处理 | Panda → adapter → 按需单位转换 |
+| 应用入口 | 导入全局 layer 样式 |
+| Runtime 导入 | 指向当前目标的生成目录 |
+| 小程序产物 | class 与 WXSS selector 匹配，不残留原始 `@layer` |
+| Web/H5 产物 | 编码 class 匹配，保留原生 layer 与选择器 |
+
+接下来阅读[类名处理](/zh/guides/class-names/)、[动态样式](/zh/guides/dynamic-styles/)与[多目标构建](/zh/guides/build-targets/)。有 class 却没有样式时，按[排查步骤](/zh/troubleshooting/#有-class但样式未生效)定位。

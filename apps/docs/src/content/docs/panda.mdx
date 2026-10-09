@@ -7,6 +7,8 @@ sidebar:
 
 ## Configuration
 
+The adapter requires `@pandacss/dev` **2.1.2** and Node.js **22.18 or newer in the 22.x line, or 24.11 and newer**. Node.js 23 and earlier 24.x releases are outside the package's engine range.
+
 ~~~ts
 // panda.config.ts
 import { defineConfig } from '@pandacss/dev'
@@ -14,6 +16,7 @@ import { weappPanda } from 'weapp-pandacss/panda'
 
 export default defineConfig({
   plugins: [weappPanda()],
+  polyfill: false,
   presets: ['@pandacss/preset-base', '@pandacss/preset-panda'],
   include: ['./src/**/*.{js,jsx,ts,tsx,vue}'],
   preflight: false,
@@ -24,6 +27,10 @@ export default defineConfig({
 ~~~
 
 Scan all source formats you use. Vue SFC projects need `.vue` in `include`. Keep generated files outside the source scan.
+
+Keep `polyfill: false` so the PostCSS adapter receives original cascade layers. `weappPanda()` does not set this option for you. `preflight: false` is a useful starting point for mini-programs; add a platform-appropriate reset when needed.
+
+See the [Panda plugin API](/api/panda-plugin/) for the complete lifecycle, configuration changes and generation diagnostics.
 
 ## Generation lifecycle
 

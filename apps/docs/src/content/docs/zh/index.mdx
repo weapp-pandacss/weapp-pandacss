@@ -1,34 +1,74 @@
 ---
-title: weapp-pandacss
-description: 在小程序与 Web 中使用 Panda CSS，保持 class 命名一致。
+title: 在小程序中使用 Panda CSS
+description: 用 TypeScript 写样式，让微信小程序与 Web 中的 class 和 CSS 保持一致。
 sidebar:
+  label: 概览
   order: 0
 ---
 
-在 Taro、Uni-app 和 Weapp Vite 项目中使用 Panda CSS **2.1.2**。**2.0** 同时适配 Panda 生成的 runtime 和 CSS，让包含特殊字符的 class 在页面与样式中保持一致。
+**weapp-pandacss** 将 Panda CSS **2.1.2** 接入小程序构建。你可以在 Taro、Uni-app 和 Weapp Vite 中使用样式函数、recipes 与 tokens，并在 Web/H5 中沿用相同的 class 命名。
 
-## 开始使用
+## 从你的项目开始
 
-按照[安装指南](/zh/get-started/)接入 [Panda 插件](/zh/panda/)和 [PostCSS 适配器](/zh/postcss/)，在框架构建前执行 Panda codegen。
-
-适配器使用 Panda 已有的插件接口，在生成期通过受控 AST 转换处理 artifacts，由 Panda 写入文件。PostCSS 只处理 CSS，不修改 JavaScript。
-
-## 兼容范围
-
-| 范围 | 验收基线 |
+| 你要做什么 | 阅读入口 |
 | --- | --- |
-| Panda CSS 和两个 preset | 2.1.2 |
-| 生成 runtime | JavaScript `.js` 或 `.mjs` |
-| 包导入 | ESM 和 CommonJS |
-| 构建目标 | 小程序与 Web/H5 |
-| Node.js | Node 22 使用 22.18+，Node 24 使用 24.11+，或 26+ |
+| 安装两个生成期插件 | [快速开始](/zh/get-started/) |
+| 配置框架的构建流程 | [框架接入指南](/zh/frameworks/) |
+| 处理动态值、组件和多目标构建 | [使用场景](/zh/guides/) |
+| 查找函数或配置参数 | [API 参考](/zh/api/) |
+| 排查样式缺失和构建错误 | [排错指南](/zh/troubleshooting/) |
 
-参考[五种框架示例](/zh/frameworks/)与[公共 API](/zh/api/)。已有项目请先阅读 [2.0 迁移指南](/zh/migration/)。
+## 从样式到 WXSS
 
-## 浏览器与机器可读文档
+Panda 插件适配生成的 JavaScript，PostCSS 插件适配对应样式。两侧使用相同的 class 编码规则。
 
-核心文档域名为 [panda.weapp.dev](https://panda.weapp.dev/)。英文位于 `/`，中文位于 `/zh/`；语言切换会保留当前页面。
+### 1. 编写样式
 
-每页提供 Markdown 链接。AI 工具可以使用 [llms.txt](/llms.txt)、[中文索引](/zh/llms.txt)或[完整文档](/llms-full.txt)。
+~~~ts
+import { css } from '../styled-system/css'
+
+export const badgeClass = css({ color: '#0f766e' })
+~~~
+
+### 2. Panda 生成兼容的 class
+
+~~~text
+Panda class:       c_#0f766e
+Mini-program/Web:  c__wp_23_0f766e
+~~~
+
+在 Taro React 中把 `badgeClass` 赋给 `className`，在 Vue/Wevu 中赋给 `:class`。返回值已经完成编码，可以直接使用。
+
+### 3. PostCSS 输出对应选择器
+
+~~~css
+.c__wp_23_0f766e {
+  color: #0f766e;
+}
+~~~
+
+这里的 class 与声明会通过真实 Panda codegen 和 CSS 提取核对。完整样式还包含 Panda 的其他配置层和适配器处理标记。
+
+## 选择构建目标
+
+| 项目 | 小程序 | Web/H5 |
+| --- | --- | --- |
+| Panda 生成插件 | `weappPanda()` | `weappPanda()` |
+| PostCSS target | `'weapp'`（默认） | `'web'` |
+| class 命名 | 共用兼容编码 | 共用兼容编码 |
+| Cascade layers | 为 WXSS 编译层顺序 | 保留原生 layers |
+| 选择器兼容 | 执行有限的平台转换 | 保留原生选择器 |
+
+Panda 中设置 `polyfill: false`，让适配器收到原始 layers。[PostCSS 行为说明](/zh/postcss/)介绍冲突与选择器限制。适配器处理命名和部分 CSS 转换，仍需核对目标平台的 CSS 支持情况。
+
+## 兼容范围与迁移
+
+适配器要求 Panda **2.1.2**，并使用 JavaScript runtime 产物（`.js` 或 `.mjs`）。包入口提供 ESM、CommonJS 和 TypeScript 声明。应用代码可以使用无依赖的[独立 runtime](/zh/api/runtime/)。
+
+[框架兼容矩阵](/zh/frameworks/)区分构建产物、浏览器交互和小程序运行时的验证范围。已有 v1 项目请按照 [2.0 迁移指南](/zh/migration/)升级。
+
+## 阅读、搜索与 AI 工具
+
+使用顶部搜索或 **⌘ / Ctrl K** 查找 API 和问题。每页提供 Markdown 与 MDX 导出；工具可以从 [llms.txt](/llms.txt)、[中文索引](/zh/llms.txt)或[完整文档](/llms-full.txt)开始。
 
 [源码与问题反馈](https://github.com/weapp-pandacss/weapp-pandacss) · [Panda CSS 文档](https://panda-css.com/docs) · [English](/)

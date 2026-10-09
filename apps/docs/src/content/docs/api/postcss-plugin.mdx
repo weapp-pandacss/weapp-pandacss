@@ -1,0 +1,173 @@
+---
+title: PostCSS plugin
+description: Complete options, defaults, target behavior, legacy compatibility and layer diagnostics.
+sidebar:
+  order: 2
+---
+
+## postcssPlugin(options)
+
+```ts
+import postcssPlugin from 'weapp-pandacss/postcss'
+import type { IPostcssPluginOptions } from 'weapp-pandacss'
+
+const plugin = postcssPlugin({ target: 'weapp' })
+```
+
+The factory accepts an optional `IPostcssPluginOptions` object and returns a PostCSS plugin. The root package exposes the same factory as `postcssPlugin`. Both `postcssPlugin()` and `postcssPlugin({})` use the defaults below.
+
+```ts
+declare function postcssPlugin(options?: IPostcssPluginOptions): import('postcss').Plugin
+```
+
+```js
+const postcssPlugin = require('weapp-pandacss/postcss')
+const plugin = postcssPlugin({ target: 'weapp' })
+```
+
+In a PostCSS configuration, put Panda before the adapter and unit conversion after it. Inline imports and expand CSS nesting before the adapter when using ordered layers. See the [configuration guide](/postcss/) for the pipeline.
+
+## Complete options
+
+All fields are optional. Nested objects inherit omitted defaults; replacement arrays replace the default array rather than appending to it.
+
+| Field | Type | Default | Effect |
+| --- | --- | --- | --- |
+| `target` | `'weapp' \| 'web'` | `'weapp'` | Selects platform CSS behavior; class names match in both targets |
+| `disabled` | `boolean` | `false` | Skips all adapter transformations, including naming and markers |
+| `cascadeLayers.mode` | `'ordered' \| 'legacy'` | `'ordered'` unless legacy options are passed | Chooses mini-program layer compilation |
+| `cascadeLayers.onConflict` | `'warning' \| 'error'` | `'warning'` | Severity of ordered-layer compatibility diagnostics |
+| `selectorReplacement.root` | `string \| string[]` | `'page'` | Replaces `:root` and `:host` in mini-program CSS |
+| `selectorReplacement.universal` | `string \| string[]` | `['view', 'text']` | Expands `*` in mini-program CSS |
+| `selectorReplacement.cascadeLayers` | `string` | `'n'` | Legacy replacement tag when negation placeholders are retained |
+| `removeNegationPseudoClass` | `boolean` | `true` | Legacy removal of generated `:not(#\#)` placeholders |
+| `cascadeLayersPluginOptions` | Object; fields below | `{}` | Options passed to the legacy csstools layer plugin |
+| `isPseudoClassPluginOptions` | Object; fields below | `{}` | Options passed to csstools `:is()` transformation in mini-program mode |
+
+Use arrays for multiple root or universal replacement tags:
+
+```ts
+const options: IPostcssPluginOptions = {
+  selectorReplacement: {
+    root: ['page', 'body'],
+    universal: ['view', 'text', 'button'],
+  },
+}
+```
+
+Choose replacements for components your platform uses. This transforms selector syntax; it does not establish native component styling permissions or style isolation.
+
+## csstools options
+
+### cascadeLayersPluginOptions
+
+Applies only to `mode: 'legacy'`. The adapter defaults to `{}`; the installed `@csstools/postcss-cascade-layers` supplies the following defaults.
+
+| Field | Type | Upstream default | Meaning |
+| --- | --- | --- | --- |
+| `onRevertLayerKeyword` | `'warn' \| false` | `'warn'` | Warns about `revert-layer` handling |
+| `onConditionalRulesChangingLayerOrder` | `'warn' \| false` | `'warn'` | Warns when conditional rules can change layer order |
+| `onImportLayerRule` | `'warn' \| false` | `'warn'` | Warns about layer-qualified imports |
+
+These switches configure legacy warnings; they do not make unsupported input equivalent to native layers. Ordered mode uses its own diagnostics and hard errors instead.
+
+### isPseudoClassPluginOptions
+
+Applies to mini-program mode in either layer pipeline. Web keeps `:is()` unchanged.
+
+| Field | Type | Upstream default | Meaning |
+| --- | --- | --- | --- |
+| `preserve` | `boolean` | `false` | Keeps the original notation alongside transformed output when enabled |
+| `onComplexSelector` | `'warning'` | Unset | Enables warnings for complex selectors inside `:is()` |
+| `onPseudoElement` | `'warning'` | Unset | Enables warnings for pseudo-elements inside `:is()` |
+| `specificityMatchingName` | `string` | `'does-not-exist'` | Selector name used for specificity adjustment |
+
+The spelling is `'warn'` for legacy layer switches and `'warning'` for the `:is()` switches. These option types follow the installed csstools plugins; they are not separately exported by `weapp-pandacss`.
+
+## Target behavior
+
+| Transformation | `weapp` | `web` |
+| --- | --- | --- |
+| Portable class selector encoding | Yes | Yes |
+| Portable CSS marker | Yes | Yes |
+| ASCII CSS variable validation | Yes | No |
+| `:root` / `:host` / `*` replacement | Yes | No |
+| `:where()` expansion and `:is()` processing | Yes | No |
+| Layer flattening | Ordered or legacy | Native layers retained |
+
+Mini-program `:where()` is expanded into ordinary selectors, so its native zero-specificity semantics are not retained. The selector transformer also changes `~` to `+` when the preceding selector node is not a class: `* ~ *` and `.peer:hover ~ .target` are examples. A plain `.peer ~ .target` retains `~`. Test peer and state selectors on the actual target; syntax adaptation is not a full Web selector polyfill.
+
+When `disabled: true`, the CSS is left untouched. Encoded runtime names can then fail to match raw selectors. Use it only when that stylesheet does not need adaptation or another pipeline owns matching names.
+
+## Ordered and legacy selection
+
+Ordered is the default. It compiles layer source order without creating specificity placeholders. Explicitly supplying any of these fields selects legacy when no mode is specified:
+
+- `removeNegationPseudoClass`, including `true`.
+- `selectorReplacement.cascadeLayers`, including `'n'`.
+- `cascadeLayersPluginOptions`, including `{}`.
+
+```ts
+postcssPlugin({ cascadeLayers: { mode: 'ordered', onConflict: 'error' } })
+
+postcssPlugin({
+  cascadeLayers: { mode: 'legacy' },
+  removeNegationPseudoClass: false,
+  selectorReplacement: { cascadeLayers: 'n' },
+})
+```
+
+In legacy mode, `removeNegationPseudoClass: true` deletes generated `:not(#\#)` placeholders; false replaces their inner selector with the configured tag, yielding `:not(n)` by default. Ordinary authored `:not(...)` is preserved.
+
+Explicit `mode: 'ordered'` combined with any legacy field is a configuration error. This check runs when the factory resolves options, before `disabled` or Web processing can skip transformations. Remove the old fields or select legacy. `cascadeLayers.onConflict` applies to ordered mode only.
+
+## Layer order and diagnostics
+
+Ordered compilation registers layers in first-declaration order. Normal declarations follow that order, then unlayered rules. Important declarations use reversed layer order, with unlayered important declarations first. Nested, dotted, anonymous and repeated layers are supported; source order within a layer is retained.
+
+WXSS selector specificity still takes precedence over this output order. The compiler reports potential differences conservatively; a warning does not prove selectors match the same element.
+
+| Code | Trigger | Handling |
+| --- | --- | --- |
+| `WP_LAYER_SPECIFICITY` | A lower-priority layer has a more specific selector for potentially overlapping properties | Simplify or align specificity, then inspect the matching rules |
+| `WP_LAYER_CONDITIONAL_ORDER` | A layer is first registered inside a condition | Declare the full named layer order outside conditions first |
+| `WP_LAYER_SELECTOR_UNKNOWN` | A functional selector cannot be reliably analyzed | Review the selector and target support; use analyzable selectors where possible |
+
+Set `onConflict: 'error'` to fail on these diagnostics. With the default warning mode, programmatic consumers can inspect source positions and messages:
+
+```ts
+import postcss from 'postcss'
+import postcssPlugin from 'weapp-pandacss/postcss'
+
+const result = await postcss([postcssPlugin()]).process(sourceCss, {
+  from: 'src/app.css',
+  to: 'dist/app.wxss',
+})
+
+for (const warning of result.warnings()) {
+  console.warn(warning.toString())
+}
+```
+
+## Inputs that fail ordered compilation
+
+These errors fail even when `onConflict` is `'warning'`.
+
+| Input | Required action |
+| --- | --- |
+| Unresolved `@import ... layer(...)` or `@import ... layer` | Inline the import before the adapter |
+| Nested style rules, `&`, or layer blocks inside style rules | Expand nesting before the adapter |
+| `revert-layer` values | Replace with an explicit value; use native layers on Web where appropriate |
+| Already polyfilled `:not(#\#)` selectors | Keep Panda `polyfill: false` and regenerate original layers, or explicitly select legacy |
+| Invalid layer names, anonymous layer statements without a block, or multiple names on a layer block | Correct the layer declaration |
+| Layer blocks inside descriptor at-rules, stray declarations, or import/namespace inside layers or conditions | Correct the CSS structure |
+
+Some validation, including nesting and `revert-layer`, runs even if the input has no `@layer` block. Quoted text such as `content: "revert-layer"` is not treated as the keyword.
+
+## Naming, variables and repeated processing
+
+The adapter encodes class selectors using the same contract as the [runtime](/api/runtime/). Keep authored selectors raw with normal CSS escaping. A top-level `/*! weapp-pandacss:portable-v1 */` comment persists the naming marker across parse/serialize passes. Reprocessing marked output does not encode it again; do not strip that marker before another adapter pass.
+
+Mini-program custom property declarations, `var()` references and `@property` names must match ASCII `--[A-Za-z0-9_-]+`. Invalid identifiers throw `Unsupported mini-program CSS variable`. This also checks nested `var()` fallbacks and marked Web CSS subsequently processed for a mini-program. Text inside quoted strings and URLs is not a variable reference. The adapter does not rename custom properties; Panda's `hash.cssVar` handles generated tokens.
+
+Layer ordering is local to one PostCSS root. Independent stylesheets, component styles and processor calls do not share a layer registry. Combine inputs before adaptation when their relative layer order matters, then configure component style isolation separately.

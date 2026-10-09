@@ -1,0 +1,136 @@
+---
+title: CSS compatibility
+description: Understand ordered layers, selector expansion, specificity limits and actionable diagnostics.
+sidebar:
+  order: 5
+---
+
+## What the target changes
+
+Both targets encode class names. `target: 'web'` then retains native CSS layers and selectors. The default `weapp` target also performs platform selector conversion and layer-order compilation.
+
+This adapts a stylesheet's syntax and order. It does not add a CSS engine, make every property available in WXSS or guarantee identical behavior across mini-program renderers and base libraries.
+
+## Normal layer order
+
+Keep `polyfill: false` in Panda configuration so the adapter receives original layers. By default, `cascadeLayers.mode` is `ordered`. The compiler registers layers at their first declaration and emits rules in layer order even if their blocks appear in a different order.
+
+~~~css
+.probe { color: green; }
+@layer base, utilities;
+@layer utilities { .probe { color: blue; } }
+@layer base { .probe { color: red; } }
+~~~
+
+For this equal-specificity case, the output rule order is:
+
+~~~css
+/* Naming marker omitted from this excerpt. */
+.probe { color: red; }
+.probe { color: blue; }
+.probe { color: green; }
+~~~
+
+The unlayered normal declaration is emitted last. Named, repeated, dotted, nested and anonymous layers are handled; same-layer source order is preserved.
+
+## Important declarations reverse the order
+
+For important declarations, earlier layers have higher priority and unlayered important declarations have lower priority:
+
+~~~css
+@layer base, utilities;
+@layer base { .probe { color: red !important; } }
+@layer utilities { .probe { color: blue !important; } }
+.probe { color: green !important; }
+~~~
+
+The emitted important-rule order is green → blue → red, so red wins in this equal-specificity case. Rules with both normal and important declarations may be split to preserve the two different orders.
+
+| Declaration kind | Emission order, lower priority first |
+| --- | --- |
+| Normal | earlier layer → later layer → unlayered |
+| Important | unlayered → later layer → earlier layer |
+
+The repository tests cover these orders and the nested layer rules. Browser tests compare safe fixtures against native layers. The Wevu example also includes two interactive layer probes.
+
+## Specificity is a compatibility boundary
+
+Ordered compilation is **order compatibility**, not a complete native layer polyfill. WXSS still resolves ordinary selector specificity after layers have been removed.
+
+~~~css
+@layer base, utilities;
+@layer base { #card .probe { color: red; } }
+@layer utilities { .probe { color: blue; } }
+~~~
+
+Native layers let the higher-priority utilities layer win. After flattening, `#card .probe` can win on specificity despite appearing first. The adapter emits `WP_LAYER_SPECIFICITY`; the browser regression deliberately preserves and checks this difference.
+
+Prefer comparable class-selector specificity across layers. Refactor the high-specificity rule or its component styling interface rather than adding a specificity placeholder. Use strict diagnostics where a potential difference should block a build:
+
+~~~js
+// postcss.config.cjs
+module.exports = {
+  plugins: {
+    '@pandacss/dev/postcss': {},
+    'weapp-pandacss/postcss': {
+      cascadeLayers: { mode: 'ordered', onConflict: 'error' },
+    },
+  },
+}
+~~~
+
+The default `onConflict: 'warning'` reports risks through PostCSS warnings with layer, selector, property and source location. A warning is conservative; it does not prove both selectors match the same element. Shorthand, logical properties and unknown selector functions need conservative analysis.
+
+## Conditional layers and one-root ordering
+
+Declare the complete layer order outside conditions before using it inside `@media` or `@supports`:
+
+~~~css
+@layer base, utilities;
+@layer base { .probe { color: red; } }
+@media (min-width: 700px) {
+  @layer utilities { .probe { color: blue; } }
+}
+~~~
+
+The compiler keeps conditional wrappers. A first conditional declaration may produce `WP_LAYER_CONDITIONAL_ORDER` because registration can differ from native CSS.
+
+Sorting covers **one PostCSS root**. Separately compiled files and isolated component styles do not share a global layer registry. If rules need one cross-file order, combine their input before the adapter. Import and nesting expansion must run earlier. Loading several independently flattened files later does not reconstruct the lost layer information.
+
+## Selector differences
+
+These default transformations are covered by selector tests:
+
+| Source selector | Mini-program output |
+| --- | --- |
+| `:root` or `:host` | `page` |
+| `*` | `view,text` |
+| `.container * > text` | `.container view>text,.container text>text` |
+| `.container :where(.a, .b) > text` | `.container .a>text,.container .b>text` |
+| `* ~ *` | `view+view,view+text,text+view,text+text` |
+| `.a:not(.disabled)` | Handwritten negation retained |
+
+`:where()` expansion no longer has native zero specificity. Universal replacement only includes the configured tags, by default `view` and `text`. The `~` conversion shown above changes general siblings to adjacent siblings; it is not a general sibling polyfill. `:is()` is handled by the csstools plugin with `isPseudoClassPluginOptions`.
+
+Use native tags and selectors that your renderer supports. A retained pseudo-class does not establish native interaction support: Web hover is tested in the React example; mini-program touch states should follow the component/framework's supported state mechanism. Root and universal replacement can be configured through [PostCSS options](/postcss/).
+
+## Diagnostic fixes
+
+| Diagnostic or rejected input | Fix |
+| --- | --- |
+| `WP_LAYER_SPECIFICITY` | Make cross-layer specificity comparable; verify the actual cascade, or fail with `onConflict: 'error'` |
+| `WP_LAYER_CONDITIONAL_ORDER` | Declare named layer order before conditions; avoid relying on condition-dependent registration |
+| `WP_LAYER_SELECTOR_UNKNOWN` | Replace the unknown function with supported selectors or explicitly inspect the affected cascade |
+| Generated `:not(#\#)` placeholders | Disable Panda polyfill and regenerate from original layers |
+| `@import ... layer(...)` | Inline the import before ordered compilation |
+| CSS nesting / `&` selectors | Expand nesting in an earlier stage |
+| `revert-layer` | Rewrite the rule explicitly; layer rollback cannot be reproduced after flattening |
+| Invalid/unsupported layer structure | Correct the reported source location instead of suppressing the error |
+
+Malformed selectors and invalid mini-program variable names also throw errors. Variable declarations, `var()` references and `@property` names must use ASCII identifiers or generated Panda tokens.
+
+## Explicit legacy mode
+
+Old options such as `removeNegationPseudoClass`, `selectorReplacement.cascadeLayers` and `cascadeLayersPluginOptions` select the legacy path when explicitly supplied, even if the value equals an old default. You can also choose `cascadeLayers: { mode: 'legacy' }`.
+
+Do not combine these options with an explicit `mode: 'ordered'`: that is a configuration error. Legacy does not guarantee native layer semantics either. Web always retains native layers. See the [migration guide](/migration/) before carrying old configuration forward.

@@ -1,0 +1,127 @@
+---
+title: 动态样式
+description: 有限状态用 recipes，任意动态值用变量，提取不到的有限值用 staticCss 预生成。
+sidebar:
+  order: 2
+---
+
+## 根据值的来源选择方式
+
+Panda 在构建期提取样式。Runtime 可以计算 class 字符串，但不会在接口返回新值时自动插入 CSS，适配器保持这个边界。
+
+| 输入 | 处理方式 |
+| --- | --- |
+| 构建期可见的字面量样式或 token | `css({ color: 'red.500' })` |
+| neutral/accent 等有限组件状态 | `cva()`、`sva()` 或已提取变体的配置 recipe |
+| 运行时数据选择的有限集合 | 明确配置 `staticCss` 值或配置 recipe 的变体生成 |
+| 任意颜色、宽度、进度值 | 静态 CSS 变量引用，运行时通过 style 赋值 |
+
+## 有限变体
+
+Wevu 示例静态定义两种按钮样式，再切换选择的变体：
+
+~~~ts
+import { computed, ref } from 'wevu'
+import { cva } from '../../styled-system/css/index.mjs'
+
+const active = ref(false)
+const button = cva({
+  base: { padding: '0.5rem 1rem', borderRadius: '0.5rem', fontWeight: 'semibold' },
+  variants: {
+    tone: {
+      neutral: { bg: 'slate.200', color: 'slate.900' },
+      accent: { bg: 'sky.600', color: 'white' },
+    },
+  },
+  defaultVariants: { tone: 'neutral' },
+})
+const buttonClass = computed(() => button({ tone: active.value ? 'accent' : 'neutral' }))
+~~~
+
+把 `buttonClass` 绑定到按钮的 `:class`，在 `tap` 中更新 `active`。Wevu 响应式 API 从 `wevu` 导入；React、Vue 项目使用各自的状态 API，recipe 约定相同。`cva()` 定义让 Panda 生成有限的原子变体，runtime 负责选择 class。
+
+`theme.recipes` 中的命名 recipe 有不同的提取规则：仅来自运行时的参数可能无法揭示需要生成的变体。让提取器看到字面量调用，或者配置命名 recipe 的 `staticCss`。仓库 `e2eButton` 示例明确选择 `accent` 与 `neutral` 两个字面量。
+
+## Slot 与复合状态
+
+一个状态影响多个元素时，使用 `sva()`，每个 slot 返回独立的 class 字符串：
+
+~~~ts
+import { sva } from '../../styled-system/css/index.mjs'
+
+const card = sva({
+  slots: ['root', 'label'],
+  base: {
+    root: { backgroundColor: '#f1f5f9' },
+    label: { color: '#475569' },
+  },
+  variants: {
+    active: {
+      true: {
+        root: { backgroundColor: '#e0f2fe' },
+        label: { color: '#0284c7' },
+      },
+    },
+  },
+})
+const slots = card({ active: true })
+~~~
+
+容器绑定 `slots.root`，文字绑定 `slots.label`，不要把整个对象当成一个 class。`compoundVariants` 在指定变体组合命中时增加样式，不能让任意运行时值自动变得可提取。
+
+[Wevu 验收页](https://github.com/weapp-pandacss/weapp-pandacss/blob/main/examples/weapp-vite-app/src/pages/acceptance/index.vue)覆盖原子与命名 compounds、内联与命名 slots、重复切换及最终 selector 匹配。浏览器测试也验证 React 生产示例的 recipe/slot 交互；这些结果不能推导出每个框架都具有同等交互覆盖。
+
+## CSS 变量承载动态值
+
+让 CSS 表达式保持静态，通过元素 style 更新自定义属性的值：
+
+~~~ts
+import { css } from '../../styled-system/css/index.mjs'
+
+const runtimeColor = '#0f766e' // 例如来自业务数据并已校验的值
+const swatchClass = css({ color: 'var(--runtime-color)' })
+const swatchStyle = '--runtime-color:' + runtimeColor
+~~~
+
+~~~html
+<!-- Vue/Wevu：先把对应值暴露给模板。 -->
+<view :class="swatchClass" :style="swatchStyle">动态颜色</view>
+~~~
+
+原生 WXML 从页面或组件 data 读取相同字符串，绑定到 `class` 与 `style`；React 通过 `style` 对象设置该属性。使用框架对应的 style 绑定 API，并核对目标小程序渲染器、基础库的 CSS 变量支持。
+
+`--runtime-color` 是 ASCII 标识符，符合 adapter 的小程序变量检查。字面量 `var(--runtime-color)` 只需提取一次，修改属性值不需要新增 class。运行时拼接的内联 `rem` 不经过 PostCSS 的 rem/rpx 插件，需要直接提供预期单位。
+
+Panda `token()` 可以在运行时获取配置的 token 值，`token.var()` 返回 CSS 变量引用。适配器启用 Panda 原生变量 hash，不要自行拼接或重命名 hash 后的变量。
+
+## 预生成有限集合
+
+运行时数据只会选择有限的原子值时，将这个集合加入现有 Panda 配置：
+
+~~~ts
+// 加入“安装与快速开始”中的 defineConfig 对象。
+staticCss: {
+  css: [
+    { properties: { color: ['red.500', 'blue.500'] } },
+  ],
+},
+~~~
+
+运行时分支就可以选择这两个已生成的值。已配置名为 `button`、具有 `size` 变体的 recipe 时，Panda 提供以下写法：
+
+~~~ts
+// button recipe 需要已声明在 theme 中。
+staticCss: {
+  recipes: {
+    button: [{ size: ['sm', 'md'] }],
+  },
+},
+~~~
+
+仅列出实际使用的值；所有值、条件和断点的组合可能显著增加 CSS 体积。这些是 Panda 配置片段，不是 adapter 参数，修改后需要重新生成。详见 Panda [动态样式](https://panda-css.com/docs/styling/dynamic-styling)、[静态 CSS](https://panda-css.com/docs/styling/static)与[动态变体](https://panda-css.com/docs/recipes/dynamic-variants)指南。
+
+## 验证提取与切换
+
+检查初始状态、每个变体以及页面重新加载后的状态。核对最终 class 与对应 CSS/WXSS 规则；使用动态变量时，同时检查静态规则与元素当前的自定义属性值。
+
+Runtime 返回 class 却找不到 selector 时，先核对 `include`、生成目录别名与 `staticCss`，再考虑编码。[故障排查](/zh/troubleshooting/#动态值没有对应规则)介绍了具体定位步骤。

@@ -1,37 +1,106 @@
 ---
 title: Migrating to 2.0
-description: Regenerate runtime and CSS together when upgrading from the legacy adapter.
+description: Replace file patches and rollback scripts with Panda's generation plugin, then regenerate runtime and CSS together.
 sidebar:
   order: 7
 ---
 
-Version 2.0 is a breaking change. Class encoding and default variable naming changed, so old runtime or page output cannot be mixed with new CSS.
+Version 2.0 changes class encoding and default variable naming. Old runtime, page artifacts and newly generated CSS must not be mixed. The migration replaces generated-file patching with a Panda plugin; it is more than changing an import.
 
-## Upgrade steps
+## Upgrade sequence
 
-1. Stop build/watch processes. Remove your project's old generated `styled-system` directory, including helper backups and weapp-panda patch files. Do not restore legacy runtime with rollback before installing the plugin.
-2. Pin Panda and both presets to **2.1.2**. Register `weappPanda()` in Panda configuration. Use `.js` or `.mjs`; `.mjs` with explicit import extensions is recommended.
-3. Replace `panda codegen && weapp-panda codegen` with `panda codegen`. Remove adapter `execFileSync`, `codegen:done` hooks and platform rollback scripts.
-4. Use Panda → PostCSS adapter → optional rem/rpx. Web/H5 uses `target: 'web'`; mini-programs use `weapp`. Move CSS options directly into the PostCSS plugin.
-5. Replace generated escape-module imports with `encodeClassName` or `encodeClassList` from `weapp-pandacss/runtime`, only for authored raw names.
-6. Regenerate runtime and CSS, rebuild applications and clear stale framework caches. Parallel targets need separate generated directories and matching aliases.
+1. Stop the project's build/watch processes that write the generated directory. Remove its old `styled-system` output, including helper backups and weapp-panda patch files.
+2. Pin `@pandacss/dev`, `@pandacss/preset-base` and `@pandacss/preset-panda` to **2.1.2**. Register `weappPanda()`, set `polyfill: false`, and use supported `.js` or `.mjs` runtime output.
+3. Replace `panda codegen && weapp-panda codegen` with `panda codegen`. Remove adapter subprocesses, `codegen:done` patch hooks and platform rollback scripts.
+4. Register Panda → PostCSS adapter → optional rem/rpx conversion. Move CSS options from the old adapter configuration file into the PostCSS plugin's arguments.
+5. Update authored-class helpers to `@weapp-pandacss/runtime`. Encode raw authored names once, leaving `css()`, recipe, pattern and `cx()` results intact.
+6. Align target environment, generated/output directories and aliases, then regenerate runtime and CSS together. Clear only the affected framework target's stale cache and rebuild.
+7. Inspect final classes, selectors, token references and actual interactions on each target you support.
 
-## Removed interfaces
+Do not restore the legacy runtime with rollback and then apply the new plugin. The plugin returns transformed artifacts to Panda before writing; it does not need helper backups or post-generation file edits.
+
+## Panda configuration
+
+~~~ts
+// panda.config.ts
+import { defineConfig } from '@pandacss/dev'
+import { weappPanda } from 'weapp-pandacss/panda'
+
+export default defineConfig({
+  plugins: [weappPanda()],
+  polyfill: false,
+  presets: ['@pandacss/preset-base', '@pandacss/preset-panda'],
+  include: ['./src/**/*.{js,jsx,ts,tsx,vue}'],
+  preflight: false,
+  outdir: 'styled-system',
+  outExtension: 'mjs',
+  forceImportExtension: true,
+})
+~~~
+
+The full application also needs the PostCSS configuration and imported global stylesheet from [installation](/get-started/). Keep source imports consistent with the generated extension and directory.
+
+## Replace manual class helpers
+
+~~~ts
+// Replace an old styled-system/weapp-panda/index.mjs import.
+import { encodeClassList, encodeClassName } from '@weapp-pandacss/runtime'
+
+const activeClass = encodeClassName('custom/active')
+const labels = encodeClassList('a.b 中文')
+~~~
+
+The old public `weapp-pandacss/runtime` entry remains a compatible facade over the standalone implementation. It is different from the removed internal generated helper path. Install the standalone package as an application dependency when using it in application code.
+
+| Raw input | New output |
+| --- | --- |
+| `a.b` | `a_wp_2e_b` |
+| `a_wp_2e_b` | `a_wp_5f_wp_2e_b` |
+| `1card` | `_wp_31_card` |
+| `中文` | `_wp_4e2d__wp_6587_` |
+
+Do not migrate by replacing an old escaped string with a guessed new one throughout generated files. Regenerate and let the codec operate on the original names. See [class names](/guides/class-names/).
+
+## Removed v1 interfaces
 
 | v1 interface | v2 replacement |
 | --- | --- |
-| `createContext`, `inject`, `patch`, runtime file APIs | `weappPanda()` |
+| `createContext`, `inject`, `patch` and runtime file-operation APIs | `weappPanda()` in Panda configuration |
 | Adapter `defineConfig` and configuration loaders | Panda's `defineConfig`; direct PostCSS options |
-| `weapp-panda` / `weapp-pandacss` CLI | `panda codegen` |
-| `escapePredicate`, PostCSS `naming`, old encoding | Portable encoding and full regeneration |
-| Wildcard internal imports | Public root or `/panda`, `/postcss`, `/runtime` |
+| `UserConfig`, `ICreateContextOptions` and legacy configuration types | Panda configuration types and `IPostcssPluginOptions` |
+| `weapp-panda` / `weapp-pandacss` CLI, codegen/init/rollback commands | Panda's codegen and normal framework scripts |
+| `escapePredicate`, PostCSS `naming` and legacy encoding | Portable encoding and full paired regeneration |
+| Wildcard internal path imports | Public root, `/panda`, `/postcss`, `/runtime` or standalone runtime |
 
-There are no deprecated compatibility stubs. See the [public API](/api/).
+The removed interfaces have no deprecated placeholder implementation. Public signatures and import forms are listed in the [API reference](/api/).
 
-## Compatibility boundary
+## Layers and old PostCSS options
 
-Panda **2.1.2** codegen and PostCSS regeneration are verified, with `.js` / `.mjs` runtime. TS-only output, other Panda versions and raw-class source inlining are not supported.
+The default ordered path needs original `@layer` information. Keep Panda `polyfill: false` and rebuild from source. It does not reconstruct layer order from old `:not(#\#)` specificity placeholders.
 
-`css`, recipes, compounds, patterns and styled metadata use consistent runtime and CSS names. `cx` retains joining semantics. CSS generation markers must remain intact.
+Explicit `removeNegationPseudoClass`, `selectorReplacement.cascadeLayers` or `cascadeLayersPluginOptions` selects legacy mode. To adopt ordered mode, remove those legacy options and use `cascadeLayers: { mode: 'ordered' }`. Mixing them is a configuration error.
 
-The plugin still uses controlled AST transforms of generated artifacts. It does not modify upstream Panda, maintain a fork or patch files after generation.
+Layer conversion is order compatibility, not full native cascade equivalence. Review specificity warnings and the single-root boundary in [CSS compatibility](/guides/css-compatibility/). This layer-mode choice does not introduce another class-encoding format.
+
+## Web/H5 and build isolation
+
+Web/H5 keeps both plugins and uses `target: 'web'`. It retains native layers/selectors with the same portable class naming, so there is no runtime rollback step.
+
+Taro examples use `styled-system/weapp` and `styled-system/h5` with output under `dist/<platform>`. Uni-app examples use `styled-system/mp-weixin` and `styled-system/h5`; final directories differ for dev/build. Set the platform before codegen and resolve `styled-system` to the matching target. Never let two writers share one generated directory.
+
+The Uni-app Tailwind comparison uses separate Panda and Tailwind pipelines; the new portable codec is not a replacement for Tailwind's own runtime naming. See [build targets](/guides/build-targets/) for environment, aliases, watch and cache handling.
+
+## Compatibility and completion
+
+| Capability | Boundary |
+| --- | --- |
+| Panda generation | Exactly **2.1.2**, codegen and PostCSS automatic generation |
+| Generated runtime extension | `.js` / `.mjs`; TS-only and unknown/incomplete structures are rejected |
+| Portable producer coverage | `css`, `cva`, `sva`, named/slot recipes, compounds, patterns and styled metadata |
+| Runtime behavior | `cx` remains joining; raw style objects and metadata retain Panda semantics |
+| Application JS | Framework must bundle/transpile for the selected runtime |
+| Source-level raw-class inlining | Unsupported when it bypasses the generated runtime |
+| Package consumption | ESM/CJS public entries and corresponding declarations |
+| CSS reprocessing | Keep the portable generation marker |
+
+Confirm a clean build, a second codegen, recipe/slot state changes and the final token declarations. Validate the real IDE/device where required; source coverage and artifact matching alone do not prove pixel layout. If a stage fails, follow [troubleshooting](/troubleshooting/) rather than retaining mixed old/new output.

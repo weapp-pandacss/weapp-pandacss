@@ -1,0 +1,170 @@
+---
+title: Uni-app Vue
+description: 为 Uni-app 配置 Panda CSS，隔离小程序与 H5 目录，并处理可选的 Tailwind 共存。
+sidebar:
+  order: 4
+---
+
+[参考示例](https://github.com/weapp-pandacss/weapp-pandacss/tree/main/examples/uni-app-vue3)使用 DCloud **3.0.0-5020620260917001** 依赖组、**Vue 3.4.21** 和 **Vite 5.2.8**。DCloud 包应保持同一兼容版本组；接入 adapter 无需单独升级 Vite 或 Vue。
+
+## 在已有 Uni-app 项目安装
+
+adapter 声明 Node `^22.18.0 || >=24.11.0`，推荐 Node 22.18+ 或 24.11+ 的 LTS 版本，在应用目录执行：
+
+~~~sh
+pnpm add -D @pandacss/dev@2.1.2 @pandacss/preset-base@2.1.2 @pandacss/preset-panda@2.1.2 weapp-pandacss@^2 postcss postcss-rem-to-responsive-pixel
+~~~
+
+以下配置适用于 **只使用 Panda 的样式流程**。仓库示例还对比了 Tailwind v4，将这份简化 Vite 配置复制到该示例前，先阅读共存说明。
+
+## 配置 Panda Vue 提取
+
+~~~ts
+// panda.config.ts
+import process from 'node:process'
+import { defineConfig } from '@pandacss/dev'
+import { weappPanda } from 'weapp-pandacss/panda'
+
+export default defineConfig({
+  plugins: [weappPanda()],
+  polyfill: false,
+  presets: ['@pandacss/preset-base', '@pandacss/preset-panda'],
+  preflight: false,
+  include: ['./src/**/*.{js,jsx,ts,tsx,vue}'],
+  jsxFramework: 'vue',
+  outdir: `styled-system/${process.env.UNI_PLATFORM || 'mp-weixin'}`,
+  importMap: 'styled-system',
+  outExtension: 'mjs',
+  forceImportExtension: true,
+})
+~~~
+
+保留 `.vue` 扫描与 `jsxFramework: 'vue'`。`importMap` 让 Panda 识别统一逻辑导入路径，同时按目标生成到不同目录。
+
+## Vite 与 PostCSS
+
+合并到已有 Uni-app Vite 配置：
+
+~~~ts
+// vite.config.ts — 仅使用 Panda 的流程
+import path from 'node:path'
+import process from 'node:process'
+import { fileURLToPath } from 'node:url'
+import uni from '@dcloudio/vite-plugin-uni'
+import panda from '@pandacss/dev/postcss'
+import remToResponsivePixel from 'postcss-rem-to-responsive-pixel'
+import { defineConfig } from 'vite'
+import adapter from 'weapp-pandacss/postcss'
+
+const root = fileURLToPath(new URL('.', import.meta.url))
+const platform = process.env.UNI_PLATFORM || 'mp-weixin'
+const web = platform === 'h5'
+
+export default defineConfig({
+  plugins: [uni()],
+  resolve: {
+    alias: {
+      'styled-system': path.resolve(root, 'styled-system', platform),
+    },
+  },
+  css: {
+    postcss: {
+      plugins: [
+        panda({ cwd: root }),
+        adapter({ target: web ? 'web' : 'weapp' }),
+        remToResponsivePixel({
+          rootValue: 32,
+          propList: ['*'],
+          transformUnit: web ? 'px' : 'rpx',
+        }),
+      ],
+    },
+  },
+})
+~~~
+
+Panda 先生成 CSS，adapter 随后转换，可选单位转换最后执行。`rootValue: 32` 是示例设计选择，不是平台要求。Vite 使用内联 PostCSS 插件时，将完整流程放在这里，避免必需阶段分散在互相竞争的配置中。
+
+在原 tsconfig 添加默认微信路径，不替换其他设置：
+
+~~~json
+{
+  "compilerOptions": {
+    "moduleResolution": "bundler",
+    "paths": { "styled-system/*": ["./styled-system/mp-weixin/*"] }
+  },
+  "include": ["src/**/*.ts", "src/**/*.vue", "src/**/*.d.ts", "styled-system"]
+}
+~~~
+
+检查 H5 类型时可以使用独立 tsconfig，指向 `styled-system/h5/*`。
+
+## 导入全局入口
+
+~~~css
+/* src/panda.css */
+@layer reset, base, tokens, recipes, utilities;
+~~~
+
+在 `src/main.ts` 原有 `createSSRApp` 入口旁加入：
+
+~~~ts
+import './panda.css'
+~~~
+
+在 SFC script 中使用生成 runtime：
+
+~~~vue
+<script setup lang="ts">
+import { css } from 'styled-system/css/index.mjs'
+
+const panelClass = css({ padding: '4', bg: 'blue.800', color: 'white' })
+</script>
+
+<template>
+  <view :class="panelClass">Panda CSS + Uni-app</view>
+</template>
+~~~
+
+`cva()` 与 `sva()` 使用相同生成命名规则。响应式变体用 Vue `computed` 更新；全局样式无法进入原生组件时检查样式隔离。
+
+## 在 codegen 前选择目标
+
+将[公共构建脚本](/zh/frameworks/#在-codegen-前选择目标)保存为 `scripts/run-platform.mjs`，再添加：
+
+~~~json
+{
+  "scripts": {
+    "build:mp-weixin": "node scripts/run-platform.mjs uni mp-weixin build -p mp-weixin",
+    "dev:mp-weixin": "node scripts/run-platform.mjs uni mp-weixin -p mp-weixin",
+    "build:h5": "node scripts/run-platform.mjs uni h5 build",
+    "dev:h5": "node scripts/run-platform.mjs uni h5"
+  }
+}
+~~~
+
+脚本为 codegen 和 Uni 设置相同 `UNI_PLATFORM`。微信 runtime 生成到 `styled-system/mp-weixin`，H5 生成到 `styled-system/h5`。Uni 生产输出为 `dist/build/mp-weixin` 或 `dist/build/h5`，开发输出位于 `dist/dev/` 下。
+
+## 与 Tailwind v4 共存
+
+仓库的对比示例需要额外处理样式入口。应同时复制[完整 Vite 配置](https://github.com/weapp-pandacss/weapp-pandacss/blob/main/examples/uni-app-vue3/vite.config.ts)、[panda-postcss.cjs](https://github.com/weapp-pandacss/weapp-pandacss/blob/main/examples/uni-app-vue3/panda-postcss.cjs)和[应用入口](https://github.com/weapp-pandacss/weapp-pandacss/blob/main/examples/uni-app-vue3/src/main.ts)：
+
+- `src/tailwind.css` 归 Tailwind 生成器和命名 runtime 管理。
+- `src/panda.css` 先通过 `virtual:panda-styles.css` 由 Panda 展开，避免 Tailwind Vite 插件丢弃只有 layer 顺序的输入。
+- adapter 包装器跳过 Tailwind 入口，适配 Panda/手写样式，并转发 PostCSS 诊断。
+- `main.ts` 同时导入 Tailwind 入口与 Panda 虚拟入口；直接换成上面的简化配置会改变流程。
+
+对 Tailwind 产物使用 Panda 编码会破坏它与 runtime 的匹配。独立入口也不共享跨文件 cascade-layer 注册表；需要相对层顺序时，应先合并 layer 输入，再执行适配。
+
+## 验证示例
+
+在仓库根目录执行：
+
+~~~sh
+pnpm exec turbo run build --filter=weapp-pandacss
+pnpm --filter @weapp-pandacss/uni-app-vue3 build
+pnpm --filter @weapp-pandacss/uni-app-vue3 build:h5
+pnpm --filter @weapp-pandacss/uni-app-vue3 typecheck
+~~~
+
+将 `dist/build/mp-weixin` 导入微信开发者工具。仓库产物检查覆盖部分微信/H5 输出，可选 IDE 探针检查部分渲染样式。已有 App、SSR 和其他小程序脚本不能证明 adapter 已验收。忽略 `dist/`、`styled-system/`。

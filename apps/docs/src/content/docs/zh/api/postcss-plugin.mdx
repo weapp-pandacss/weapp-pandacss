@@ -1,0 +1,173 @@
+---
+title: PostCSS 插件
+description: 全部参数、默认值、目标行为、legacy 兼容与 layer 诊断。
+sidebar:
+  order: 2
+---
+
+## postcssPlugin(options)
+
+```ts
+import postcssPlugin from 'weapp-pandacss/postcss'
+import type { IPostcssPluginOptions } from 'weapp-pandacss'
+
+const plugin = postcssPlugin({ target: 'weapp' })
+```
+
+工厂接受可选的 `IPostcssPluginOptions` 对象，返回 PostCSS 插件。主包根入口以 `postcssPlugin` 导出相同工厂。`postcssPlugin()` 与 `postcssPlugin({})` 都使用下列默认值。
+
+```ts
+declare function postcssPlugin(options?: IPostcssPluginOptions): import('postcss').Plugin
+```
+
+```js
+const postcssPlugin = require('weapp-pandacss/postcss')
+const plugin = postcssPlugin({ target: 'weapp' })
+```
+
+PostCSS 配置中，Panda 放在 adapter 前面，单位转换放在后面。使用 ordered layer 时，导入展开和 CSS nesting 转换必须在 adapter 前完成。流水线见[配置指南](/zh/postcss/)。
+
+## 完整参数
+
+所有字段可选。嵌套对象继承未填写字段的默认值；替换数组会覆盖默认数组，而非追加元素。
+
+| 字段 | 类型 | 默认值 | 作用 |
+| --- | --- | --- | --- |
+| `target` | `'weapp' \| 'web'` | `'weapp'` | 选择平台 CSS 行为，两种目标的 class 名称一致 |
+| `disabled` | `boolean` | `false` | 跳过全部转换，包括命名与标记 |
+| `cascadeLayers.mode` | `'ordered' \| 'legacy'` | `'ordered'`，传入旧参数时可变为 legacy | 选择小程序 layer 编译方式 |
+| `cascadeLayers.onConflict` | `'warning' \| 'error'` | `'warning'` | ordered layer 兼容诊断的严重级别 |
+| `selectorReplacement.root` | `string \| string[]` | `'page'` | 替换小程序 CSS 的 `:root` 与 `:host` |
+| `selectorReplacement.universal` | `string \| string[]` | `['view', 'text']` | 展开小程序 CSS 的 `*` |
+| `selectorReplacement.cascadeLayers` | `string` | `'n'` | legacy 保留否定占位时使用的替换标签 |
+| `removeNegationPseudoClass` | `boolean` | `true` | legacy 删除生成的 `:not(#\#)` 占位 |
+| `cascadeLayersPluginOptions` | 对象，字段见下文 | `{}` | 透传给 legacy csstools layer 插件 |
+| `isPseudoClassPluginOptions` | 对象，字段见下文 | `{}` | 小程序模式透传给 csstools `:is()` 转换 |
+
+需要多个 root 或通配替换标签时使用数组：
+
+```ts
+const options: IPostcssPluginOptions = {
+  selectorReplacement: {
+    root: ['page', 'body'],
+    universal: ['view', 'text', 'button'],
+  },
+}
+```
+
+按目标平台实际使用的组件选择替换标签。这只转换 selector 语法，不会设置原生组件的样式权限或 style isolation。
+
+## csstools 参数
+
+### cascadeLayersPluginOptions
+
+仅用于 `mode: 'legacy'`。适配器默认传 `{}`，安装的 `@csstools/postcss-cascade-layers` 提供下列默认值。
+
+| 字段 | 类型 | 上游默认值 | 含义 |
+| --- | --- | --- | --- |
+| `onRevertLayerKeyword` | `'warn' \| false` | `'warn'` | 对 `revert-layer` 处理发出警告 |
+| `onConditionalRulesChangingLayerOrder` | `'warn' \| false` | `'warn'` | 条件规则可能改变 layer 顺序时警告 |
+| `onImportLayerRule` | `'warn' \| false` | `'warn'` | 对带 layer 的导入发出警告 |
+
+这些开关控制 legacy 警告，不会让不受支持的输入等同于原生 layer。Ordered 模式使用自身的诊断与硬错误。
+
+### isPseudoClassPluginOptions
+
+小程序的两种 layer 模式均适用；Web 保留原始 `:is()`。
+
+| 字段 | 类型 | 上游默认值 | 含义 |
+| --- | --- | --- | --- |
+| `preserve` | `boolean` | `false` | 启用时同时保留原始写法与转换产物 |
+| `onComplexSelector` | `'warning'` | 未设置 | 对 `:is()` 内复杂 selector 启用警告 |
+| `onPseudoElement` | `'warning'` | 未设置 | 对 `:is()` 内伪元素启用警告 |
+| `specificityMatchingName` | `string` | `'does-not-exist'` | 调整 specificity 时使用的 selector 名称 |
+
+Legacy layer 开关使用 `'warn'`，`:is()` 开关使用 `'warning'`。这些类型来自安装的 csstools 插件，不由 `weapp-pandacss` 单独导出。
+
+## 目标行为
+
+| 转换 | `weapp` | `web` |
+| --- | --- | --- |
+| Portable class selector 编码 | 是 | 是 |
+| Portable CSS 标记 | 是 | 是 |
+| ASCII CSS 变量校验 | 是 | 否 |
+| `:root` / `:host` / `*` 替换 | 是 | 否 |
+| `:where()` 展开与 `:is()` 处理 | 是 | 否 |
+| Layer 展平 | ordered 或 legacy | 保留原生 layer |
+
+小程序的 `:where()` 展开为普通 selector，因此不保留其原生零权重语义。前一个 selector node 不是 class 时，转换器还会把 `~` 改成 `+`，例如 `* ~ *` 和 `.peer:hover ~ .target`；单纯 `.peer ~ .target` 保留 `~`。Peer 与状态 selector 应在真实目标上验证，语法适配不等于完整 Web selector polyfill。
+
+`disabled: true` 时不改变 CSS，已编码的 runtime 名称可能无法匹配原始 selector。仅用于无需适配的样式，或已有其他流程负责配套命名的情况。
+
+## Ordered 与 legacy 选择
+
+默认 ordered，按层顺序编译且不制造 specificity 占位。未指定模式时，显式传入任意下列字段会选择 legacy：
+
+- `removeNegationPseudoClass`，包括 `true`。
+- `selectorReplacement.cascadeLayers`，包括 `'n'`。
+- `cascadeLayersPluginOptions`，包括 `{}`。
+
+```ts
+postcssPlugin({ cascadeLayers: { mode: 'ordered', onConflict: 'error' } })
+
+postcssPlugin({
+  cascadeLayers: { mode: 'legacy' },
+  removeNegationPseudoClass: false,
+  selectorReplacement: { cascadeLayers: 'n' },
+})
+```
+
+Legacy 中，`removeNegationPseudoClass: true` 删除生成的 `:not(#\#)`；false 时将其内部 selector 替换为配置标签，默认得到 `:not(n)`。业务手写的 `:not(...)` 保留。
+
+显式 `mode: 'ordered'` 与任意旧字段混用会报配置错误。工厂解析参数时就执行此检查，发生在 `disabled` 或 Web 跳过转换之前。删除旧字段或选择 legacy。`cascadeLayers.onConflict` 仅用于 ordered 模式。
+
+## Layer 顺序与诊断
+
+Ordered 按首次声明注册 layer。普通声明按层顺序输出，未分层规则在后；重要声明按层逆序输出，未分层重要声明在前。支持嵌套、点分路径、匿名与重复 layer，保留同层源码顺序。
+
+WXSS selector 权重仍优先于输出顺序。编译器保守地报告潜在差异，警告不代表 selector 一定命中同一元素。
+
+| 代码 | 触发情况 | 处理 |
+| --- | --- | --- |
+| `WP_LAYER_SPECIFICITY` | 低优先层有更高权重的 selector，属性可能重叠 | 简化或统一权重，检查实际匹配规则 |
+| `WP_LAYER_CONDITIONAL_ORDER` | 在条件内首次注册 layer | 先在条件外声明完整的命名 layer 顺序 |
+| `WP_LAYER_SELECTOR_UNKNOWN` | 函数 selector 无法可靠分析 | 检查 selector 与平台支持，尽量使用可分析写法 |
+
+设置 `onConflict: 'error'` 可在这些诊断上阻止构建。默认 warning 模式下，可通过程序读取源码位置与消息：
+
+```ts
+import postcss from 'postcss'
+import postcssPlugin from 'weapp-pandacss/postcss'
+
+const result = await postcss([postcssPlugin()]).process(sourceCss, {
+  from: 'src/app.css',
+  to: 'dist/app.wxss',
+})
+
+for (const warning of result.warnings()) {
+  console.warn(warning.toString())
+}
+```
+
+## Ordered 拒绝的输入
+
+即使 `onConflict` 是 `'warning'`，下列错误也会阻止构建。
+
+| 输入 | 处理方式 |
+| --- | --- |
+| 未展开的 `@import ... layer(...)` 或 `@import ... layer` | 在 adapter 前内联导入 |
+| 嵌套样式规则、`&` 或样式规则内的 layer | 在 adapter 前展开 nesting |
+| `revert-layer` 值 | 换成明确值；适合 Web 时使用原生 layer |
+| 已 polyfill 的 `:not(#\#)` selector | 保持 Panda `polyfill: false` 并重新生成原始 layer，或显式选择 legacy |
+| 非法层名、无 block 的匿名 layer 声明、block 上多个层名 | 修正 layer 声明 |
+| Descriptor at-rule 内的 layer、游离声明，或 layer/条件内的 import、namespace | 修正 CSS 结构 |
+
+部分校验会在没有 `@layer` block 时执行，包括 nesting 和 `revert-layer`。`content: "revert-layer"` 这样的引号文本不会被视为关键字。
+
+## 命名、变量与重复处理
+
+Adapter 使用与 [runtime](/zh/api/runtime/) 相同的编码规则处理 class selector。手写 selector 保留原始名称，使用普通 CSS 转义。顶层 `/*! weapp-pandacss:portable-v1 */` 注释将命名标记保留到解析、序列化之后。重复处理带标记的产物不会再次编码；下一次 adapter 处理前不要删除标记。
+
+小程序 custom property 声明、`var()` 引用和 `@property` 名称必须匹配 ASCII `--[A-Za-z0-9_-]+`。非法标识符抛出 `Unsupported mini-program CSS variable`。嵌套 `var()` fallback、已标记 Web CSS 再转小程序也会校验；引号字符串和 URL 中的文本不算变量引用。Adapter 不重命名变量，生成 token 由 Panda `hash.cssVar` 处理。
+
+层顺序仅覆盖单个 PostCSS root。独立样式、组件样式和不同 processor 调用不共享 layer 注册表。相对层顺序需要跨输入保留时，先合并输入再适配，组件 style isolation 另行配置。

@@ -1,0 +1,144 @@
+---
+title: Taro React
+description: Configure Panda CSS for Taro Webpack, React and independent WeChat/H5 output.
+sidebar:
+  order: 2
+---
+
+The reference [Taro React example](https://github.com/weapp-pandacss/weapp-pandacss/tree/main/examples/taro-app) uses **Taro 4.3.0**, **React 18** and **Webpack 5**. This is the documented baseline; Taro's Vite compiler and React Native need separate validation.
+
+## Install in an existing Taro project
+
+Keep the Taro package family on matching versions. The adapter engine is `^22.18.0 || >=24.11.0`; use a recommended Node 22.18+ or 24.11+ LTS release and run in the application directory:
+
+~~~sh
+pnpm add -D @pandacss/dev@2.1.2 @pandacss/preset-base@2.1.2 @pandacss/preset-panda@2.1.2 weapp-pandacss@^2 postcss postcss-rem-to-responsive-pixel
+~~~
+
+Hand-written special class names additionally need `pnpm add @weapp-pandacss/runtime`. Keep Panda and PostCSS in build dependencies and the standalone encoder in application dependencies.
+
+## Panda configuration
+
+~~~ts
+// panda.config.ts
+import process from 'node:process'
+import { defineConfig } from '@pandacss/dev'
+import { weappPanda } from 'weapp-pandacss/panda'
+
+export default defineConfig({
+  plugins: [weappPanda()],
+  polyfill: false,
+  presets: ['@pandacss/preset-base', '@pandacss/preset-panda'],
+  preflight: process.env.TARO_ENV === 'h5',
+  include: ['./src/**/*.{js,jsx,ts,tsx}'],
+  outdir: `styled-system/${process.env.TARO_ENV || 'weapp'}`,
+  importMap: 'styled-system',
+  outExtension: 'mjs',
+  forceImportExtension: true,
+  jsxFramework: 'react',
+})
+~~~
+
+The logical import stays `styled-system` while generated directories differ per target. Keep generated output outside `include`. `polyfill: false` preserves the layer information needed by the adapter.
+
+## Match the bundler and TypeScript aliases
+
+Merge these fields into your existing `config/index.ts`; preserve the project's other Taro options:
+
+~~~ts
+import path from 'node:path'
+import process from 'node:process'
+
+// Inside the Taro configuration object:
+const platformOptions = {
+  alias: {
+    'styled-system': path.resolve(
+      __dirname, '..', 'styled-system', process.env.TARO_ENV || 'weapp',
+    ),
+  },
+  outputRoot: `dist/${process.env.TARO_ENV || 'weapp'}`,
+  framework: 'react',
+  compiler: { type: 'webpack5' },
+}
+~~~
+
+Add the matching default editor/typecheck path to `tsconfig.json`:
+
+~~~json
+{
+  "compilerOptions": {
+    "moduleResolution": "bundler",
+    "paths": { "styled-system/*": ["./styled-system/weapp/*"] }
+  },
+  "include": ["src", "types", "config", "styled-system"]
+}
+~~~
+
+These fragments extend your existing config; they do not replace its React/compiler settings. For target-specific type checking, use a separate tsconfig pointing to `styled-system/h5/*`. A TypeScript alias alone does not resolve runtime imports.
+
+Taro's mini-program bundler must transpile generated `.mjs`. The source example adds a `/\.[cm]js$/i` rule with `babel-loader` and `type: 'javascript/auto'`. Preserve that rule when copying the full example; the adapter changes class naming, not JavaScript language compatibility.
+
+## PostCSS and global entry
+
+~~~js
+// postcss.config.cjs
+const process = require('node:process')
+
+module.exports = {
+  plugins: {
+    '@pandacss/dev/postcss': {},
+    'weapp-pandacss/postcss': {
+      target: process.env.TARO_ENV === 'h5' ? 'web' : 'weapp',
+    },
+    'postcss-rem-to-responsive-pixel': {
+      rootValue: 32,
+      propList: ['*'],
+      transformUnit: process.env.TARO_ENV === 'h5' ? 'px' : 'rpx',
+    },
+  },
+}
+~~~
+
+Create `src/app.css` with `@layer reset, base, tokens, recipes, utilities;`, then import `./app.css` from `src/app.ts`. The converter is optional; `rootValue: 32` is the example's design choice. Coordinate it with Taro's `designWidth` and `pxtransform` so a size is not converted twice.
+
+## Generate for the selected target
+
+Copy the [target-aware launcher](/frameworks/#target-aware-build-script) to `scripts/run-platform.mjs`, then add:
+
+~~~json
+{
+  "scripts": {
+    "codegen": "panda codegen",
+    "build:weapp": "node scripts/run-platform.mjs taro weapp build --type weapp",
+    "dev:weapp": "node scripts/run-platform.mjs taro weapp build --type weapp --watch",
+    "build:h5": "node scripts/run-platform.mjs taro h5 build --type h5",
+    "dev:h5": "node scripts/run-platform.mjs taro h5 build --type h5 --watch"
+  }
+}
+~~~
+
+Panda runs before Taro with the same `TARO_ENV`. The PostCSS integration also performs regeneration during development. `weapp` outputs go to `styled-system/weapp` and `dist/weapp`; H5 outputs go to `styled-system/h5` and `dist/h5`.
+
+## Use styles
+
+~~~tsx
+import { View } from '@tarojs/components'
+import { css } from 'styled-system/css/index.mjs'
+
+export default function Index() {
+  return <View className={css({ color: 'red.400', padding: '4' })}>Panda</View>
+}
+~~~
+
+Use `styled(View)` for Panda styled components with Taro tags. Do not encode `css()` or recipe output again. When using a separate custom component, ensure its stylesheet isolation allows application styles and its props reach the intended native node.
+
+## Run and verify the example
+
+~~~sh
+pnpm exec turbo run build --filter=weapp-pandacss
+pnpm --filter @weapp-pandacss/taro-app build:weapp
+pnpm --filter @weapp-pandacss/taro-app build:h5
+pnpm --filter @weapp-pandacss/taro-app typecheck
+~~~
+
+Run these from the repository root. Import the WeChat project using its checked-in project configuration, which selects `dist/weapp`. Inspect final class names and WXSS selectors when diagnosing missing styles. Artifact checks and optional IDE rendering probes cover selected styles; they do not promise browser hover/focus behavior or every NutUI interaction on a phone. Ignore generated directories and private IDE settings.

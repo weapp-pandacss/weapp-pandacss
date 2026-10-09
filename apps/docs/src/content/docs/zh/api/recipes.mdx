@@ -1,0 +1,169 @@
+---
+title: Recipes
+description: cva、sva、配置 recipes、compound variants 与变体辅助函数。
+sidebar:
+  order: 5
+---
+
+Recipes 属于 Panda 生成的 runtime，将已知变体选择转换为 portable class，不会在运行时创建任意 CSS。
+
+完整定义与提取模型见 Panda 官方 [recipe 概览](https://panda-css.com/docs/recipes/overview)。本页示例使用 Panda 2.1.2 和 portable adapter。
+
+| API | 定义位置 | 变体调用返回值 |
+| --- | --- | --- |
+| `cva(definition)` | 被扫描的源码文件 | 单个 class 字符串 |
+| `sva(definition)` | 被扫描的源码文件 | Slot class 字符串对象 |
+| Named recipe | `theme.recipes` 或 `theme.extend.recipes` | 单个 class 字符串 |
+| Named slot recipe | `theme.slotRecipes` 或 `theme.extend.slotRecipes` | Slot class 字符串对象 |
+
+## cva(definition)
+
+```ts
+import { cva } from '../styled-system/css/index.mjs'
+
+const button = cva({
+  base: { borderRadius: 'md', fontWeight: 'bold' },
+  variants: {
+    tone: {
+      neutral: { color: 'gray.700' },
+      accent: { color: 'blue.500' },
+    },
+    size: {
+      sm: { padding: '2' },
+      lg: { padding: '4' },
+    },
+  },
+  defaultVariants: { tone: 'neutral', size: 'sm' },
+  compoundVariants: [
+    { tone: 'accent', size: 'lg', css: { fontSize: 'lg' } },
+  ],
+})
+
+const className = button({ tone: 'accent', size: 'lg' })
+```
+
+调用组合 base、选中或默认变体及匹配的 compound variants，返回已经 portable 编码的 class。`button()` 使用默认选择，传入值覆盖对应默认值。
+
+| 定义字段 | 含义 |
+| --- | --- |
+| `base` | 所有选择共用的样式 |
+| `variants` | 变体维度及其已知取值 |
+| `defaultVariants` | 省略对应维度时采用的选择 |
+| `compoundVariants` | 组合条件匹配时追加的样式，放在 `css` 中 |
+
+让定义可被提取器发现。页面状态选择变体，不要在运行时拼接未知 CSS 属性值。
+
+## sva(definition)
+
+组件包含多个独立样式部件时，使用 slots。
+
+```ts
+import { sva } from '../styled-system/css/index.mjs'
+
+const card = sva({
+  className: 'demo/card',
+  slots: ['root', 'label'],
+  base: {
+    root: { padding: '4', borderRadius: 'lg' },
+    label: { fontWeight: 'bold' },
+  },
+  variants: {
+    active: {
+      true: {
+        root: { backgroundColor: 'blue.50' },
+        label: { color: 'blue.700' },
+      },
+    },
+  },
+})
+
+const classes = card({ active: true })
+// Bind classes.root and classes.label to their corresponding elements.
+```
+
+`slots` 声明部件。`base`、每个变体与 compound variant 的 `css` 都以 slot 名称为键。将返回 class 分别绑定到对应部件，不要把整个对象绑定为 class 列表。
+
+可选 `className` 提供稳定 slot 标签。生成 runtime 的 `classNameMap` 与 slot 输出一起适配，让手写 selector 与公开 slot 元数据使用 portable 名称。不要再次编码 slot 输出或元数据。
+
+标记 class 和空 slot 变体可能没有独立 CSS 声明，这是预期行为。实际规则由同一列表中的样式 class 承载，先检查它们，再判断 slot 标签是否存在提取缺失。
+
+## 变体辅助函数
+
+Inline `cva`/`sva` 的生成声明提供以下辅助函数：
+
+| 成员 | 行为 |
+| --- | --- |
+| `.raw(selection)` | 返回解析后的样式对象，`cva` 为一个对象，`sva` 为每个 slot 的对象 |
+| `.variantKeys` | 列出变体维度 |
+| `.variantMap` | 列出各维度支持的取值 |
+| `.splitVariantProps(props)` | 返回 `[variantProps, otherProps]` |
+| `.getVariantProps(selection)` | 结合默认变体解析选择 |
+
+```ts
+const rawStyles = button.raw({ tone: 'accent' })
+const keys = button.variantKeys
+const choices = button.variantMap
+const [variants, otherProps] = button.splitVariantProps({
+  tone: 'accent',
+  id: 'save',
+})
+const selection = button.getVariantProps({ tone: 'accent' })
+```
+
+Raw 结果仍是样式对象，不是编码后的 class。变体元数据、memoization 和属性描述符保留 Panda 行为。定义组件 props 时，可从生成的类型目录导入 `RecipeVariantProps` 等类型；具体类型由 recipe 决定。
+
+## Named recipes
+
+在 Panda 配置中声明可复用 recipe，重新生成后导入。
+
+```ts
+// Inside defineConfig(...)
+theme: {
+  extend: {
+    recipes: {
+      button: {
+        className: 'demo-button',
+        base: { fontWeight: 'bold' },
+        variants: {
+          tone: {
+            neutral: { color: 'gray.700' },
+            accent: { color: 'blue.500' },
+          },
+        },
+        defaultVariants: { tone: 'neutral' },
+      },
+    },
+  },
+}
+```
+
+```ts
+import { button } from '../styled-system/recipes/index.mjs'
+
+const className = button({ tone: 'accent' })
+```
+
+Named slot recipe 放在 `slotRecipes` 下，使用上面的 slot 结构，返回 class 对象。选择类型与辅助函数以生成声明为准。配置 recipe 的 `.raw(selection)` 返回变体选择数据，inline `cva`/`sva` 的 `.raw` 则返回解析后的样式对象。
+
+```ts
+// button imported from styled-system/recipes
+button.raw({ tone: 'accent' }) // { tone: 'accent' }
+```
+
+`weappPanda()` 在 Panda 转义前，规范化配置 recipe 标签中的前导数字、连字符或保留 `_wp_` 标记。Compound class 和 slot class 元数据在生成期适配，标签中包含 `/` 或 Unicode 也会处理。
+
+## 组合与提取
+
+```ts
+import { css, cx } from '../styled-system/css/index.mjs'
+import { button } from '../styled-system/recipes/index.mjs'
+
+const className = cx(
+  button({ tone: 'accent' }),
+  css({ marginTop: '2' }),
+)
+```
+
+Class 拼接不会让最后一项自动胜出。视觉变体放在 recipe 内，适合时使用样式对象组合；覆盖样式重叠时检查 layer 权重，见 [PostCSS 诊断](/zh/api/postcss-plugin/#layer-顺序与诊断)。
+
+已知定义与使用需要被 Panda 提取器发现。运行时选择无法被识别时，使用 Panda recipe 的 `staticCss` 或全局 `staticCss` 配置预生成所需组合。配置 recipe 变更后重新生成，并确保已导入对应全局 CSS。

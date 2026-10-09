@@ -1,0 +1,122 @@
+---
+title: css and cx
+description: Atomic styles, raw style objects, composition, class lists and extraction boundaries.
+sidebar:
+  order: 4
+---
+
+`css` and `cx` are Panda-generated APIs. Import them from the configured output directory after `panda codegen`; they are not adapter package exports. The examples use `outdir: 'styled-system'` and `outExtension: 'mjs'`, with the source file in `src/`.
+
+For Panda's complete styling model, see its official [styling overview](https://panda-css.com/docs/styling/overview). This page describes the verified adapter behavior with Panda 2.1.2.
+
+```ts
+import { css, cx } from '../styled-system/css/index.mjs'
+```
+
+The table shows their calling forms. Exact property, token and condition types come from your generated declarations.
+
+| API | Input | Output |
+| --- | --- | --- |
+| `css(...styles)` | One or more Panda style objects | Portable class string |
+| `css.raw(...styles)` | One or more Panda style objects | Style object, before class serialization |
+| `cx(...classes)` | Class strings to join | Combined class string |
+
+## css(...styles)
+
+Use tokens, CSS properties, Panda aliases and configured conditions in statically extractable objects.
+
+```ts
+const title = css({
+  color: 'red.500',
+  fontSize: 'xl',
+  fontWeight: 'bold',
+  padding: '0.5',
+})
+```
+
+Bind `title` directly to your framework's `class` or `className`. The generation plugin has already adapted the returned names; do not pass the result through `encodeClassList`.
+
+Multiple objects compose styles before class generation. Later objects take precedence for overlapping style properties according to Panda's merge rules.
+
+```ts
+const base = css.raw({ color: 'red.500', padding: '0.5' })
+const selected = css(base, { color: 'blue.500' })
+```
+
+This preserves Panda's style merging behavior instead of selecting conflicting CSS classes by their position in a class list.
+
+## css.raw(...styles)
+
+`css.raw` returns a style object for reuse and composition. It does not return a class name and should not be bound to `class`.
+
+```ts
+const surface = css.raw({
+  borderRadius: 'lg',
+  padding: '4',
+  backgroundColor: 'white',
+})
+
+const compactSurface = css(surface, { padding: '2' })
+```
+
+Keep these definitions inside Panda's `include` paths. The raw object still needs extraction and a `css()` call to produce a usable class string.
+
+## cx(...classes)
+
+`cx` combines class strings. It does not re-encode raw names or resolve style-property conflicts. Encode authored names before joining them with generated output.
+
+```ts
+import { encodeClassName } from '@weapp-pandacss/runtime'
+import { css, cx } from '../styled-system/css/index.mjs'
+
+const className = cx(
+  css({ color: 'red.500' }),
+  encodeClassName('custom/active'),
+)
+```
+
+The authored selector stays normally escaped in source CSS and is transformed by the PostCSS adapter:
+
+```css
+.custom\/active { border-width: 1px; }
+```
+
+Use `css(base, override)` to merge style objects. Use `cx(firstClass, secondClass)` to combine independently prepared classes. The resulting CSS cascade still decides which declarations apply.
+
+## Conditions and platform behavior
+
+```ts
+const interactive = css({
+  color: 'red.500',
+  _hover: { color: 'blue.500' },
+})
+```
+
+Panda generates the configured condition. Web keeps its selector semantics; mini-program mode applies the [selector transformations](/api/postcss-plugin/#target-behavior). A condition name does not guarantee that a native component supports its pseudo-class, attribute selector or media query. For touch interactions, choose the framework's state/hover mechanism and test the final WXSS and native component.
+
+## Runtime values and missing CSS
+
+The runtime computes class names; styles are extracted at build time. A valid class string can still have no matching CSS when its value was not extracted.
+
+| Situation | Recommended handling |
+| --- | --- |
+| A small known set of visual states | Define literal branches or [recipe variants](/api/recipes/) |
+| A source file has no generated styles | Add its format and path to Panda `include` |
+| A value arrives from an API at runtime | Use an appropriate native inline style or a supported CSS variable for the value |
+| Required styles are not visible to extraction | Configure Panda `staticCss` to pre-generate the known styles |
+| Class exists but CSS is absent | Inspect extracted CSS, imported global styles and matching target output |
+
+A map of generated literal styles makes known values explicit:
+
+```ts
+const tones = {
+  accent: css({ color: 'blue.500' }),
+  muted: css({ color: 'gray.500' }),
+}
+
+function toneClass(tone: keyof typeof tones) {
+  return tones[tone]
+}
+```
+
+The adapter preserves `css.raw`, object composition and generated classes. It does not provide runtime CSS injection or change Panda's extraction model. Use the [framework guide](/frameworks/) for binding and the [troubleshooting guide](/troubleshooting/) for missing output.

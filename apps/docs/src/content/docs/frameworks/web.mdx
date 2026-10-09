@@ -1,0 +1,147 @@
+---
+title: React Web and H5
+description: Keep Web CSS semantics while sharing Panda's portable runtime and class names.
+sidebar:
+  order: 5
+---
+
+The [React Web example](https://github.com/weapp-pandacss/weapp-pandacss/tree/main/examples/react-app) uses **React 19**, **Vite 8** and Panda CSS **2.1.2**. Web keeps native cascade layers and selector semantics; it still needs both adapter plugins to match portable runtime classes.
+
+## Install
+
+In an existing Vite + React application, using a recommended Node 22.18+ or 24.11+ LTS release (adapter engine: `^22.18.0 || >=24.11.0`):
+
+~~~sh
+pnpm add -D @pandacss/dev@2.1.2 @pandacss/preset-base@2.1.2 @pandacss/preset-panda@2.1.2 weapp-pandacss@^2 postcss
+~~~
+
+Hand-written special classes can use `pnpm add @weapp-pandacss/runtime`. Do not import the build-time Panda or PostCSS package entries into browser components.
+
+## Configure generation
+
+~~~ts
+// panda.config.ts
+import { defineConfig } from '@pandacss/dev'
+import { weappPanda } from 'weapp-pandacss/panda'
+
+export default defineConfig({
+  plugins: [weappPanda()],
+  polyfill: false,
+  presets: ['@pandacss/preset-base', '@pandacss/preset-panda'],
+  preflight: true,
+  include: ['./src/**/*.{js,jsx,ts,tsx}'],
+  outdir: 'styled-system',
+  outExtension: 'mjs',
+  forceImportExtension: true,
+})
+~~~
+
+Add other actual source directories, such as `pages/`, to the scan when used. Keep generated output outside it. Panda owns generation; no weapp adapter CLI or runtime rollback is needed.
+
+## Use the Web PostCSS target
+
+~~~js
+// postcss.config.cjs
+module.exports = {
+  plugins: {
+    '@pandacss/dev/postcss': {},
+    'weapp-pandacss/postcss': { target: 'web' },
+  },
+}
+~~~
+
+`target: 'web'` keeps `:root`, universal selectors, native layers and Web pseudo-selector semantics. The shared class encoding stage remains active. Setting `disabled: true` is different: it disables class encoding too and can make CSS disagree with generated JavaScript.
+
+Create `src/index.css`:
+
+~~~css
+@layer reset, base, tokens, recipes, utilities;
+~~~
+
+Import it from `src/main.tsx` so the build emits the stylesheet:
+
+~~~ts
+import './index.css'
+~~~
+
+## Generate before development and build
+
+For a standalone Vite + TypeScript project, integrate with its existing scripts:
+
+~~~json
+{
+  "scripts": {
+    "codegen": "panda codegen",
+    "dev": "pnpm codegen && vite",
+    "build": "pnpm codegen && tsc && vite build",
+    "preview": "vite preview"
+  }
+}
+~~~
+
+Keep your project's original TypeScript build command if it uses `tsc -b` or another checker. The repository example's `dev` script starts Vite directly, so run its `codegen` script first on a clean checkout.
+
+## Import the runtime
+
+~~~tsx
+// src/App.tsx
+import { css } from '../styled-system/css/index.mjs'
+
+export default function App() {
+  return (
+    <main className={css({ color: 'sky.600', padding: '4' })}>
+      Panda CSS on the Web
+    </main>
+  )
+}
+~~~
+
+Relative imports work without aliases. If you prefer `styled-system/css/index.mjs`, configure both Vite and TypeScript:
+
+~~~ts
+// Merge into vite.config.ts
+import { fileURLToPath } from 'node:url'
+
+const aliasOptions = {
+  resolve: {
+    alias: {
+      'styled-system': fileURLToPath(new URL('./styled-system', import.meta.url)),
+    },
+  },
+}
+~~~
+
+~~~json
+{
+  "compilerOptions": {
+    "moduleResolution": "bundler",
+    "paths": { "styled-system/*": ["./styled-system/*"] }
+  },
+  "include": ["src", "styled-system"]
+}
+~~~
+
+Use `cx()` to join generated classes and authored encoded classes; do not encode Panda outputs again. Browser hover/focus and media queries retain Web semantics, but cannot be used as evidence that the same conditions work in a mini-program.
+
+## H5 alongside mini-programs
+
+For Taro H5, follow [Taro React](/frameworks/taro-react/) or [Taro Vue](/frameworks/taro-vue/). For Uni-app H5, follow [Uni-app](/frameworks/uni-app/). Those guides select `target: 'web'` from the platform environment and isolate `styled-system/h5` from mini-program output.
+
+## Validate production CSS
+
+From the repository root:
+
+~~~sh
+pnpm exec turbo run build --filter=weapp-pandacss
+pnpm --filter @weapp-pandacss/react-app codegen
+pnpm --filter @weapp-pandacss/react-app dev
+~~~
+
+For a production build or browser acceptance, stop that development server first, then run:
+
+~~~sh
+pnpm --filter @weapp-pandacss/react-app build
+pnpm --filter @weapp-pandacss/react-app preview
+~~~
+
+The repository's `pnpm test:e2e:web` builds and starts its own production preview, testing computed styles and interactions headlessly in Chromium, Firefox and WebKit. Stop a manually started preview before running the suite; it owns its own ports and server. Ignore `styled-system/` and `dist/`.

@@ -1,0 +1,147 @@
+---
+title: React Web 与 H5
+description: 保留 Web CSS 语义，同时使用 Panda 的跨平台 runtime 与 class 名称。
+sidebar:
+  order: 5
+---
+
+[React Web 示例](https://github.com/weapp-pandacss/weapp-pandacss/tree/main/examples/react-app)使用 **React 19**、**Vite 8** 和 Panda CSS **2.1.2**。Web 保留原生 cascade layers 和选择器语义，仍需要两个 adapter 插件保证 portable runtime 与 CSS 匹配。
+
+## 安装依赖
+
+在已有 Vite + React 应用中，adapter 声明 Node `^22.18.0 || >=24.11.0`，推荐使用 Node 22.18+ 或 24.11+ 的 LTS 版本：
+
+~~~sh
+pnpm add -D @pandacss/dev@2.1.2 @pandacss/preset-base@2.1.2 @pandacss/preset-panda@2.1.2 weapp-pandacss@^2 postcss
+~~~
+
+手写特殊 class 可安装 `pnpm add @weapp-pandacss/runtime`。不要在浏览器组件中导入 Panda 或 PostCSS 的构建期包入口。
+
+## 配置生成流程
+
+~~~ts
+// panda.config.ts
+import { defineConfig } from '@pandacss/dev'
+import { weappPanda } from 'weapp-pandacss/panda'
+
+export default defineConfig({
+  plugins: [weappPanda()],
+  polyfill: false,
+  presets: ['@pandacss/preset-base', '@pandacss/preset-panda'],
+  preflight: true,
+  include: ['./src/**/*.{js,jsx,ts,tsx}'],
+  outdir: 'styled-system',
+  outExtension: 'mjs',
+  forceImportExtension: true,
+})
+~~~
+
+使用 `pages/` 等其他源码目录时，将实际路径加入扫描；生成目录不纳入其中。Panda 负责生成，不需要 weapp adapter CLI 或 runtime rollback。
+
+## 使用 Web PostCSS 目标
+
+~~~js
+// postcss.config.cjs
+module.exports = {
+  plugins: {
+    '@pandacss/dev/postcss': {},
+    'weapp-pandacss/postcss': { target: 'web' },
+  },
+}
+~~~
+
+`target: 'web'` 保留 `:root`、通用选择器、原生 layers 和 Web 伪类语义，但仍执行共享 class 编码。`disabled: true` 则同时关闭编码，可能造成 CSS 与生成 JavaScript 不匹配。
+
+创建 `src/index.css`：
+
+~~~css
+@layer reset, base, tokens, recipes, utilities;
+~~~
+
+在 `src/main.tsx` 中导入，让构建输出样式：
+
+~~~ts
+import './index.css'
+~~~
+
+## 开发与构建前生成
+
+在独立 Vite + TypeScript 项目中合并已有 scripts：
+
+~~~json
+{
+  "scripts": {
+    "codegen": "panda codegen",
+    "dev": "pnpm codegen && vite",
+    "build": "pnpm codegen && tsc && vite build",
+    "preview": "vite preview"
+  }
+}
+~~~
+
+项目使用 `tsc -b` 或其他检查器时，保留原类型构建命令。仓库示例的 `dev` 直接启动 Vite，全新检出应先运行其 `codegen` 脚本。
+
+## 导入 runtime
+
+~~~tsx
+// src/App.tsx
+import { css } from '../styled-system/css/index.mjs'
+
+export default function App() {
+  return (
+    <main className={css({ color: 'sky.600', padding: '4' })}>
+      Panda CSS on the Web
+    </main>
+  )
+}
+~~~
+
+相对路径无需别名。如果使用 `styled-system/css/index.mjs`，同步配置 Vite 与 TypeScript：
+
+~~~ts
+// 合并到 vite.config.ts
+import { fileURLToPath } from 'node:url'
+
+const aliasOptions = {
+  resolve: {
+    alias: {
+      'styled-system': fileURLToPath(new URL('./styled-system', import.meta.url)),
+    },
+  },
+}
+~~~
+
+~~~json
+{
+  "compilerOptions": {
+    "moduleResolution": "bundler",
+    "paths": { "styled-system/*": ["./styled-system/*"] }
+  },
+  "include": ["src", "styled-system"]
+}
+~~~
+
+`cx()` 用于拼接生成 class 与已编码的手写 class，不要再次编码 Panda 返回值。浏览器 hover/focus 和媒体查询保留 Web 语义，但这不能证明同样条件在小程序中工作。
+
+## H5 与小程序共存
+
+Taro H5 参考 [Taro React](/zh/frameworks/taro-react/)或 [Taro Vue](/zh/frameworks/taro-vue/)，Uni-app H5 参考 [Uni-app](/zh/frameworks/uni-app/)。这些指南按平台环境设置 `target: 'web'`，并让 `styled-system/h5` 与小程序目录隔离。
+
+## 验证生产样式
+
+在仓库根目录执行：
+
+~~~sh
+pnpm exec turbo run build --filter=weapp-pandacss
+pnpm --filter @weapp-pandacss/react-app codegen
+pnpm --filter @weapp-pandacss/react-app dev
+~~~
+
+检查生产构建或浏览器验收前，先停止该开发服务器，再运行：
+
+~~~sh
+pnpm --filter @weapp-pandacss/react-app build
+pnpm --filter @weapp-pandacss/react-app preview
+~~~
+
+仓库 `pnpm test:e2e:web` 会自行构建并启动生产预览，在 Chromium、Firefox、WebKit 后台验证 computed styles 与交互。运行套件前停止手动预览，测试会管理自己的端口与服务器。忽略 `styled-system/` 和 `dist/`。

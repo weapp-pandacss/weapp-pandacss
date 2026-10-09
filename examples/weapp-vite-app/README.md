@@ -4,6 +4,9 @@
 手写 class 使用 `@weapp-pandacss/runtime`；Panda 与 PostCSS 配置继续使用主包。
 页面展示 `css()`、特殊字符类名、`cva()` 按钮变体及响应式切换。
 
+完整配置见[中文接入指南](https://panda.weapp.dev/zh/frameworks/weapp-vite/) / [English guide](https://panda.weapp.dev/frameworks/weapp-vite/)。
+查阅 [API 参考](https://panda.weapp.dev/zh/api/)、[场景处理](https://panda.weapp.dev/zh/guides/)与[排错步骤](https://panda.weapp.dev/zh/troubleshooting/)。
+
 在仓库根目录运行：
 
 ```bash

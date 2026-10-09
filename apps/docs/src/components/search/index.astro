@@ -6,21 +6,25 @@ const { chinese } = Astro.props
 const text = labels[chinese ? 'zh' : 'en']
 ---
 
-<details class="search-panel" data-search data-base={import.meta.env.BASE_URL} data-loading={text.loading} data-empty={text.empty} data-unavailable={text.unavailable}>
-  <summary>{text.search}</summary>
+<dialog id="search-dialog" class="search-dialog" aria-labelledby="search-heading" data-search data-base={import.meta.env.BASE_URL} data-loading={text.loading} data-empty={text.empty} data-unavailable={text.unavailable}>
+  <div class="dialog-heading">
+    <h2 id="search-heading">{text.search}</h2>
+    <button type="button" class="quiet-button" data-close-search aria-label={text.close}>×</button>
+  </div>
   <form role="search">
-    <label for="docs-search">{text.search}</label>
+    <label class="visually-hidden" for="docs-search">{text.search}</label>
     <div class="search-controls">
-      <input id="docs-search" name="query" type="search" required autocomplete="off" />
+      <input id="docs-search" name="query" type="search" placeholder={text.searchPlaceholder} autocomplete="off" />
       <button type="submit">{text.submit}</button>
     </div>
   </form>
   <p role="status" aria-live="polite"></p>
   <ul class="search-results"></ul>
-</details>
+  <p class="search-hint">{text.searchHint}</p>
+</dialog>
 
 <script>
   import { mountSearch } from './client'
 
-  document.querySelectorAll<HTMLElement>('[data-search]').forEach(mountSearch)
+  document.querySelectorAll<HTMLDialogElement>('[data-search]').forEach(mountSearch)
 </script>

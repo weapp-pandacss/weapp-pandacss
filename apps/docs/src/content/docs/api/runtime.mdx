@@ -1,0 +1,123 @@
+---
+title: Runtime encoders
+description: Complete signatures, encoding rules, whitespace behavior and runtime factory.
+sidebar:
+  order: 3
+---
+
+Install the dependency-free runtime for application code:
+
+```bash
+pnpm add @weapp-pandacss/runtime
+```
+
+```ts
+import {
+  createPortableRuntime,
+  encodeClassList,
+  encodeClassName,
+} from '@weapp-pandacss/runtime'
+```
+
+The same functions are available from `weapp-pandacss/runtime`. The root adapter exports the two encoders, but not the factory. The standalone package supports ESM and CommonJS, includes declarations, targets ES2018 and uses no Node APIs. Your bundler remains responsible for platform syntax and polyfills.
+
+## Input and target contract
+
+Both encoders require a primitive string `value`, with no default. They do not coerce values or perform runtime type validation. Non-string misuse can throw a native `TypeError`; there is no custom validation error contract. Validate external input in application code before calling either function. Empty strings are valid and return empty strings.
+
+The encoders have no target parameter: the same input produces the same class name on Web and mini-programs. Target-specific CSS handling belongs to the [PostCSS plugin](/api/postcss-plugin/). The factory takes no arguments and returns these same string-based functions.
+
+## encodeClassName(value)
+
+```ts
+declare function encodeClassName(value: string): string
+```
+
+| Parameter | Required | Meaning |
+| --- | --- | --- |
+| `value` | Yes | One raw authored class name, before CSS escaping |
+| Return value | — | The corresponding portable class name |
+
+ASCII letters, underscores, non-leading digits and non-leading hyphens remain readable. Other characters use `_wp_<lowercase hexadecimal codepoint>_`. A leading digit or hyphen and each literal `_wp_` marker are escaped to avoid collisions with encoded names.
+
+| Input | Output |
+| --- | --- |
+| `card` | `card` |
+| `custom-tabs__scroll` | `custom-tabs__scroll` |
+| `c_red.500` | `c_red_wp_2e_500` |
+| `1card` | `_wp_31_card` |
+| `-1` | `_wp_2d_1` |
+| `a_wp_2e_b` | `a_wp_5f_wp_2e_b` |
+| `中文` | `_wp_4e2d__wp_6587_` |
+| `💡` | `_wp_1f4a1_` |
+| Empty string | Empty string |
+
+Unicode is processed by complete codepoint. The argument is a name, not a selector: pass `custom/active`, not `.custom\/active`. Spaces inside `encodeClassName('a b')` are encoded as part of one name; use `encodeClassList` for a list.
+
+## encodeClassList(value)
+
+```ts
+declare function encodeClassList(value: string): string
+```
+
+Splits a raw class list on JavaScript whitespace (`\s+`), removes empty items, encodes each name, and joins the result with a single space. It preserves order and duplicates.
+
+`value` is required and has no default; pass `''` explicitly for an empty list.
+
+```ts
+encodeClassList('  a.b\n中文\tcard  ')
+// 'a_wp_2e_b _wp_4e2d__wp_6587_ card'
+
+encodeClassList('card card') // 'card card'
+encodeClassList(' \n\t ') // ''
+```
+
+Tabs, line breaks, nonbreaking spaces, Unicode line separators and BOM count as whitespace. A zero-width space (`\u200B`) is part of a name and becomes `_wp_200b_`. The function accepts a string; arrays, objects and conditional class expressions should be resolved before calling it.
+
+## createPortableRuntime()
+
+```ts
+declare function createPortableRuntime(): {
+  encodeClassName(value: string): string
+  encodeClassList(value: string): string
+}
+```
+
+Takes no arguments and returns the two encoding functions. The factory is self-contained so Panda can embed it in generated artifacts without imports or Node globals. Application code usually imports the named functions directly.
+
+```ts
+const runtime = createPortableRuntime()
+runtime.encodeClassName('custom/active') // 'custom_wp_2f_active'
+```
+
+## Match authored CSS and UI classes
+
+Write ordinary escaped CSS and process it with the PostCSS adapter:
+
+```css
+.custom\/active { color: green; }
+```
+
+Use the raw name in application code:
+
+```ts
+const activeClass = encodeClassName('custom/active')
+// Bind activeClass to className or class in your framework.
+```
+
+The standalone runtime changes JavaScript names only. It does not transform CSS, extract Panda styles or rename custom properties. Use the [PostCSS plugin](/api/postcss-plugin/) for matching selectors and Panda's native token hashing for variables.
+
+## Encode once
+
+The codec is **not idempotent**. A second encoding treats the generated `_wp_` marker as authored text and changes the name.
+
+| Value | Action |
+| --- | --- |
+| Raw authored name such as `custom/active` | Encode once |
+| `css()`, recipe, pattern or styled output | Use directly |
+| Already encoded name | Use directly |
+| Generated and authored classes together | Join with `cx(generated, encodeClassName(raw))` |
+
+Generated JS and CSS markers protect repeat build processing; the string encoders do not track whether a value has already been encoded. There is no public decoder.
+
+When publishing reusable components, use the runtime version matching the adapter. The packed adapter pins an exact runtime dependency; independently shipped component JS and transformed CSS must share the encoding contract.

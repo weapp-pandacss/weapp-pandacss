@@ -1,0 +1,88 @@
+---
+title: 组件与单位
+description: 处理组件样式隔离、尺寸换算与第三方 CSS，保持各自 runtime 和 selector 配套。
+sidebar:
+  order: 3
+---
+
+## 组件样式隔离
+
+Class 正确也可能因为组件边界而无法使用全局 WXSS。需要同时检查样式导入位置与框架的隔离设置。
+
+Weapp Vite + Wevu 示例把 Panda CSS 放在应用级，并显式允许它进入按钮组件：
+
+~~~ts
+// 在组件的 <script setup lang="ts"> 中。
+defineComponentJson({
+  component: true,
+  styleIsolation: 'apply-shared',
+})
+~~~
+
+原生微信组件将对应设置放在组件定义的 `options` 中：
+
+~~~js
+Component({
+  options: { styleIsolation: 'apply-shared' },
+  // properties、data、methods 等...
+})
+~~~
+
+`apply-shared` 允许页面样式影响组件，同时保持组件样式不影响页面。隔离策略应按组件设计选择，改成 `shared` 会扩大影响范围。框架生成的组件作用域与 `scoped` 样式属于另一种机制，应检查最终 selector，不能假设源码 class 在每个作用域步骤后都原样保留。
+
+发布组件时说明预期的隔离设置与共享样式导入方式。Runtime 编码不能绕过样式隔离。原生 `externalClasses` 可提供受支持的样式入口，但调用方仍需要匹配的名称与可访问的样式。详见微信[组件模板与样式](https://developers.weixin.qq.com/miniprogram/dev/framework/custom-component/wxml-wxss.html)。
+
+## 单位与设计比例
+
+Class 编码不转换尺寸。设计需要单位换算时，再安装转换器：
+
+~~~sh
+pnpm add -D postcss-rem-to-responsive-pixel
+~~~
+
+~~~js
+// 位于 Panda 和 weapp-pandacss/postcss 之后。
+'postcss-rem-to-responsive-pixel': {
+  rootValue: 32,
+  propList: ['*'],
+  transformUnit: 'rpx',
+},
+~~~
+
+这组设置中 `1rem = 32rpx`，`0.5rem = 16rpx`，Wevu 集成测试会检查产物中的 `16rpx`。这是配置的设计比例，不等同于浏览器根字号。
+
+| 使用该转换器的输入 | 小程序 `rpx` 输出 | H5 `px` 输出 |
+| --- | --- | --- |
+| `1rem` | `32rpx` | `32px` |
+| `0.5rem` | `16rpx` | `16px` |
+
+H5 列使用相同 `rootValue` 与 `transformUnit: 'px'`。React Web 示例没有 rem 转换器，rem 由浏览器处理。Taro 另有 designWidth/pxtransform 流程，加入转换器前先明确每种输入单位由哪个阶段处理。
+
+运行时内联样式不经过 PostCSS，业务数据生成宽度字符串时，应直接选择 `rpx`、`px` 或 `%`。最终尺寸取决于设备宽度与渲染器，class/WXSS 匹配测试不能代替实体设备布局验收。详见微信 [WXSS 参考](https://developers.weixin.qq.com/miniprogram/dev/framework/view/wxss.html)。
+
+## 第三方样式
+
+Adapter 的命名阶段处理当前 root 中所有 class selector，包括手写和第三方样式。普通名称通常保持可读，但特殊字符、前导数字/连字符与原始 `_wp_` 标记会改变。
+
+库在运行时生成 class 字符串时，只转换 CSS 可能造成失配。纳入 adapter 流程前：
+
+1. 找出提供 class 的代码与提供 selector 的样式入口。
+2. 确认这些名称是否会被 portable 编码改变。
+3. 库有自己的适配流程时使用该流程，或者将它的入口与 Panda 处理分开。
+4. 在框架作用域与单位转换后，对照真实节点 class 和最终 selector。
+
+不要通过再次编码所有 class 字符串修补库的失配，Panda 生成值可能已经编码。Taro 示例接入了 NutUI，但当前集成不能作为所有 UI 库、生成 selector 或版本的兼容保证。
+
+## Reset、CSS Modules 与覆盖样式
+
+快速开始默认 `preflight: false`，避免自动引入全局 reset；部分仓库示例有意启用了 preflight。需要启用时，应检查 adapter 替换 root/universal selector 后的原生标签与第三方控件。
+
+Taro 示例对共享 Panda 样式关闭了 CSS Modules。增加另一套 class 重命名机制时，需要配套的 runtime 映射；portable adapter 不会自动集成所有 CSS Modules 流程。应用级 Panda 样式应走全局入口。
+
+覆盖样式优先使用 recipe 变体或组件公开的样式入口。在 WXSS 中，跨 layer 顺序不能保证压过高权重的第三方规则，依赖 layer 覆盖库样式前先核对[权重边界](/zh/guides/css-compatibility/#权重是兼容边界)。
+
+## Panda 与 Tailwind 共存
+
+Uni-app 示例分开维护 Panda 与 Tailwind 入口，每套 runtime 对应自己的 selector 编码。不要把 Tailwind 产物再送入 Panda 的命名阶段，实际虚拟入口与处理顺序详见[多目标构建](/zh/guides/build-targets/#panda-与-tailwind-入口隔离)。
+
+在真实组件边界内验证初始/选中变体、token 变量与可见尺寸。仅组件内失效时，使用[排查步骤](/zh/troubleshooting/#页面有效组件内无效)。

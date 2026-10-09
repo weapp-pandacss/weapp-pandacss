@@ -3,6 +3,7 @@ import { getDocsPage, getDocsStaticPaths, getSidebar, getTOC, stripBase } from '
 import { components } from '../components'
 import DocsLayout from '../layouts/docs.astro'
 import { alternatePath, isChinese, localizeSidebar } from '../lib/locale'
+import { documentationNavigation } from '../lib/navigation'
 
 export const prerender = true
 export const getStaticPaths = getDocsStaticPaths
@@ -14,7 +15,7 @@ if (page instanceof Response) {
 const { entry, Content, headings, markdownUrl } = page
 const pathname = stripBase(Astro.url.pathname, import.meta.env.BASE_URL)
 const chinese = isChinese(pathname)
-const sidebar = localizeSidebar(await getSidebar(pathname), chinese)
+const { sidebar, breadcrumbs, prevNext } = documentationNavigation(localizeSidebar(await getSidebar(pathname), chinese), pathname, chinese)
 const toc = entry.data.tableOfContents === false ? false : getTOC(headings, entry.data.tableOfContents)
 ---
 
@@ -31,6 +32,8 @@ const toc = entry.data.tableOfContents === false ? false : getTOC(headings, entr
   searchable={entry.data.searchable}
   chinese={chinese}
   alternate={alternatePath(pathname)}
+  breadcrumbs={breadcrumbs}
+  prevNext={prevNext}
 >
   <Content components={components} />
 </DocsLayout>

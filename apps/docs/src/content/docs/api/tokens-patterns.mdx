@@ -1,0 +1,137 @@
+---
+title: Tokens, patterns and styled
+description: Token values and variables, layout patterns and the React Web styled boundary.
+sidebar:
+  order: 6
+---
+
+These are Panda-generated APIs. Available tokens, patterns and JSX types depend on your presets, theme and `jsxFramework`. The examples use the generated `styled-system` directory with `.mjs` output.
+
+Panda's official [token guide](https://panda-css.com/docs/theming/tokens), [pattern guide](https://panda-css.com/docs/styling/patterns) and [style props guide](https://panda-css.com/docs/styling/style-props) cover the upstream model. This page documents the adapter behavior verified with Panda 2.1.2.
+
+## token(path)
+
+```ts
+import { token } from '../styled-system/tokens/index.mjs'
+
+const spacing = token('spacing.0.5')
+const color = token('colors.red.500')
+```
+
+The input is a full token path, including its category. The result follows Panda's token representation: ordinary values, references, negative values and semantic tokens keep their native behavior. It is a value, not a class name, and should not be passed to a class encoder.
+
+Both `token(path, fallback?)` and `token.var(path, fallback?)` accept an optional string fallback. When a runtime path has no generated entry, they return that fallback verbatim; `token.var` does not wrap it in `var()`. Generated types restrict available token paths. Define the intended tokens instead of using a fallback to hide an incorrect path.
+
+```ts
+import { css } from '../styled-system/css/index.mjs'
+import { token } from '../styled-system/tokens/index.mjs'
+
+const className = css({ padding: token('spacing.0.5') })
+```
+
+In `css({ color: 'red.500' })`, Panda infers the color category from the property. In `token('colors.red.500')`, include the category explicitly. Make sure the path exists in your theme and the corresponding token CSS is imported.
+
+## token.var(path)
+
+```ts
+const spacingVariable = token.var('spacing.0.5')
+const className = css({ padding: spacingVariable })
+```
+
+Returns Panda's CSS variable reference for the token. `weappPanda()` enables native `hash.cssVar`, so references match the hashed declarations emitted into CSS. This also applies to Unicode token names, negative spacing and semantic tokens.
+
+| Use | Example | Result kind |
+| --- | --- | --- |
+| Token value | `token('spacing.0.5')` | Panda token value/representation |
+| Token variable | `token.var('spacing.0.5')` | CSS variable reference |
+| Property token shorthand | `css({ padding: '0.5' })` | Portable class string |
+
+Do not hard-code a generated variable hash. Use `token.var` so the reference stays aligned with configuration and codegen.
+
+## Custom and semantic tokens
+
+```ts
+// Inside defineConfig(...)
+theme: {
+  extend: {
+    tokens: {
+      spacing: { gutter: { value: '16px' } },
+    },
+    semanticTokens: {
+      colors: { brand: { value: '{colors.blue.500}' } },
+    },
+  },
+}
+```
+
+```ts
+const brand = token.var('colors.brand')
+const gutter = token('spacing.gutter')
+const className = css({ color: 'brand', padding: 'gutter' })
+```
+
+Regenerate after changing the theme. For multi-target builds, import tokens from the generated directory matching the CSS target. The adapter does not rename arbitrary authored variables. Mini-program authored custom properties must use ASCII `--[A-Za-z0-9_-]+`; see [variable validation](/api/postcss-plugin/#naming-variables-and-repeated-processing).
+
+## Patterns
+
+Patterns are named layout helpers generated from your presets and configuration. The Panda presets provide helpers such as `box` and `stack`; custom patterns add your own APIs.
+
+```ts
+import { css } from '../styled-system/css/index.mjs'
+import { box, stack } from '../styled-system/patterns/index.mjs'
+
+const surface = box({ padding: '4', color: 'red.500' })
+const verticalLayout = stack({ gap: '4' })
+const layoutStyles = stack.raw({ gap: '4' })
+const compactLayout = css(layoutStyles, { padding: '2' })
+```
+
+| Calling form | Return | Use |
+| --- | --- | --- |
+| `pattern(options)` | Portable class string | Bind to an element |
+| `pattern.raw(options)` | Transformed style object | Compose with `css()` |
+
+Pattern classes use the adapted serializer and should not be encoded again. A pattern is a CSS helper, not a native component. Its underlying layout features must work on the target, and its definitions/uses must be visible to Panda extraction.
+
+## styled: React Web
+
+With `jsxFramework: 'react'`, Panda generates JSX helpers in `styled-system/jsx`. This example is for React **Web**, where `div` is a DOM element:
+
+```tsx
+import { styled } from '../styled-system/jsx/index.mjs'
+
+const Surface = styled('div', {
+  base: { padding: '4', borderRadius: 'lg' },
+  variants: {
+    tone: {
+      neutral: { backgroundColor: 'gray.50' },
+      accent: { backgroundColor: 'blue.50' },
+    },
+  },
+})
+
+export function Example() {
+  return (
+    <Surface tone="accent">
+      <styled.div css={{ color: 'red.500' }}>Panda on Web</styled.div>
+    </Surface>
+  )
+}
+```
+
+Generated styled classes are adapted alongside recipes and patterns. Authored special `className` values still need the [runtime encoder](/api/runtime/).
+
+`styled.div` does not provide a mini-program `view`. In Taro, bind classes to Taro's `View`/`Text` components; in Uni-app or Wevu, bind them to the framework's template elements. Vue and native mini-program templates do not use this React Web JSX example. Follow the [framework guide](/frameworks/) for their component and build contracts.
+
+## Check when a helper has no effect
+
+| Symptom | Check |
+| --- | --- |
+| `token` path is missing or types reject it | Theme definition and fresh codegen |
+| Variable reference is present but value is missing | Imported token CSS and matching generated target |
+| Pattern function is missing | Preset/custom pattern registration and generated exports |
+| Layout differs on a mini-program | Final CSS units, component display rules and native CSS support |
+| JSX helper/types are missing | `jsxFramework`, source scan and the generated JSX directory |
+| Only dynamic options are unstyled | Panda extraction or `staticCss` pre-generation |
+
+The adapter aligns naming and transforms CSS. It does not replace platform component APIs, implement unsupported CSS layouts or inject style rules at runtime.

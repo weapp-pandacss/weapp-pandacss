@@ -1,0 +1,122 @@
+---
+title: css 与 cx
+description: 原子样式、原始样式对象、组合、class 列表与提取边界。
+sidebar:
+  order: 4
+---
+
+`css` 与 `cx` 是 Panda 生成的 API。执行 `panda codegen` 后，从配置的输出目录导入，不是适配器的包导出。下列示例使用 `outdir: 'styled-system'` 和 `outExtension: 'mjs'`，源码文件位于 `src/`。
+
+完整样式模型见 Panda 官方[样式概览](https://panda-css.com/docs/styling/overview)。本页说明与 Panda 2.1.2 一起验证的适配行为。
+
+```ts
+import { css, cx } from '../styled-system/css/index.mjs'
+```
+
+下表展示调用形式，具体属性、token 与 condition 类型由项目生成的声明决定。
+
+| API | 输入 | 输出 |
+| --- | --- | --- |
+| `css(...styles)` | 一个或多个 Panda 样式对象 | Portable class 字符串 |
+| `css.raw(...styles)` | 一个或多个 Panda 样式对象 | class 序列化前的样式对象 |
+| `cx(...classes)` | 待拼接的 class 字符串 | 组合后的 class 字符串 |
+
+## css(...styles)
+
+在可静态提取的对象中使用 token、CSS 属性、Panda 别名及配置的 conditions。
+
+```ts
+const title = css({
+  color: 'red.500',
+  fontSize: 'xl',
+  fontWeight: 'bold',
+  padding: '0.5',
+})
+```
+
+将 `title` 直接绑定到框架的 `class` 或 `className`。生成插件已适配返回名称，不要再传给 `encodeClassList`。
+
+多个对象会在生成 class 前组合，重叠样式属性按 Panda 合并规则由后面的对象覆盖。
+
+```ts
+const base = css.raw({ color: 'red.500', padding: '0.5' })
+const selected = css(base, { color: 'blue.500' })
+```
+
+这样保留 Panda 的样式合并语义，无需通过 class 列表中的位置选择冲突的 CSS 声明。
+
+## css.raw(...styles)
+
+`css.raw` 返回可复用、组合的样式对象，不返回 class 名称，不能直接绑定到 `class`。
+
+```ts
+const surface = css.raw({
+  borderRadius: 'lg',
+  padding: '4',
+  backgroundColor: 'white',
+})
+
+const compactSurface = css(surface, { padding: '2' })
+```
+
+将定义放在 Panda `include` 覆盖的路径内。原始对象仍需被提取，并经 `css()` 调用生成可用 class。
+
+## cx(...classes)
+
+`cx` 拼接 class 字符串，不重复编码原始名称，也不解决样式属性冲突。手写名称先编码，再与生成的 class 拼接。
+
+```ts
+import { encodeClassName } from '@weapp-pandacss/runtime'
+import { css, cx } from '../styled-system/css/index.mjs'
+
+const className = cx(
+  css({ color: 'red.500' }),
+  encodeClassName('custom/active'),
+)
+```
+
+手写 selector 在 CSS 源码中保留普通转义，由 PostCSS adapter 转换：
+
+```css
+.custom\/active { border-width: 1px; }
+```
+
+合并样式对象使用 `css(base, override)`，组合已经准备好的 class 使用 `cx(firstClass, secondClass)`。最终哪些声明生效，仍由 CSS cascade 决定。
+
+## Conditions 与平台行为
+
+```ts
+const interactive = css({
+  color: 'red.500',
+  _hover: { color: 'blue.500' },
+})
+```
+
+Panda 根据配置生成 condition。Web 保留原始 selector 语义，小程序执行 [selector 转换](/zh/api/postcss-plugin/#目标行为)。Condition 名称不代表原生组件一定支持对应伪类、属性 selector 或 media query。触摸交互应结合框架状态、hover 机制，并检查最终 WXSS 与原生组件。
+
+## Runtime 值与缺失 CSS
+
+Runtime 计算 class 名称，样式在构建期提取。某个值未被提取时，即使 class 字符串有效，也可能没有匹配的 CSS。
+
+| 情况 | 推荐处理 |
+| --- | --- |
+| 少量已知视觉状态 | 定义字面量分支或 [recipe 变体](/zh/api/recipes/) |
+| 某个源码文件没有生成样式 | 将其格式和路径加入 Panda `include` |
+| 值在运行时从接口返回 | 使用适合平台的原生内联样式，或受支持的 CSS 变量传值 |
+| 需要的样式无法被提取器发现 | 用 Panda `staticCss` 预生成已知样式 |
+| Class 存在但 CSS 缺失 | 检查提取结果、全局样式导入及对应目标产物 |
+
+用已生成字面量样式的映射明确列出已知值：
+
+```ts
+const tones = {
+  accent: css({ color: 'blue.500' }),
+  muted: css({ color: 'gray.500' }),
+}
+
+function toneClass(tone: keyof typeof tones) {
+  return tones[tone]
+}
+```
+
+适配器保留 `css.raw`、对象组合与生成 class，不在运行时注入 CSS，也不改变 Panda 提取模型。绑定方式见[框架指南](/zh/frameworks/)，输出缺失见[排障指南](/zh/troubleshooting/)。

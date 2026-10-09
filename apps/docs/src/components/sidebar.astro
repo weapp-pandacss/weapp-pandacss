@@ -11,12 +11,11 @@ const { items } = Astro.props
     <li>
       {item.type === 'group'
         ? (
-            <>
-              {item.indexHref
-                ? <a href={withBase(item.indexHref, import.meta.env.BASE_URL)} aria-current={item.indexIsCurrent ? 'page' : undefined}>{item.label}</a>
-                : <span>{item.label}</span>}
+            <details class="navigation-group" open>
+              <summary>{item.label}</summary>
+              {item.indexHref && <a href={withBase(item.indexHref, import.meta.env.BASE_URL)} aria-current={item.indexIsCurrent ? 'page' : undefined}>{item.label}</a>}
               <Astro.self items={item.children} />
-            </>
+            </details>
           )
         : (
             <a href={withBase(item.href, import.meta.env.BASE_URL)} aria-current={item.type === 'link' && item.isCurrent ? 'page' : undefined}>{item.label}</a>

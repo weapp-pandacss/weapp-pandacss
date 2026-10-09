@@ -1,0 +1,168 @@
+---
+title: Native WeChat mini-programs
+description: Generate finite class states in Node and compile Panda CSS to the native application's WXSS.
+sidebar:
+  order: 6
+---
+
+For an existing native WeChat project, you can run Panda at build time without importing generated ESM into the mini-program. This recipe computes a finite set of class names in Node, writes an ordinary CommonJS data module, and produces matching `app.wxss` with PostCSS.
+
+There is **no independent native-project example or native E2E acceptance** in this repository. This is an integration recipe; test the resulting project in your selected WeChat IDE and device. The [Weapp Vite guide](/frameworks/weapp-vite/) offers an existing integration with compiled-artifact/headless tests.
+
+## Install build dependencies
+
+The adapter engine is `^22.18.0 || >=24.11.0`; Node 22.18+ or 24.11+ on their LTS lines is recommended. Run from the project directory containing `package.json`:
+
+~~~sh
+pnpm add -D @pandacss/dev@2.1.2 @pandacss/preset-base@2.1.2 @pandacss/preset-panda@2.1.2 weapp-pandacss@^2 postcss postcss-cli postcss-rem-to-responsive-pixel
+~~~
+
+The paths below assume your native application is under `miniprogram/`. Adjust them together if `project.config.json` selects a different `miniprogramRoot`.
+
+~~~text
+panda.config.ts
+postcss.config.cjs
+styles/app.css
+styles/page.mjs
+scripts/generate-classes.mjs
+miniprogram/app.js
+miniprogram/app.json
+miniprogram/pages/index/index.js
+miniprogram/pages/index/index.wxml
+~~~
+
+## Configure Panda and CSS
+
+~~~ts
+// panda.config.ts
+import { defineConfig } from '@pandacss/dev'
+import { weappPanda } from 'weapp-pandacss/panda'
+
+export default defineConfig({
+  plugins: [weappPanda()],
+  polyfill: false,
+  presets: ['@pandacss/preset-base', '@pandacss/preset-panda'],
+  preflight: false,
+  include: ['./styles/**/*.{js,mjs,ts}'],
+  outdir: 'styled-system',
+  outExtension: 'mjs',
+  forceImportExtension: true,
+})
+~~~
+
+Panda scans the authoring module, not the WXML template or generated class module. Keep style values statically discoverable. `styled-system` stays outside the mini-program root.
+
+~~~js
+// postcss.config.cjs
+module.exports = {
+  plugins: {
+    '@pandacss/dev/postcss': {},
+    'weapp-pandacss/postcss': { target: 'weapp' },
+    'postcss-rem-to-responsive-pixel': {
+      rootValue: 32,
+      propList: ['*'],
+      transformUnit: 'rpx',
+    },
+  },
+}
+~~~
+
+~~~css
+/* styles/app.css */
+@layer reset, base, tokens, recipes, utilities;
+~~~
+
+Append authored application CSS to that source, or combine layered inputs before adaptation. The build below overwrites `miniprogram/app.wxss`; use `styles/app.css` as the source of truth. The unit converter is optional and its ratio is a design choice.
+
+## Author all required states
+
+~~~js
+// styles/page.mjs
+import { css, cva } from '../styled-system/css/index.mjs'
+
+const button = cva({
+  base: { padding: '4', borderRadius: 'md' },
+  variants: {
+    tone: {
+      neutral: { bg: 'slate.200', color: 'slate.900' },
+      accent: { bg: 'sky.600', color: 'white' },
+    },
+  },
+  defaultVariants: { tone: 'neutral' },
+})
+
+export const classes = {
+  page: css({ padding: '4', display: 'flex', flexDirection: 'column' }),
+  neutral: button({ tone: 'neutral' }),
+  accent: button({ tone: 'accent' }),
+}
+~~~
+
+Create the build-time exporter:
+
+~~~js
+// scripts/generate-classes.mjs
+import { mkdir, writeFile } from 'node:fs/promises'
+import { classes } from '../styles/page.mjs'
+
+const output = new URL('../miniprogram/generated/', import.meta.url)
+await mkdir(output, { recursive: true })
+await writeFile(
+  new URL('panda-classes.js', output),
+  `module.exports = ${JSON.stringify(classes, null, 2)};\n`,
+)
+~~~
+
+Node evaluates the generated Panda runtime. The mini-program only loads the resulting string data module; it does not execute `.mjs`, Panda or PostCSS.
+
+## Build in order
+
+~~~json
+{
+  "scripts": {
+    "codegen": "panda codegen",
+    "build:styles": "pnpm codegen && node scripts/generate-classes.mjs && postcss styles/app.css -o miniprogram/app.wxss"
+  }
+}
+~~~
+
+Run `pnpm build:styles` before opening or compiling the native application. Rerun it when adding style values, variants or source CSS. The exporter requires codegen first, and the WXSS must come from the same configuration. Ignore `styled-system/`, `miniprogram/generated/` and generated `miniprogram/app.wxss`; commit their authoring source.
+
+## Consume classes with Page and setData
+
+~~~js
+// miniprogram/pages/index/index.js
+const classes = require('../../generated/panda-classes.js')
+
+Page({
+  data: {
+    pageClass: classes.page,
+    buttonClass: classes.neutral,
+    selected: false,
+  },
+  toggle() {
+    const selected = !this.data.selected
+    this.setData({
+      selected,
+      buttonClass: selected ? classes.accent : classes.neutral,
+    })
+  },
+})
+~~~
+
+~~~html
+<!-- miniprogram/pages/index/index.wxml -->
+<view class="{{pageClass}}">
+  <button class="{{buttonClass}}" bindtap="toggle">
+    {{selected ? 'Accent' : 'Neutral'}}
+  </button>
+</view>
+~~~
+
+Keep your existing `App({})` and page registration in `app.json`. Application `app.wxss` is loaded by the native platform automatically. Custom components still need appropriate style isolation to receive global styles.
+
+## Boundaries and checks
+
+This approach supports a finite set of generated states. Arbitrary runtime style construction requires a bundler/transpiler and a separately validated runtime integration. Do not copy untranspiled `.mjs` into native pages or use a legacy adapter CLI.
+
+After the build, check that the WXML-bound classes exist in final WXSS, token declarations are present, and both button states render correctly after taps and a fresh launch. Verify the project's base library, component isolation and CSS capabilities on the actual target. Browser/headless results from other frameworks cannot establish native-device rendering compatibility.

@@ -1,52 +1,105 @@
 ---
-title: 框架示例
-description: Taro React、Taro Vue、Uni-app、React Web 与 Weapp Vite + Wevu。
+title: 框架接入
+description: 选择接入方案，配置完整构建流程，了解各平台的验证范围。
 sidebar:
   order: 5
 ---
 
+每个目标都需要注册适配器的两个部分：`weappPanda()` 转换生成的 JavaScript，`weapp-pandacss/postcss` 生成配套 CSS。Web/H5 也一样。以下指南使用 Panda CSS **2.1.2**，runtime 输出为 JavaScript `.js` / `.mjs`。
+
+## 选择框架
+
+| 接入方案 | 指南 | 仓库基线 |
+| --- | --- | --- |
+| Weapp Vite + Wevu | [Vue SFC 接入](/zh/frameworks/weapp-vite/) | weapp-vite 与 Wevu 7.4.0；微信目标 |
+| Taro React | [Webpack 接入](/zh/frameworks/taro-react/) | Taro 4.3.0、React 18；微信与 H5 |
+| Taro Vue | [Vue SFC 接入](/zh/frameworks/taro-vue/) | Taro 4.3.0、Vue 3.5、Webpack；微信与 H5 |
+| Uni-app Vue | [Vite 接入](/zh/frameworks/uni-app/) | 配套的 DCloud 依赖组、Vue 3.4.21、Vite 5.2.8 |
+| React Web / H5 | [Web 接入](/zh/frameworks/web/) | React 19 与 Vite 8；`target: 'web'` |
+| 原生微信小程序 | [构建期生成 class](/zh/frameworks/native/) | 接入方案；暂无独立原生示例或 E2E |
+
+名称匹配不代表所有浏览器选择器、媒体查询和 CSS 属性都能在 WXSS 中工作。参考 [PostCSS 兼容说明](/zh/postcss/)，并在实际目标渲染器中验证。
+
+## 验证层级
+
+| 范围 | 仓库提供的验证 | 边界 |
+| --- | --- | --- |
+| Taro React / Vue | 最终框架样式与 runtime class 匹配 | 产物检查不能证明全部交互或视觉布局 |
+| Uni-app | 小程序与 H5 CSS 产物 | Tailwind 对比样式使用独立处理流程 |
+| Weapp Vite + Wevu | 通过 mpcore 检查编译后的 WXML、组件、点击和 class 更新 | headless mpcore 不模拟 CSS 布局 |
+| React Web | Chromium、Firefox、WebKit 的生产样式和交互 | 浏览器行为不能作为小程序真机证据 |
+| 真实微信开发者工具 | 四个小程序示例的可选渲染探针 | 需要实际执行、稳定版工具和授权 AppID；模拟器不能代替真机 |
+| 原生微信、Taro Vite、其他小程序目标、App/RN | 暂无专项接入验收 | 框架已有构建脚本不能证明 adapter 支持 |
+
+验收命令与前置条件见[测试指南](https://github.com/weapp-pandacss/weapp-pandacss/blob/main/docs/testing-strategy.zh.md)。这些层级说明测试范围，不表示你的项目已经运行过所有测试。
+
 ## 运行仓库示例
 
-在仓库根目录统一安装，先构建本地适配器：
+在仓库根目录安装依赖，单独构建示例前先构建 adapter **及其 runtime 依赖**：
 
 ~~~sh
 corepack enable
-pnpm install
-pnpm --filter weapp-pandacss build
-~~~
-
-| 示例 | 工作区 | 源码 |
-| --- | --- | --- |
-| Taro React | `@weapp-pandacss/taro-app` | [taro-app](https://github.com/weapp-pandacss/weapp-pandacss/tree/main/examples/taro-app) |
-| Taro Vue | `@weapp-pandacss/taro-app-vue3` | [taro-app-vue3](https://github.com/weapp-pandacss/weapp-pandacss/tree/main/examples/taro-app-vue3) |
-| Uni-app Vue | `@weapp-pandacss/uni-app-vue3` | [uni-app-vue3](https://github.com/weapp-pandacss/weapp-pandacss/tree/main/examples/uni-app-vue3) |
-| React Web | `@weapp-pandacss/react-app` | [react-app](https://github.com/weapp-pandacss/weapp-pandacss/tree/main/examples/react-app) |
-| Weapp Vite + Wevu | `@weapp-pandacss/weapp-vite-app` | [weapp-vite-app](https://github.com/weapp-pandacss/weapp-pandacss/tree/main/examples/weapp-vite-app) |
-
-~~~sh
+pnpm install --frozen-lockfile
+pnpm exec turbo run build --filter=weapp-pandacss
 pnpm --filter @weapp-pandacss/weapp-vite-app build
-pnpm --filter @weapp-pandacss/weapp-vite-app dev
-pnpm --filter @weapp-pandacss/weapp-vite-app open
 ~~~
 
-替换工作区名称即可构建其他示例。根目录 `pnpm build` 会构建适配器、五个应用和本站。
+| 工作区 | 源码 | 默认输出 |
+| --- | --- | --- |
+| `@weapp-pandacss/weapp-vite-app` | [weapp-vite-app](https://github.com/weapp-pandacss/weapp-pandacss/tree/main/examples/weapp-vite-app) | `dist/` |
+| `@weapp-pandacss/taro-app` | [taro-app](https://github.com/weapp-pandacss/weapp-pandacss/tree/main/examples/taro-app) | `dist/weapp/` |
+| `@weapp-pandacss/taro-app-vue3` | [taro-app-vue3](https://github.com/weapp-pandacss/weapp-pandacss/tree/main/examples/taro-app-vue3) | `dist/weapp/` |
+| `@weapp-pandacss/uni-app-vue3` | [uni-app-vue3](https://github.com/weapp-pandacss/weapp-pandacss/tree/main/examples/uni-app-vue3) | `dist/build/mp-weixin/` |
+| `@weapp-pandacss/react-app` | [react-app](https://github.com/weapp-pandacss/weapp-pandacss/tree/main/examples/react-app) | `dist/` |
 
-## Weapp Vite + Wevu
+替换工作区名称即可构建其他示例。根目录 `pnpm build` 包含五个应用与文档站。历史 Linaria 示例不属于活跃的 Panda 工作区。
 
-示例使用 weapp-vite/Wevu **7.4.0**、Vue SFC 与 `<script setup lang="ts">`，响应式 API 从 `wevu` 导入，避免引入第二套 Vue runtime。
+## 在 codegen 前选择目标
 
-脚本在 Panda codegen 前执行 `wv prepare`，全新安装会先生成受管类型文件。按钮通过 `styleIsolation: 'apply-shared'` 使用全局 Panda 样式，Tailwind 集成已关闭。
+Taro 和 Uni-app 根据环境变量选择生成目录。必须在 **Panda 读取配置之前** 设置变量，并把相同值传给框架构建。只在框架内部设置，会导致此前的 codegen 使用错误目标。
 
-在微信开发者工具导入示例目录，或运行 `open` 脚本。默认使用游客 AppID，平台能力所需 AppID 在本地设置。mpcore 测试检查真实 WXML/WXSS 和点击后的 class 更新，不验收像素布局。
+在独立项目中，将以下来自仓库流程的辅助脚本保存为 `scripts/run-platform.mjs`：
 
-## Taro 与 Uni-app
+~~~js
+import { spawnSync } from 'node:child_process'
+import { createRequire } from 'node:module'
+import path from 'node:path'
+import process from 'node:process'
 
-Taro 保留 Webpack，React 示例使用 React 18。Web 与小程序使用独立生成目录和对应别名。
+const [framework, target, ...args] = process.argv.slice(2)
+if (!['taro', 'uni'].includes(framework) || !target) {
+  throw new Error('Expected <taro|uni> <target> <framework arguments>')
+}
+const require = createRequire(path.resolve('package.json'))
+const env = {
+  ...process.env,
+  [framework === 'taro' ? 'TARO_ENV' : 'UNI_PLATFORM']: target,
+}
 
-Uni-app 保留 Tailwind v4 对比样式。Tailwind 和 Panda 样式使用独立处理流程，各自维护配套的 runtime 与 selector 命名。请参考完整配置，不要将 Panda 适配器直接用于 Tailwind 产物。
+function run(packageName, command, commandArgs) {
+  const manifest = require.resolve(`${packageName}/package.json`)
+  const bin = require(manifest).bin[command]
+  const result = spawnSync(
+    process.execPath,
+    [path.resolve(path.dirname(manifest), bin), ...commandArgs],
+    { env, stdio: 'inherit' },
+  )
+  if (result.error) throw result.error
+  if (result.status !== 0) process.exit(result.status ?? 1)
+}
 
-## React Web
+run('@pandacss/dev', 'panda', ['codegen'])
+run(
+  framework === 'taro' ? '@tarojs/cli' : '@dcloudio/vite-plugin-uni',
+  framework,
+  args,
+)
+~~~
 
-React Web 使用 PostCSS `target: 'web'`，保留 Web 选择器和 layer，同时共享安全 class 编码。
+各框架指南提供对应的 package scripts，在应用目录执行。仓库的 [examples/run-platform.mjs](https://github.com/weapp-pandacss/weapp-pandacss/blob/main/examples/run-platform.mjs) 使用相同流程，因此示例脚本的路径是 `../run-platform.mjs`。
 
-`dist`、`styled-system` 与 `.weapp-vite` 是生成目录。历史 Linaria 示例已归档，不参与活跃工作区构建。
+## 生成目录
+
+忽略 `styled-system/`、框架 `dist/` 和 Weapp Vite 的 `.weapp-vite/`，提交源码配置与 layer 入口样式。并行构建 Web 与小程序时使用独立生成目录、输出目录和别名。不要用旧 runtime 覆盖新 CSS，也不要再次编码 Panda 的 `css()` / recipe 返回值。
+
+继续阅读 [Panda 配置](/zh/panda/)、[PostCSS 配置](/zh/postcss/)和[故障排查](/zh/troubleshooting/)。

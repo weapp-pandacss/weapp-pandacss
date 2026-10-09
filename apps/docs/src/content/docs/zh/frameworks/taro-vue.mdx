@@ -1,0 +1,152 @@
+---
+title: Taro Vue
+description: 扫描 Vue SFC，配置匹配的 Panda runtime、Webpack 别名与 CSS。
+sidebar:
+  order: 3
+---
+
+[参考示例](https://github.com/weapp-pandacss/weapp-pandacss/tree/main/examples/taro-app-vue3)使用 **Taro 4.3.0**、**Vue 3.5** 与 **Webpack 5**。除包含 `.vue` 文件外，还需启用 Panda 的 Vue 提取器。Taro Vite 编译器不在本指南的验证基线中。
+
+## 安装依赖
+
+在已有 Taro Vue 应用中，adapter 声明 Node `^22.18.0 || >=24.11.0`，推荐使用 Node 22.18+ 或 24.11+ 的 LTS 版本：
+
+~~~sh
+pnpm add -D @pandacss/dev@2.1.2 @pandacss/preset-base@2.1.2 @pandacss/preset-panda@2.1.2 weapp-pandacss@^2 postcss postcss-rem-to-responsive-pixel
+~~~
+
+Taro 依赖组保持匹配版本。仅在编码原始手写 class 时，才将 `@weapp-pandacss/runtime` 安装为应用依赖。
+
+## 启用 Vue 提取
+
+~~~ts
+// panda.config.ts
+import process from 'node:process'
+import { defineConfig } from '@pandacss/dev'
+import { weappPanda } from 'weapp-pandacss/panda'
+
+export default defineConfig({
+  plugins: [weappPanda()],
+  polyfill: false,
+  presets: ['@pandacss/preset-base', '@pandacss/preset-panda'],
+  preflight: false,
+  include: ['./src/**/*.{js,jsx,ts,tsx,vue}'],
+  outdir: `styled-system/${process.env.TARO_ENV || 'weapp'}`,
+  importMap: 'styled-system',
+  outExtension: 'mjs',
+  forceImportExtension: true,
+  jsxFramework: 'vue',
+})
+~~~
+
+`jsxFramework: 'vue'` 启用 Panda 的 Vue SFC 提取器，只有 `.vue` glob 还不完整。仓库示例开启 preflight 验证 reset 转换；这份最小配置让项目自行选择 reset。
+
+## 配置别名与生成 JavaScript
+
+合并到已有 Taro `config/index.ts`：
+
+~~~ts
+import path from 'node:path'
+import process from 'node:process'
+
+const platformOptions = {
+  alias: {
+    'styled-system': path.resolve(
+      __dirname, '..', 'styled-system', process.env.TARO_ENV || 'weapp',
+    ),
+  },
+  outputRoot: `dist/${process.env.TARO_ENV || 'weapp'}`,
+  framework: 'vue3',
+  compiler: { type: 'webpack5', prebundle: { enable: false } },
+}
+~~~
+
+在原 TypeScript 配置中补充路径：
+
+~~~json
+{
+  "compilerOptions": {
+    "moduleResolution": "bundler",
+    "paths": { "styled-system/*": ["./styled-system/weapp/*"] }
+  },
+  "include": ["src", "types", "components.d.ts", "styled-system"]
+}
+~~~
+
+TypeScript 路径选择默认的微信编辑器/类型目录；H5 可以用单独 tsconfig 指向 `styled-system/h5/*`。片段之外的 Vue/compiler 设置应保留。
+
+仓库的 mini `webpackChain` 为 `/\.[cm]js$/i` 使用 `babel-loader` 与 `type: 'javascript/auto'`，生成 `.mjs` 必须进入转译流程。如果需要示例的 NutUI resolver 和样式，复制[完整 Taro 配置](https://github.com/weapp-pandacss/weapp-pandacss/blob/main/examples/taro-app-vue3/config/index.ts)；这些属于应用集成，不是 adapter 默认值。
+
+## 注册 PostCSS
+
+~~~js
+// postcss.config.cjs
+const process = require('node:process')
+
+module.exports = {
+  plugins: {
+    '@pandacss/dev/postcss': {},
+    'weapp-pandacss/postcss': {
+      target: process.env.TARO_ENV === 'h5' ? 'web' : 'weapp',
+    },
+    'postcss-rem-to-responsive-pixel': {
+      rootValue: 32,
+      propList: ['*'],
+      transformUnit: process.env.TARO_ENV === 'h5' ? 'px' : 'rpx',
+    },
+  },
+}
+~~~
+
+创建 `src/app.css`：
+
+~~~css
+@layer reset, base, tokens, recipes, utilities;
+~~~
+
+在 `src/app.ts` 中与 Vue 的 `createApp` 一起导入 `./app.css`。顺序保持 Panda → adapter → 可选单位转换，并与 Taro 的 `pxtransform`、`designWidth` 协调。
+
+## 单目标构建
+
+将[公共构建脚本](/zh/frameworks/#在-codegen-前选择目标)保存为 `scripts/run-platform.mjs`：
+
+~~~json
+{
+  "scripts": {
+    "build:weapp": "node scripts/run-platform.mjs taro weapp build --type weapp",
+    "dev:weapp": "node scripts/run-platform.mjs taro weapp build --type weapp --watch",
+    "build:h5": "node scripts/run-platform.mjs taro h5 build --type h5"
+  }
+}
+~~~
+
+脚本在 codegen 前设置 `TARO_ENV`，再把相同值交给 Taro。微信与 H5 分别使用 `styled-system/weapp` / `styled-system/h5`、`dist/weapp` / `dist/h5`。不要让两个 codegen 进程写同一目录。
+
+## 绑定生成的 class
+
+~~~vue
+<script setup lang="ts">
+import { css } from 'styled-system/css/index.mjs'
+
+const messageClass = css({ bg: 'yellow.200', color: 'pink.500', padding: '4' })
+</script>
+
+<template>
+  <view :class="messageClass">Panda CSS + Taro Vue</view>
+</template>
+~~~
+
+recipe 变体变化时使用 Vue 响应式状态或 `computed`。不要将生成结果传给 `encodeClassName`。自定义小程序组件需要检查样式隔离和接收 class 的原生节点；Vue scoped styles 是另一个边界。
+
+## 验证示例
+
+在仓库根目录执行：
+
+~~~sh
+pnpm exec turbo run build --filter=weapp-pandacss
+pnpm --filter @weapp-pandacss/taro-app-vue3 build:weapp
+pnpm --filter @weapp-pandacss/taro-app-vue3 build:h5
+pnpm --filter @weapp-pandacss/taro-app-vue3 typecheck
+~~~
+
+产物测试检查生成 class 与样式匹配。可选真实 IDE 探针检查部分 token 渲染颜色与重新启动，不代表覆盖全部 Vue/NutUI 交互或物理设备。忽略 `styled-system/`、`dist/` 与私有 IDE 文件。提取或样式缺失问题见[故障排查](/zh/troubleshooting/)。

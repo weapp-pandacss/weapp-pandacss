@@ -7,6 +7,8 @@ sidebar:
 
 ## 基础配置
 
+适配器要求 `@pandacss/dev` **2.1.2**，Node.js 使用 **22.x 中的 22.18 及以上版本，或 24.11 及以上版本**。Node.js 23 和低于 24.11 的 24.x 不在包声明的支持范围内。
+
 ~~~ts
 // panda.config.ts
 import { defineConfig } from '@pandacss/dev'
@@ -14,6 +16,7 @@ import { weappPanda } from 'weapp-pandacss/panda'
 
 export default defineConfig({
   plugins: [weappPanda()],
+  polyfill: false,
   presets: ['@pandacss/preset-base', '@pandacss/preset-panda'],
   include: ['./src/**/*.{js,jsx,ts,tsx,vue}'],
   preflight: false,
@@ -24,6 +27,10 @@ export default defineConfig({
 ~~~
 
 扫描实际使用的源码格式，Vue SFC 项目需要包含 `.vue`。不要把生成目录纳入源码扫描。
+
+保持 `polyfill: false`，让 PostCSS adapter 收到原始 cascade layers；`weappPanda()` 不会替你设置此选项。小程序可以先使用 `preflight: false`，再按需添加适合平台的 reset。
+
+完整生命周期、配置变更和生成诊断见 [Panda 插件 API](/zh/api/panda-plugin/)。
 
 ## 生成生命周期
 

@@ -3,6 +3,29 @@
 Canonical site: <https://panda.weapp.dev/>. English lives at `/`, Chinese at `/zh/`.
 本站基于 `repo new docs --template nimbus` 创建，保留 Nimbus、Astro 与模板上游说明。
 
+## Content structure / 内容结构
+
+The site separates setup, framework integration, scenario guides and API reference. Existing
+`/get-started/`, `/panda/`, `/postcss/`, `/runtime/`, `/frameworks/`, `/api/`, `/migration/`
+and `/troubleshooting/` routes remain valid; detailed pages extend them:
+
+| Content | Routes | Authoring purpose |
+| --- | --- | --- |
+| Setup | `/get-started/` and configuration overviews | Minimal complete pipeline and compatibility baseline |
+| Frameworks | `/frameworks/` and `/frameworks/*/` | Weapp Vite, Taro React/Vue, Uni-app, Web and a clearly labeled native recipe |
+| Scenarios | `/guides/` and `/guides/*/` | Dynamic styles, class naming, components, target isolation and CSS boundaries |
+| API | `/api/` and `/api/*/` | Package entries, exact adapter signatures/options and supported Panda-generated APIs |
+| Maintenance | `/migration/`, `/troubleshooting/` | Upgrade recovery, diagnostic steps and issue reproduction |
+
+Each route has the equivalent `/zh/` route. Keep API defaults and examples grounded in
+`packages/*/src` and the active examples; distinguish artifact, headless, browser, IDE and
+physical-device verification. Do not infer platform support from a framework script or
+present the native recipe as independently E2E-tested.
+
+文档按接入、框架、场景与 API 分层，保留原有入口，每个英文页面都有对应中文路由。
+参数与示例以实际源码为准，明确区分产物、headless、浏览器、IDE 和真机验证，
+不能用已有构建脚本代替平台验收。
+
 ## Development / 开发
 
 Install dependencies at the monorepo root, then run:
@@ -27,7 +50,45 @@ Machine-readable routes: `/llms.txt`, `/zh/llms.txt`, `/llms-full.txt`, and each
 Canonical URLs, language metadata, sitemap and robots all use `panda.weapp.dev`.
 
 Nimbus's `/_nimbus/shiki.css` defines token color variables; `src/styles/code.css`
-applies them for light and dark system themes. Verify computed token colors in both themes when changing code styles.
+applies them to the selected light/dark theme. Check system, explicit light and explicit dark
+preferences when changing code styles. Keep keyboard focus and reduced-motion behavior
+usable when changing navigation, search or code-copy interactions.
+
+## Validation before delivery / 交付前验证
+
+Run from the monorepo root with its declared Node/pnpm version:
+
+```sh
+pnpm --filter @weapp-pandacss/docs check:locales
+pnpm --filter @weapp-pandacss/docs lint
+pnpm --filter @weapp-pandacss/docs typecheck
+pnpm --filter @weapp-pandacss/docs build
+pnpm exec turbo run build --filter=weapp-pandacss
+pnpm --filter @weapp-pandacss/docs check:examples
+pnpm --filter @weapp-pandacss/docs test:e2e
+pnpm lint
+pnpm typecheck
+```
+
+`check:examples` executes the homepage example with Panda 2.1.2 and checks runtime/CSS
+matching in a temporary fixture; it does not validate every framework or every snippet.
+The adapter build includes its standalone runtime dependency. Root lint/typecheck are also
+the repository's pre-push gates. Browser checks use the built site, run headlessly and own
+their preview server; avoid overlapping builds or manually started servers on test ports.
+
+After a production build, use `preview` to check English/Chinese search, existing and new
+routes, desktop/mobile navigation, theme contrast and readable code/tables. Verify that
+language switches retain the current page and that page metadata refers to its translation.
+Inspect `/llms.txt`, `/zh/llms.txt`, `/llms-full.txt` and the new pages' `/index.md` and
+`/index.mdx`; important content must remain present without interactive controls.
+
+New MDX components belong in `src/components.ts`; information-bearing components also
+need a Markdown conversion in `astro.config.ts`. Keep authored styles under `src/styles/`.
+Translation parity and Nimbus link checks are required before publishing a new page.
+
+首页示例由 `check:examples` 实际执行，完整站点在生产构建后验收搜索和交互。
+新增页面同时检查语言切换、机器可读内容与移动阅读；根目录 lint/typecheck 也是
+pre-push 门禁。测试后台运行并管理自己的预览服务，避免与其他构建或端口冲突。
 
 ## Automatic language / 自动语言选择
 
@@ -71,5 +132,15 @@ Build output, Wrangler state and local credentials are ignored; do not commit th
 `deploy` 构建后仅发布静态产物并绑定自定义域名，不包含 Worker 脚本或地区接口，
 静态资源请求按 Cloudflare 当前计费规则免费。未知路由（含已移除的 `/api/locale`）返回 404。
 构建产物、Wrangler 状态与本地凭证不提交到仓库。
+
+A Git commit/push updates repository source. No documentation deployment workflow is
+configured here; publishing the website is the separate `deploy` operation above. The docs
+workspace is private. Changes confined to this site and root/example documentation do not
+require inventing package versions. A change under a published package, including its README,
+must follow the repository's release-intent rules.
+
+提交推送更新仓库源码，文档站上线是独立的 `deploy` 操作。本站为 private 工作区；
+仅修改本站与根目录/示例说明，不应编造包版本。已发布包目录内的改动，包括 README，
+仍需要遵循仓库 release-intent 规则。
 
 See `AGENTS.md`, `nimbus.json` and `UPSTREAM.md` for the template's maintenance contract.

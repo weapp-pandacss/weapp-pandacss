@@ -1,0 +1,117 @@
+---
+title: Build targets
+description: Separate platform outputs, resolve one logical import consistently, and keep watch and cache ownership explicit.
+sidebar:
+  order: 4
+---
+
+## Framework target and CSS target
+
+The adapter accepts two CSS targets: `weapp` and `web`. These are different from a framework's platform names.
+
+| Framework build | Platform environment | Panda directory in the example | Adapter target |
+| --- | --- | --- | --- |
+| Taro WeChat | `TARO_ENV=weapp` | `styled-system/weapp` | `weapp` |
+| Taro H5 configuration | `TARO_ENV=h5` | `styled-system/h5` | `web` |
+| Uni-app WeChat | `UNI_PLATFORM=mp-weixin` | `styled-system/mp-weixin` | `weapp` |
+| Uni-app H5 | `UNI_PLATFORM=h5` | `styled-system/h5` | `web` |
+| Weapp Vite + Wevu example | `weapp.platform: 'weapp'` | `styled-system` | `weapp` |
+| React Web example | Vite Web build | `styled-system` | `web` |
+
+Taro's repository artifact tests cover WeChat; Uni-app's cover WeChat and H5. Other framework scripts and a `weapp` CSS target do not establish verification for every platform. See the [framework support matrix](/frameworks/).
+
+## Set the platform before codegen
+
+Panda reads its configuration before the framework build starts. A platform variable set only by the later framework command arrives too late for a preceding `panda codegen` process.
+
+The repository's [platform runner](https://github.com/weapp-pandacss/weapp-pandacss/blob/main/examples/run-platform.mjs) sets `TARO_ENV` or `UNI_PLATFORM` first, runs Panda, then runs the framework with the same environment. Use the example scripts from the repository root:
+
+~~~sh
+pnpm --filter @weapp-pandacss/taro-app build:weapp
+pnpm --filter @weapp-pandacss/taro-app build:h5
+pnpm --filter @weapp-pandacss/uni-app-vue3 build
+pnpm --filter @weapp-pandacss/uni-app-vue3 build:h5
+~~~
+
+For your own runner, pass the platform to both processes. Do not infer the runtime directory from the most recently built target.
+
+## Give each target its own output
+
+A Taro Panda configuration can select a directory while preserving a stable source import:
+
+~~~ts
+// panda.config.ts
+import process from 'node:process'
+import { defineConfig } from '@pandacss/dev'
+import { weappPanda } from 'weapp-pandacss/panda'
+
+const platform = process.env.TARO_ENV || 'weapp'
+
+export default defineConfig({
+  plugins: [weappPanda()],
+  polyfill: false,
+  presets: ['@pandacss/preset-base', '@pandacss/preset-panda'],
+  include: ['./src/**/*.{js,jsx,ts,tsx}'],
+  preflight: platform === 'h5',
+  outdir: 'styled-system/' + platform,
+  importMap: 'styled-system',
+  outExtension: 'mjs',
+  forceImportExtension: true,
+  jsxFramework: 'react',
+})
+~~~
+
+Taro Vue adds `.vue` to the scan and uses the appropriate Vue authoring configuration. Uni-app uses `UNI_PLATFORM || 'mp-weixin'` and `jsxFramework: 'vue'`. Follow each complete [framework example](/frameworks/) rather than replacing every framework setting with this fragment.
+
+Keep the following values aligned:
+
+| Setting | Responsibility |
+| --- | --- |
+| Panda `outdir` | Where this process writes runtime and type artifacts |
+| Panda `importMap` | The logical import the extractor recognizes |
+| Bundler `styled-system` alias | Where runtime imports resolve during this target's build |
+| TypeScript `styled-system/*` paths | Where editor/type checks find generated declarations |
+| Framework output directory | Where this target's final application artifacts are written |
+
+The Taro/Uni examples' TypeScript paths point to their default mini-program directory; their bundler aliases select the runtime directory by platform. If targets have different generated type contracts, provide target-specific TypeScript configurations too. An editor's successful type resolution does not prove the bundler used the same output.
+
+Independent targets may build in parallel only when their generated and final output paths are independent. Do not start two processes that write the same `outdir`, even if both use identical encoding. Web/H5 retains the adapter with `target: 'web'`; switching targets does not require a legacy runtime rollback.
+
+## Working directory and watch
+
+Panda resolves files relative to its working directory. The Wevu Vite configuration sets the Panda PostCSS cwd explicitly because API-driven mpcore/Vitest builds keep the workspace root as the process cwd:
+
+~~~ts
+import panda from '@pandacss/dev/postcss'
+
+const pandaPlugin = panda({ cwd: import.meta.dirname })
+~~~
+
+Use the actual application's directory, not an arbitrary root shared by unrelated Panda configurations.
+
+The standard example flow runs initial codegen and then starts the framework's dev/watch process. Panda's PostCSS integration records extraction dependencies so the bundler can rebuild styles. If a standalone workflow needs runtime-generation watch, Panda 2.1.2 also offers `panda codegen --watch`; CSS still needs the PostCSS pipeline. Assign one owner to each generated directory.
+
+After changing a recipe, token, `include` or hash configuration, confirm both runtime and CSS regenerated. A framework may require a restart after environment, alias or TypeScript configuration changes. Repeated processing is safe when generation markers survive; it does not make competing writes safe.
+
+## Cache and clean builds
+
+Cache keys should account for target, Panda/adapter versions and the Panda configuration. Restore only that target's generated and framework output directories. A Web cache restored over mini-program runtime files can leave otherwise valid imports pointing at the wrong generation.
+
+To recover, stop the processes writing the affected target, remove that target's generated/output caches, regenerate and rebuild. Do not delete another running target's files. Compare the final rendered class and stylesheet after recovery, rather than accepting codegen success alone.
+
+## Panda and Tailwind entry isolation
+
+The Uni-app comparison example uses separate entries:
+
+~~~text
+panda.css → Panda PostCSS in a virtual CSS entry → Panda adapter → rem/unit conversion
+tailwind.css → weapp-tailwindcss's dedicated pipeline → its matching class runtime
+~~~
+
+The Panda entry is expanded early because Tailwind's generator may remove an input containing only layer-order declarations before framework PostCSS sees it. The virtual entry registers Panda dependency messages with Vite watch.
+
+The example's [panda-postcss.cjs](https://github.com/weapp-pandacss/weapp-pandacss/blob/main/examples/uni-app-vue3/panda-postcss.cjs) skips `tailwind.css` while adapting Panda and authored CSS. `WeappTailwindcss` receives an explicit Tailwind `cssEntries` path. Do not also register a second Tailwind generator or pass its already adapted CSS through Panda's codec. This is an example integration, not a new adapter option.
+
+## Acceptance by target
+
+Verify clean build, source edit, recipe/config edit and restart for each target you actually support. Check its alias, output location, selector/class match and token declaration. For Web also verify browser style/interaction; for mini-programs verify in the selected IDE or device. Artifact matching alone does not verify rendering or every framework interaction.

@@ -27,6 +27,7 @@
     "lint:docs": "nimbus-docs lint",
     "lint:docs:fix": "nimbus-docs lint --fix",
     "check:locales": "node scripts/check-locales.mjs",
+    "check:examples": "node scripts/check-examples.mjs",
     "test:e2e": "pnpm build && playwright test --config=../../e2e/docs/playwright.config.ts",
     "deploy": "pnpm build && wrangler deploy",
     "deploy:check": "pnpm build && wrangler deploy --dry-run"

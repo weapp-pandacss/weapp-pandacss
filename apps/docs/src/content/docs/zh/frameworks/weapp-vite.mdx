@@ -1,0 +1,149 @@
+---
+title: Weapp Vite + Wevu
+description: 在 Vue SFC 中接入 Panda CSS，处理受管类型与应用级共享 WXSS。
+sidebar:
+  order: 1
+---
+
+本指南依据 [examples/weapp-vite-app](https://github.com/weapp-pandacss/weapp-pandacss/tree/main/examples/weapp-vite-app)：weapp-vite **7.4.0**、Wevu **7.4.0** 和 Panda CSS **2.1.2**，构建目标为微信。在已有 Weapp Vite + Wevu 应用中添加样式。
+
+## 安装依赖
+
+adapter 声明 Node `^22.18.0 || >=24.11.0`，推荐 Node 22.18+ 或 24.11+ 的 LTS 版本，在应用目录执行：
+
+~~~sh
+pnpm add -D @pandacss/dev@2.1.2 @pandacss/preset-base@2.1.2 @pandacss/preset-panda@2.1.2 weapp-pandacss@^2 postcss postcss-rem-to-responsive-pixel
+~~~
+
+只有手写特殊 class 需要编码时，才把 `@weapp-pandacss/runtime` 安装为应用依赖。Panda 生成的 class 无需额外导入它。
+
+## 配置 Panda
+
+~~~ts
+// panda.config.ts
+import { defineConfig } from '@pandacss/dev'
+import { weappPanda } from 'weapp-pandacss/panda'
+
+export default defineConfig({
+  plugins: [weappPanda()],
+  polyfill: false,
+  presets: ['@pandacss/preset-base', '@pandacss/preset-panda'],
+  preflight: false,
+  include: ['./src/**/*.{ts,vue}'],
+  outdir: 'styled-system',
+  outExtension: 'mjs',
+  forceImportExtension: true,
+})
+~~~
+
+扫描范围必须包含 `.vue`。仓库示例开启 preflight，用于验证 reset 转换；这份最小配置关闭它，由项目选择小程序 reset。保留 `polyfill: false`，让适配器接收原始 layers。
+
+## 注册 PostCSS 与全局样式
+
+~~~ts
+// vite.config.ts
+import panda from '@pandacss/dev/postcss'
+import remToResponsivePixel from 'postcss-rem-to-responsive-pixel'
+import adapter from 'weapp-pandacss/postcss'
+import { defineConfig } from 'weapp-vite/config'
+
+export default defineConfig({
+  weapp: {
+    srcRoot: 'src',
+    platform: 'weapp',
+    autoRoutes: true,
+    autoImportComponents: true,
+    tailwindcss: false,
+  },
+  css: {
+    postcss: {
+      plugins: [
+        panda({ cwd: import.meta.dirname }),
+        adapter({ target: 'weapp' }),
+        remToResponsivePixel({
+          rootValue: 32,
+          propList: ['*'],
+          transformUnit: 'rpx',
+        }),
+      ],
+    },
+  },
+})
+~~~
+
+显式 Panda `cwd` 保证从 monorepo 根目录运行 API 测试时仍能找到正确配置。`rootValue: 32` 表示 `1rem = 32rpx`，应按设计选择；直接使用目标单位时可以移除转换插件。在已有项目中保留合适的路由、分包与 chunk 设置。
+
+创建 `src/app.css`：
+
+~~~css
+@layer reset, base, tokens, recipes, utilities;
+~~~
+
+在应用 SFC 的 script 中导入：
+
+~~~ts
+// src/app.vue 的 <script setup lang="ts"> 中
+import './app.css'
+~~~
+
+## 先生成类型，再执行 codegen
+
+Panda 会读取 TypeScript 配置。示例的 solution tsconfig 引用了 `.weapp-vite` 文件，所以全新检出必须先生成它们：
+
+~~~json
+{
+  "scripts": {
+    "prepare:types": "wv prepare",
+    "codegen": "panda codegen",
+    "dev": "pnpm prepare:types && pnpm codegen && wv dev -p weapp",
+    "build": "pnpm prepare:types && pnpm codegen && wv build -p weapp",
+    "open": "wv open"
+  }
+}
+~~~
+
+执行 `pnpm build` 后运行 `pnpm open`，或将示例目录导入微信开发者工具。仓库使用游客 AppID；平台功能和真实 IDE 验收需要授权 AppID。
+
+## 在 Vue SFC 中使用 class
+
+示例使用相对路径导入，不需要配置生成目录别名：
+
+~~~vue
+<!-- src/pages/index/index.vue -->
+<script setup lang="ts">
+import { css } from '../../../styled-system/css/index.mjs'
+
+const titleClass = css({ color: 'sky.600', fontSize: 'xl' })
+</script>
+
+<template>
+  <view>
+    <text :class="titleClass">Panda CSS + Wevu</text>
+  </view>
+</template>
+~~~
+
+`ref`、`computed` 等响应式 API 从 `wevu` 导入。如果改用别名，应通过 Weapp Vite 支持的配置同步 bundler 与受管 TypeScript 设置。
+
+组件使用应用级 Panda WXSS 时，显式配置：
+
+~~~ts
+// 组件的 <script setup> 中
+defineComponentJson({ component: true, styleIsolation: 'apply-shared' })
+~~~
+
+样式隔离应按组件边界选择。即使 class 名称匹配，组件排除了应用样式也不会生效。[PandaButton.vue](https://github.com/weapp-pandacss/weapp-pandacss/blob/main/examples/weapp-vite-app/src/components/PandaButton.vue) 展示了响应式 `cva()` 变体。
+
+## 验证接入
+
+在仓库根目录执行：
+
+~~~sh
+pnpm exec turbo run build --filter=weapp-pandacss
+pnpm --filter @weapp-pandacss/weapp-vite-app build
+pnpm --filter @weapp-pandacss/weapp-vite-app typecheck
+pnpm --filter @weapp-pandacss/weapp-vite-app lint
+pnpm --filter @weapp-pandacss/weapp-vite-app test
+~~~
+
+mpcore 检查真实编译的 WXML/WXSS 与点击后的 class 更新，不验收像素布局；渲染需要目标 IDE/真机验证。其他 Weapp Vite 平台及 Web runtime 需要各自验收。Git 忽略 `.weapp-vite/`、`styled-system/` 和 `dist/`。

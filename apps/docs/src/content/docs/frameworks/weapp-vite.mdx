@@ -1,0 +1,149 @@
+---
+title: Weapp Vite + Wevu
+description: Integrate Panda CSS with Vue SFCs, managed types and shared application WXSS.
+sidebar:
+  order: 1
+---
+
+This guide follows [examples/weapp-vite-app](https://github.com/weapp-pandacss/weapp-pandacss/tree/main/examples/weapp-vite-app): weapp-vite **7.4.0**, Wevu **7.4.0** and Panda CSS **2.1.2**, targeting WeChat. Add styling to an existing Weapp Vite + Wevu application.
+
+## Install
+
+The adapter engine is `^22.18.0 || >=24.11.0`; Node 22.18+ or 24.11+ on their LTS lines is recommended. In the application directory:
+
+~~~sh
+pnpm add -D @pandacss/dev@2.1.2 @pandacss/preset-base@2.1.2 @pandacss/preset-panda@2.1.2 weapp-pandacss@^2 postcss postcss-rem-to-responsive-pixel
+~~~
+
+Add `@weapp-pandacss/runtime` as an application dependency only when encoding hand-written special class names. Panda-generated classes do not need this extra import.
+
+## Configure Panda
+
+~~~ts
+// panda.config.ts
+import { defineConfig } from '@pandacss/dev'
+import { weappPanda } from 'weapp-pandacss/panda'
+
+export default defineConfig({
+  plugins: [weappPanda()],
+  polyfill: false,
+  presets: ['@pandacss/preset-base', '@pandacss/preset-panda'],
+  preflight: false,
+  include: ['./src/**/*.{ts,vue}'],
+  outdir: 'styled-system',
+  outExtension: 'mjs',
+  forceImportExtension: true,
+})
+~~~
+
+Keep `.vue` in the scan. The repository example enables preflight to exercise reset adaptation; this minimal configuration leaves it off so you can choose a reset for your mini-program. Preserve `polyfill: false` to pass original layers to the adapter.
+
+## Register PostCSS and global styles
+
+~~~ts
+// vite.config.ts
+import panda from '@pandacss/dev/postcss'
+import remToResponsivePixel from 'postcss-rem-to-responsive-pixel'
+import adapter from 'weapp-pandacss/postcss'
+import { defineConfig } from 'weapp-vite/config'
+
+export default defineConfig({
+  weapp: {
+    srcRoot: 'src',
+    platform: 'weapp',
+    autoRoutes: true,
+    autoImportComponents: true,
+    tailwindcss: false,
+  },
+  css: {
+    postcss: {
+      plugins: [
+        panda({ cwd: import.meta.dirname }),
+        adapter({ target: 'weapp' }),
+        remToResponsivePixel({
+          rootValue: 32,
+          propList: ['*'],
+          transformUnit: 'rpx',
+        }),
+      ],
+    },
+  },
+})
+~~~
+
+Panda's explicit `cwd` keeps configuration discovery correct when API-driven tests run from the monorepo root. `rootValue: 32` means `1rem = 32rpx`; choose it for your design, or omit the converter when authoring the desired units directly. Preserve existing routing, subpackage and chunk settings when integrating into a larger application.
+
+Create `src/app.css`:
+
+~~~css
+@layer reset, base, tokens, recipes, utilities;
+~~~
+
+Import it in the application's SFC script:
+
+~~~ts
+// src/app.vue — inside <script setup lang="ts">
+import './app.css'
+~~~
+
+## Prepare types before codegen
+
+Panda reads TypeScript configuration. The example's solution tsconfig references `.weapp-vite` files, so a clean checkout must create them first:
+
+~~~json
+{
+  "scripts": {
+    "prepare:types": "wv prepare",
+    "codegen": "panda codegen",
+    "dev": "pnpm prepare:types && pnpm codegen && wv dev -p weapp",
+    "build": "pnpm prepare:types && pnpm codegen && wv build -p weapp",
+    "open": "wv open"
+  }
+}
+~~~
+
+Run `pnpm build`, then `pnpm open`, or import the example directory in WeChat DevTools. The repository uses a tourist AppID; platform features and real-IDE acceptance need an authorized AppID.
+
+## Use classes in Vue SFCs
+
+The example uses relative paths, so no generated-directory alias is required:
+
+~~~vue
+<!-- src/pages/index/index.vue -->
+<script setup lang="ts">
+import { css } from '../../../styled-system/css/index.mjs'
+
+const titleClass = css({ color: 'sky.600', fontSize: 'xl' })
+</script>
+
+<template>
+  <view>
+    <text :class="titleClass">Panda CSS + Wevu</text>
+  </view>
+</template>
+~~~
+
+Import reactive APIs such as `ref` and `computed` from `wevu`. If using an alias instead of relative imports, configure both the bundler and managed TypeScript settings through Weapp Vite's supported configuration.
+
+For a component using application-level Panda WXSS:
+
+~~~ts
+// Inside the component's <script setup>
+defineComponentJson({ component: true, styleIsolation: 'apply-shared' })
+~~~
+
+Choose isolation deliberately: matching class names cannot cross a stylesheet boundary that excludes application styles. See [PandaButton.vue](https://github.com/weapp-pandacss/weapp-pandacss/blob/main/examples/weapp-vite-app/src/components/PandaButton.vue) for reactive `cva()` variants.
+
+## Validate
+
+From the repository root:
+
+~~~sh
+pnpm exec turbo run build --filter=weapp-pandacss
+pnpm --filter @weapp-pandacss/weapp-vite-app build
+pnpm --filter @weapp-pandacss/weapp-vite-app typecheck
+pnpm --filter @weapp-pandacss/weapp-vite-app lint
+pnpm --filter @weapp-pandacss/weapp-vite-app test
+~~~
+
+mpcore checks actual compiled WXML/WXSS and class changes after taps. It does not check pixel layout; use the target IDE/device for rendering. Other Weapp Vite platforms and its Web runtime need separate acceptance. Ignore `.weapp-vite/`, `styled-system/` and `dist/` in Git.

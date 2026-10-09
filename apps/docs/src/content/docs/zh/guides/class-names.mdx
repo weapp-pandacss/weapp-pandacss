@@ -1,0 +1,104 @@
+---
+title: 类名处理
+description: 直接使用生成 class，手写名称只编码一次，并让 CSS selector 与它保持一致。
+sidebar:
+  order: 1
+---
+
+## 先判断 class 的来源
+
+| Class 来源 | 业务代码 | 样式 |
+| --- | --- | --- |
+| Panda `css()`、`cva()`、`sva()`、recipes、patterns | 直接使用生成结果 | Panda 生成后再经过 adapter |
+| 手写特殊 class | 对原始名称编码一次 | 使用原名与普通 CSS 转义，再经过 adapter |
+| `custom-tabs__scroll` 等普通手写名称 | 可以保持原样 | 命名阶段保持原样 |
+| 第三方 class 生成器 | 遵守该库的 runtime/CSS 配套关系 | 先查[第三方样式](/zh/guides/component-styles/#第三方样式)再决定是否适配 |
+
+Panda 生成 runtime 已经编码返回值。`encodeClassName(css(...))` 会再次改变名称，导致它与样式失配。
+
+## 手写名称
+
+独立 runtime 不依赖 Panda、PostCSS、Babel 或 Node API：
+
+~~~sh
+pnpm add @weapp-pandacss/runtime
+~~~
+
+~~~ts
+import { encodeClassList, encodeClassName } from '@weapp-pandacss/runtime'
+
+const activeClass = encodeClassName('custom/active')
+const labelClasses = encodeClassList('a.b 中文')
+~~~
+
+~~~css
+/* CSS 源码使用原始名称，并按 CSS 语法转义。 */
+.custom\/active { color: green; }
+.a\.b { font-weight: bold; }
+.中文 { padding: 0.5rem; }
+~~~
+
+经过 PostCSS adapter 后，class 与下列 selector 匹配：
+
+~~~css
+.custom_wp_2f_active { color: green; }
+.a_wp_2e_b { font-weight: bold; }
+._wp_4e2d__wp_6587_ { padding: 0.5rem; }
+~~~
+
+这里只展示命名阶段，空白和单位可能被后续插件改变。独立 runtime 只负责 JavaScript 字符串编码，不会替你处理 CSS。
+
+## 精确编码示例
+
+以下输出由 runtime 测试覆盖：
+
+| 输入 | `encodeClassName` 输出 |
+| --- | --- |
+| `custom-tabs__scroll` | `custom-tabs__scroll` |
+| `c_red.500` | `c_red_wp_2e_500` |
+| `a.b` | `a_wp_2e_b` |
+| `a_wp_2e_b` | `a_wp_5f_wp_2e_b` |
+| `1card` | `_wp_31_card` |
+| `-1` | `_wp_2d_1` |
+| `中文` | `_wp_4e2d__wp_6587_` |
+| `💡` | `_wp_1f4a1_` |
+
+特殊字符编码为 `_wp_<十六进制码点>_`。原始名称里的 `_wp_` 标记会转义下划线，避免与已编码名称碰撞。Unicode 按完整码点处理，包含基本多文种平面之外的字符。
+
+**一个 class** 使用 `encodeClassName`，按空白分隔的列表使用 `encodeClassList`：
+
+~~~ts
+encodeClassName('a b') // 'a_wp_20_b'：一个包含空格的名称
+encodeClassList('a.b 中文') // 'a_wp_2e_b _wp_4e2d__wp_6587_'
+encodeClassList('  \n\t ') // ''
+~~~
+
+`encodeClassList` 会统一名称之间的空白。参数是字符串；数组或条件值需要先按使用场景转换成字符串。
+
+## 混合生成与手写 class
+
+~~~ts
+import { encodeClassName } from '@weapp-pandacss/runtime'
+import { css, cx } from '../../styled-system/css/index.mjs'
+
+const classes = cx(
+  css({ fontSize: '1.25rem' }),
+  encodeClassName('custom/active'),
+)
+~~~
+
+`cx()` 只拼接名称，不执行编码。把原始特殊名称传给它，不会自动获得可跨目标使用的 class。`css.raw`、变体和 recipe 元数据继续遵循 Panda 语义；recipe 的生成结果直接使用。
+
+## 重复处理与组件发布
+
+编码函数本身**不幂等**，再次调用会把编码结果当成新的原始名称。生成产物通过标记识别重复处理：
+
+~~~css
+/*! weapp-pandacss:portable-v1 */
+~~~
+
+再次处理生成产物时保留标记。不要把已编码但失去标记的 CSS 与原始 CSS 合并后，整体执行一次命名转换；这会混合两种不同的输入约定。
+
+组件库可以依赖独立 runtime，避免把构建工具带进应用，但 CSS 仍要遵循配套的 adapter 约定。适配器发布后精确依赖对应 runtime 版本，独立组件选择版本时应核对这项依赖。兼容入口 `weapp-pandacss/runtime` 转导出同一实现，Panda 生成 runtime 则保持自包含。
+
+遇到失配，直接对照节点实际 class 与最终 selector。详见[样式缺失排查](/zh/troubleshooting/#有-class但样式未生效)与 [runtime 参考](/zh/runtime/)。

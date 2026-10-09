@@ -1,0 +1,110 @@
+---
+title: Panda plugin
+description: weappPanda signature, configuration changes, generation hooks and supported artifacts.
+sidebar:
+  order: 1
+---
+
+## weappPanda()
+
+```ts
+import { weappPanda } from 'weapp-pandacss/panda'
+
+const plugin = weappPanda()
+```
+
+The function takes no arguments and returns a Panda plugin named `weapp-pandacss`. Register it in `plugins` in your Panda configuration. The root package also exports the same function.
+
+```ts
+declare function weappPanda(): import('@pandacss/types').PandaPlugin
+```
+
+```ts
+import { defineConfig } from '@pandacss/dev'
+import { weappPanda } from 'weapp-pandacss/panda'
+
+export default defineConfig({
+  plugins: [weappPanda()],
+  polyfill: false,
+  preflight: false,
+  presets: ['@pandacss/preset-base', '@pandacss/preset-panda'],
+  include: ['./src/**/*.{js,jsx,ts,tsx,vue}'],
+  outdir: 'styled-system',
+  outExtension: 'mjs',
+  forceImportExtension: true,
+})
+```
+
+For CommonJS configuration:
+
+```js
+const { weappPanda } = require('weapp-pandacss/panda')
+
+module.exports = { plugins: [weappPanda()], polyfill: false }
+```
+
+The plugin adapts generated JavaScript names. CSS must also pass through [weapp-pandacss/postcss](/api/postcss-plugin/), including in Web/H5 builds.
+
+## Version and environment
+
+| Requirement | Supported value |
+| --- | --- |
+| `@pandacss/dev` | Exactly `2.1.2`; checked when `weappPanda()` is called |
+| Presets used in the examples | `@pandacss/preset-base@2.1.2`, `@pandacss/preset-panda@2.1.2` |
+| Adapter Node.js engine | `^22.18.0 \|\| >=24.11.0` |
+| Generated runtime extension | `js` or `mjs` |
+
+Missing Panda or another Panda version throws `weappPanda requires Panda CSS 2.1.2`. Keep the verified version instead of bypassing the check. The Node engine permits 22.x from 22.18 and versions from 24.11; it excludes Node 23 and earlier 24.x releases.
+
+## Configuration changes
+
+The `config:resolved` hook returns a normalized configuration without modifying your original object.
+
+| Input | Result |
+| --- | --- |
+| Missing `hash` or `hash.className` | `hash: { className: false, cssVar: true }` |
+| Boolean `hash` | Preserves that boolean for `className`; enables `cssVar` |
+| Object `hash` | Preserves `className`; always sets `cssVar: true` |
+| String `prefix` | Splits into `prefix.className` and `prefix.cssVar` |
+| Object `prefix` | Processes its class and variable prefixes separately |
+| Recipe or slot recipe `className` | Canonicalizes a leading digit/hyphen or literal `_wp_` marker before Panda escapes CSS |
+
+Recipe normalization applies to both `theme` and `theme.extend`. Ordinary names such as `button` remain readable. CSS variable prefixes use the portable encoding; CSS variable declarations themselves are not renamed by the PostCSS adapter.
+
+```ts
+hash: { className: true, cssVar: false }
+// Resolved: { className: true, cssVar: true }
+```
+
+`polyfill`, `preflight`, `include`, `outdir` and `forceImportExtension` remain Panda configuration choices. Set `polyfill: false` explicitly to supply original layers to the ordered compiler. Keep the generated directory outside the source scan.
+
+## Generation lifecycle
+
+| Hook | Behavior |
+| --- | --- |
+| `config:resolved` | Normalizes class identifiers, prefixes and native CSS variable hashing |
+| Synchronous `codegen:prepare` | Transforms the complete generated artifact batch before Panda writes it |
+
+The generation hook wraps Panda's CSS serializer and compound-variant class output, adapts slot class metadata, and adds `weapp-panda/runtime.js` or `.mjs` inside your generated directory. This module embeds the [portable runtime](/api/runtime/) and has no runtime package import.
+
+`css`, `cva`, `sva`, named/slot recipes, patterns and styled outputs use matching portable class names. Style objects, `.raw` results, variant metadata, merge behavior and serializer property descriptors retain Panda's semantics. `cx()` joins class names without encoding raw authored names.
+
+Panda's PostCSS-driven regeneration runs the same hook. Configuration reloads regenerate from the current configuration; no backup files, subprocess patching or `codegen:done` hook are needed.
+
+## Artifact errors and recovery
+
+| Diagnostic | Cause | Action |
+| --- | --- | --- |
+| `Cannot find Panda helpers` | A nonstandard or incomplete codegen batch | Use the standard Panda codegen pipeline |
+| `supports outExtension "js" or "mjs"` | TypeScript-only or another runtime extension | Select `mjs` or `js`, then regenerate |
+| `missing css/sva runtime`, `missing createSerializeCss`, or changed slot producer | Runtime artifacts do not match the verified structure | Check Panda version and restore standard codegen |
+| `Legacy weapp-panda patch detected` | Old file-patching output remains | Delete the generated directory, then run `panda codegen` |
+| `Incomplete or incompatible` or `missing generation markers` | Mixed, partial or altered generated output | Delete the generated directory, then run `panda codegen` |
+
+The marker `// weapp-pandacss:portable-v1` identifies a complete adapted batch. Reprocessing that batch is safe. Do not copy individual helper files between generated directories or remove markers before another generation pass.
+
+## Build boundaries
+
+Use separate `outdir` values and matching aliases for parallel target builds. Two codegen processes must not write the same directory. See the [framework guide](/frameworks/) for the checked examples.
+
+The adapter does not transpile generated JavaScript for a mini-program engine. Let your framework handle its syntax requirements. Panda source transforms that inline raw class strings and bypass the generated runtime are outside the supported path. Dynamic style values also need Panda extraction or pre-generation; naming adaptation alone does not create CSS.

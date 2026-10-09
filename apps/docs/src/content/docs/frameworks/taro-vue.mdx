@@ -1,0 +1,152 @@
+---
+title: Taro Vue
+description: Scan Vue SFCs and configure matching Panda runtime, Webpack aliases and CSS.
+sidebar:
+  order: 3
+---
+
+The [reference example](https://github.com/weapp-pandacss/weapp-pandacss/tree/main/examples/taro-app-vue3) uses **Taro 4.3.0**, **Vue 3.5** and **Webpack 5**. Configure the Panda Vue extractor as well as including `.vue` files. Taro's Vite compiler is not this guide's verified baseline.
+
+## Install
+
+In an existing Taro Vue application, using a recommended Node 22.18+ or 24.11+ LTS release (adapter engine: `^22.18.0 || >=24.11.0`):
+
+~~~sh
+pnpm add -D @pandacss/dev@2.1.2 @pandacss/preset-base@2.1.2 @pandacss/preset-panda@2.1.2 weapp-pandacss@^2 postcss postcss-rem-to-responsive-pixel
+~~~
+
+Keep the Taro packages on matching versions. Only add `@weapp-pandacss/runtime` to application dependencies if you encode raw authored class names.
+
+## Enable Vue extraction
+
+~~~ts
+// panda.config.ts
+import process from 'node:process'
+import { defineConfig } from '@pandacss/dev'
+import { weappPanda } from 'weapp-pandacss/panda'
+
+export default defineConfig({
+  plugins: [weappPanda()],
+  polyfill: false,
+  presets: ['@pandacss/preset-base', '@pandacss/preset-panda'],
+  preflight: false,
+  include: ['./src/**/*.{js,jsx,ts,tsx,vue}'],
+  outdir: `styled-system/${process.env.TARO_ENV || 'weapp'}`,
+  importMap: 'styled-system',
+  outExtension: 'mjs',
+  forceImportExtension: true,
+  jsxFramework: 'vue',
+})
+~~~
+
+`jsxFramework: 'vue'` enables Panda's Vue SFC extractor. A `.vue` glob alone is not the full configuration. The repository enables preflight to exercise reset conversion; this minimal setup leaves reset selection to your project.
+
+## Configure aliases and generated JavaScript
+
+Merge into your existing Taro `config/index.ts`:
+
+~~~ts
+import path from 'node:path'
+import process from 'node:process'
+
+const platformOptions = {
+  alias: {
+    'styled-system': path.resolve(
+      __dirname, '..', 'styled-system', process.env.TARO_ENV || 'weapp',
+    ),
+  },
+  outputRoot: `dist/${process.env.TARO_ENV || 'weapp'}`,
+  framework: 'vue3',
+  compiler: { type: 'webpack5', prebundle: { enable: false } },
+}
+~~~
+
+Add a TypeScript path alongside existing compiler options:
+
+~~~json
+{
+  "compilerOptions": {
+    "moduleResolution": "bundler",
+    "paths": { "styled-system/*": ["./styled-system/weapp/*"] }
+  },
+  "include": ["src", "types", "components.d.ts", "styled-system"]
+}
+~~~
+
+The TypeScript path selects the default WeChat editor/types directory; a separate H5 tsconfig can point to `styled-system/h5/*`. Preserve Vue/compiler settings outside these fragments.
+
+The repository's mini `webpackChain` includes a `/\.[cm]js$/i` rule using `babel-loader` with `type: 'javascript/auto'`. Keep generated `.mjs` in your transpilation pipeline. Copy [the full Taro configuration](https://github.com/weapp-pandacss/weapp-pandacss/blob/main/examples/taro-app-vue3/config/index.ts) when using its NutUI resolver and styles; those integrations are application concerns, not adapter defaults.
+
+## Register PostCSS
+
+~~~js
+// postcss.config.cjs
+const process = require('node:process')
+
+module.exports = {
+  plugins: {
+    '@pandacss/dev/postcss': {},
+    'weapp-pandacss/postcss': {
+      target: process.env.TARO_ENV === 'h5' ? 'web' : 'weapp',
+    },
+    'postcss-rem-to-responsive-pixel': {
+      rootValue: 32,
+      propList: ['*'],
+      transformUnit: process.env.TARO_ENV === 'h5' ? 'px' : 'rpx',
+    },
+  },
+}
+~~~
+
+Create `src/app.css` containing:
+
+~~~css
+@layer reset, base, tokens, recipes, utilities;
+~~~
+
+Import `./app.css` from `src/app.ts`, alongside `createApp` from `vue`. Keep the order Panda → adapter → optional unit conversion. Coordinate conversions with Taro's `pxtransform` and `designWidth`.
+
+## Build with one target
+
+Save the [shared launcher](/frameworks/#target-aware-build-script) as `scripts/run-platform.mjs`:
+
+~~~json
+{
+  "scripts": {
+    "build:weapp": "node scripts/run-platform.mjs taro weapp build --type weapp",
+    "dev:weapp": "node scripts/run-platform.mjs taro weapp build --type weapp --watch",
+    "build:h5": "node scripts/run-platform.mjs taro h5 build --type h5"
+  }
+}
+~~~
+
+The launcher sets `TARO_ENV` before codegen and reuses it for Taro. WeChat and H5 use `styled-system/weapp` / `styled-system/h5` and `dist/weapp` / `dist/h5`. Do not run two codegen processes against the same directory.
+
+## Bind the generated class
+
+~~~vue
+<script setup lang="ts">
+import { css } from 'styled-system/css/index.mjs'
+
+const messageClass = css({ bg: 'yellow.200', color: 'pink.500', padding: '4' })
+</script>
+
+<template>
+  <view :class="messageClass">Panda CSS + Taro Vue</view>
+</template>
+~~~
+
+Use reactive Vue state or `computed` when a recipe variant changes. Do not pass generated output to `encodeClassName`. For custom mini-program components, check their style isolation and the native node that receives the class; Vue scoped styles are a separate boundary.
+
+## Validate the example
+
+From the repository root:
+
+~~~sh
+pnpm exec turbo run build --filter=weapp-pandacss
+pnpm --filter @weapp-pandacss/taro-app-vue3 build:weapp
+pnpm --filter @weapp-pandacss/taro-app-vue3 build:h5
+pnpm --filter @weapp-pandacss/taro-app-vue3 typecheck
+~~~
+
+Artifact tests check generated class/stylesheet matching. Optional real-IDE probes check selected rendered token colors and fresh launches; they do not provide complete Vue/NutUI interaction or physical-device coverage. Ignore `styled-system/`, `dist/` and private IDE files. Use [troubleshooting](/troubleshooting/) for extraction or missing-style issues.

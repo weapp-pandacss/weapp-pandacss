@@ -1,0 +1,127 @@
+---
+title: Dynamic styles
+description: Use recipes for finite states, variables for runtime values, and staticCss when extraction cannot see a value.
+sidebar:
+  order: 2
+---
+
+## Choose by the source of the value
+
+Panda extracts styles at build time. The runtime can compute a class string, but it does not insert new CSS when a value arrives from an API. The adapter preserves that boundary.
+
+| Input | Approach |
+| --- | --- |
+| Literal style or token known at build time | `css({ color: 'red.500' })` |
+| A finite component state such as neutral/accent | `cva()`, `sva()` or a config recipe with extracted variants |
+| A finite set selected through runtime data | Explicit `staticCss` values or config-recipe variant generation |
+| An arbitrary color, width or progress value | A statically authored CSS variable reference with a runtime style value |
+
+## Finite variants
+
+The Wevu example defines both button states statically and switches the selected variant:
+
+~~~ts
+import { computed, ref } from 'wevu'
+import { cva } from '../../styled-system/css/index.mjs'
+
+const active = ref(false)
+const button = cva({
+  base: { padding: '0.5rem 1rem', borderRadius: '0.5rem', fontWeight: 'semibold' },
+  variants: {
+    tone: {
+      neutral: { bg: 'slate.200', color: 'slate.900' },
+      accent: { bg: 'sky.600', color: 'white' },
+    },
+  },
+  defaultVariants: { tone: 'neutral' },
+})
+const buttonClass = computed(() => button({ tone: active.value ? 'accent' : 'neutral' }))
+~~~
+
+Bind `buttonClass` to the button's `:class` and update `active` on `tap`. Wevu reactive APIs come from `wevu`. A React or Vue application uses its own state API with the same recipe contract. `cva()` definitions allow Panda to generate the finite atomic variants; the runtime only selects their classes.
+
+Named recipes declared in `theme.recipes` behave differently for extraction: a runtime-only argument may not reveal the variants that need generating. Keep literal variant uses visible to extraction, or configure the named recipe's `staticCss`. The repository's `e2eButton` example explicitly selects the literal `accent` and `neutral` values.
+
+## Slot and compound states
+
+Use `sva()` when one state affects several elements. Each slot has its own returned class string:
+
+~~~ts
+import { sva } from '../../styled-system/css/index.mjs'
+
+const card = sva({
+  slots: ['root', 'label'],
+  base: {
+    root: { backgroundColor: '#f1f5f9' },
+    label: { color: '#475569' },
+  },
+  variants: {
+    active: {
+      true: {
+        root: { backgroundColor: '#e0f2fe' },
+        label: { color: '#0284c7' },
+      },
+    },
+  },
+})
+const slots = card({ active: true })
+~~~
+
+Bind `slots.root` to the container and `slots.label` to the label. Do not pass the whole object as one class. A `compoundVariants` entry adds styles when its specified variant combination matches. It does not make arbitrary unseen runtime values extractable.
+
+The [Wevu acceptance page](https://github.com/weapp-pandacss/weapp-pandacss/blob/main/examples/weapp-vite-app/src/pages/acceptance/index.vue) covers atomic and named compounds, inline and named slots, repeated state changes and matching emitted selectors. Browser tests also check recipe/slot interaction on the React production example. These tests do not establish the same interaction coverage for every framework.
+
+## Runtime values through CSS variables
+
+Keep the CSS expression static and update the custom property's value in the element's style:
+
+~~~ts
+import { css } from '../../styled-system/css/index.mjs'
+
+const runtimeColor = '#0f766e' // For example, a validated value from application data
+const swatchClass = css({ color: 'var(--runtime-color)' })
+const swatchStyle = '--runtime-color:' + runtimeColor
+~~~
+
+~~~html
+<!-- Vue/Wevu: expose the values to the template. -->
+<view :class="swatchClass" :style="swatchStyle">Dynamic color</view>
+~~~
+
+Native WXML binds the same strings from page/component data using `class` and `style`. React uses its `style` object to set the property. Follow the framework's style-binding API and check CSS variable support in the selected mini-program renderer/base library.
+
+`--runtime-color` is an ASCII identifier, so it passes the adapter's mini-program variable check. The literal `var(--runtime-color)` rule can be extracted once; changing the property value does not require new classes. A computed inline `rem` value is not processed by the PostCSS rem/rpx plugin—supply the intended runtime unit.
+
+Panda `token()` can supply a configured token value at runtime. `token.var()` returns a CSS variable reference. The adapter enables Panda's native variable hashing, so do not construct or rename the hashed variable yourself.
+
+## Pre-generate a bounded set
+
+If runtime data selects one of a known set of atomic values, add the set to your existing Panda configuration:
+
+~~~ts
+// Add this property to the defineConfig object from Installation.
+staticCss: {
+  css: [
+    { properties: { color: ['red.500', 'blue.500'] } },
+  ],
+},
+~~~
+
+Now a runtime branch may choose either of those generated values. For a configured recipe named `button` with a `size` variant, Panda's recipe form is:
+
+~~~ts
+// The button recipe must already be declared in your theme.
+staticCss: {
+  recipes: {
+    button: [{ size: ['sm', 'md'] }],
+  },
+},
+~~~
+
+List the values actually used. Generating every value, condition and breakpoint can multiply CSS size. These are Panda configuration fragments, not adapter options. Regenerate after changing them. See Panda's [dynamic styling](https://panda-css.com/docs/styling/dynamic-styling), [static CSS](https://panda-css.com/docs/styling/static) and [dynamic variants](https://panda-css.com/docs/recipes/dynamic-variants) guides.
+
+## Validate extraction and switching
+
+Check the initial state, each selected variant and the state after a page reload. Inspect the final class and its actual CSS/WXSS rule. For runtime variables, inspect both the static rule and the element's current custom-property value.
+
+If a runtime class has no matching selector, verify `include`, generated-directory aliases and `staticCss` before changing the encoding. [Troubleshooting](/troubleshooting/#dynamic-values-have-no-matching-rule) explains that failure path.

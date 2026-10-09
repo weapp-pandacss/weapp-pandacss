@@ -1,0 +1,169 @@
+---
+title: Recipes
+description: cva, sva, configuration recipes, compound variants and variant helper behavior.
+sidebar:
+  order: 5
+---
+
+Recipes belong to Panda's generated runtime. They turn known variant choices into portable classes; they do not create arbitrary CSS at runtime.
+
+For the full definition and extraction model, see Panda's official [recipe overview](https://panda-css.com/docs/recipes/overview). The examples here use Panda 2.1.2 and the portable adapter.
+
+| API | Defined in | Return from a variant call |
+| --- | --- | --- |
+| `cva(definition)` | Scanned source file | One class string |
+| `sva(definition)` | Scanned source file | An object of slot class strings |
+| Named recipe | `theme.recipes` or `theme.extend.recipes` | One class string |
+| Named slot recipe | `theme.slotRecipes` or `theme.extend.slotRecipes` | An object of slot class strings |
+
+## cva(definition)
+
+```ts
+import { cva } from '../styled-system/css/index.mjs'
+
+const button = cva({
+  base: { borderRadius: 'md', fontWeight: 'bold' },
+  variants: {
+    tone: {
+      neutral: { color: 'gray.700' },
+      accent: { color: 'blue.500' },
+    },
+    size: {
+      sm: { padding: '2' },
+      lg: { padding: '4' },
+    },
+  },
+  defaultVariants: { tone: 'neutral', size: 'sm' },
+  compoundVariants: [
+    { tone: 'accent', size: 'lg', css: { fontSize: 'lg' } },
+  ],
+})
+
+const className = button({ tone: 'accent', size: 'lg' })
+```
+
+The call combines base styles, selected/default variants and matching compound variants. Its class string is already portable. `button()` uses defaults; selected values override their defaults.
+
+| Definition field | Meaning |
+| --- | --- |
+| `base` | Styles shared by all selections |
+| `variants` | Named axes and their known values |
+| `defaultVariants` | Selection used for omitted axes |
+| `compoundVariants` | Additional styles for a matching combination; `css` holds the styles |
+
+Keep the definition visible to extraction. Choose variants in application state rather than constructing unknown CSS property values at runtime.
+
+## sva(definition)
+
+Use slots when a component has separately styled parts.
+
+```ts
+import { sva } from '../styled-system/css/index.mjs'
+
+const card = sva({
+  className: 'demo/card',
+  slots: ['root', 'label'],
+  base: {
+    root: { padding: '4', borderRadius: 'lg' },
+    label: { fontWeight: 'bold' },
+  },
+  variants: {
+    active: {
+      true: {
+        root: { backgroundColor: 'blue.50' },
+        label: { color: 'blue.700' },
+      },
+    },
+  },
+})
+
+const classes = card({ active: true })
+// Bind classes.root and classes.label to their corresponding elements.
+```
+
+`slots` declares the parts. `base`, each variant and compound-variant `css` use objects keyed by those slot names. Pass each returned class to its own part; do not bind the entire object as one class list.
+
+The optional `className` enables stable slot labels. The generated runtime's `classNameMap` is adapted together with slot output, so manual selectors and public slot metadata use portable names. Do not encode slot outputs or metadata again.
+
+Marker classes and empty slot variants can intentionally have no standalone CSS declaration. The companion style classes carry the rules; check those before treating an unmatched slot label as missing extraction.
+
+## Variant helpers
+
+For inline `cva`/`sva` recipes, the generated declarations expose these helpers:
+
+| Member | Behavior |
+| --- | --- |
+| `.raw(selection)` | Returns resolved style objects: one for `cva`, one per slot for `sva` |
+| `.variantKeys` | Lists the variant axes |
+| `.variantMap` | Lists the supported values for each axis |
+| `.splitVariantProps(props)` | Returns `[variantProps, otherProps]` |
+| `.getVariantProps(selection)` | Resolves the selection with defaults |
+
+```ts
+const rawStyles = button.raw({ tone: 'accent' })
+const keys = button.variantKeys
+const choices = button.variantMap
+const [variants, otherProps] = button.splitVariantProps({
+  tone: 'accent',
+  id: 'save',
+})
+const selection = button.getVariantProps({ tone: 'accent' })
+```
+
+Raw results remain style objects, not encoded classes. Variant metadata, memoization and property descriptors retain Panda's behavior. Import generated types such as `RecipeVariantProps` from your generated type directory when defining component props; the exact types depend on your recipe.
+
+## Named recipes
+
+Declare reusable recipes in Panda configuration and regenerate before importing them.
+
+```ts
+// Inside defineConfig(...)
+theme: {
+  extend: {
+    recipes: {
+      button: {
+        className: 'demo-button',
+        base: { fontWeight: 'bold' },
+        variants: {
+          tone: {
+            neutral: { color: 'gray.700' },
+            accent: { color: 'blue.500' },
+          },
+        },
+        defaultVariants: { tone: 'neutral' },
+      },
+    },
+  },
+}
+```
+
+```ts
+import { button } from '../styled-system/recipes/index.mjs'
+
+const className = button({ tone: 'accent' })
+```
+
+Named slot recipes follow the slot structure above, under `slotRecipes`, and return an object of classes. Use their generated declarations for the available selection types and helpers. A configured recipe's `.raw(selection)` returns variant selection data, while inline `cva`/`sva` `.raw` returns resolved style objects.
+
+```ts
+// button imported from styled-system/recipes
+button.raw({ tone: 'accent' }) // { tone: 'accent' }
+```
+
+`weappPanda()` normalizes configured recipe labels with leading digits/hyphens or reserved `_wp_` markers before Panda escapes them. Compound classes and slot class metadata are adapted during generation, including labels containing `/` or Unicode.
+
+## Composition and extraction
+
+```ts
+import { css, cx } from '../styled-system/css/index.mjs'
+import { button } from '../styled-system/recipes/index.mjs'
+
+const className = cx(
+  button({ tone: 'accent' }),
+  css({ marginTop: '2' }),
+)
+```
+
+Class concatenation does not make the last class win. Keep visual variants in the recipe, use style-object composition where appropriate, and inspect layer specificity when overrides overlap. See [PostCSS diagnostics](/api/postcss-plugin/#layer-order-and-diagnostics).
+
+Known definitions and uses must be visible to Panda extraction. When runtime selections are not discoverable, use a configuration recipe's `staticCss` or global `staticCss` configuration to pre-generate the required combinations. Regenerate after changing configuration recipes and ensure the corresponding global CSS is imported.

@@ -1,0 +1,170 @@
+---
+title: Uni-app Vue
+description: Configure Panda CSS for Uni-app with separate mini-program/H5 directories and optional Tailwind coexistence.
+sidebar:
+  order: 4
+---
+
+The [reference example](https://github.com/weapp-pandacss/weapp-pandacss/tree/main/examples/uni-app-vue3) uses DCloud **3.0.0-5020620260917001** packages, **Vue 3.4.21** and **Vite 5.2.8**. Keep DCloud packages in one compatible release cohort; upgrading Vite or Vue independently is not part of adding the adapter.
+
+## Install in an existing Uni-app project
+
+The adapter engine is `^22.18.0 || >=24.11.0`; Node 22.18+ or 24.11+ on their LTS lines is recommended. In the application directory:
+
+~~~sh
+pnpm add -D @pandacss/dev@2.1.2 @pandacss/preset-base@2.1.2 @pandacss/preset-panda@2.1.2 weapp-pandacss@^2 postcss postcss-rem-to-responsive-pixel
+~~~
+
+The configuration below is for a **Panda-only stylesheet pipeline**. The repository also compares Tailwind v4; see the coexistence section before copying this simplified Vite setup into that example.
+
+## Configure Panda's Vue extraction
+
+~~~ts
+// panda.config.ts
+import process from 'node:process'
+import { defineConfig } from '@pandacss/dev'
+import { weappPanda } from 'weapp-pandacss/panda'
+
+export default defineConfig({
+  plugins: [weappPanda()],
+  polyfill: false,
+  presets: ['@pandacss/preset-base', '@pandacss/preset-panda'],
+  preflight: false,
+  include: ['./src/**/*.{js,jsx,ts,tsx,vue}'],
+  jsxFramework: 'vue',
+  outdir: `styled-system/${process.env.UNI_PLATFORM || 'mp-weixin'}`,
+  importMap: 'styled-system',
+  outExtension: 'mjs',
+  forceImportExtension: true,
+})
+~~~
+
+Keep both `.vue` scanning and `jsxFramework: 'vue'`. `importMap` tells Panda to recognize the shared logical import even though output directories are target-specific.
+
+## Vite and PostCSS
+
+Merge into your existing Uni-app Vite configuration:
+
+~~~ts
+// vite.config.ts — Panda-only setup
+import path from 'node:path'
+import process from 'node:process'
+import { fileURLToPath } from 'node:url'
+import uni from '@dcloudio/vite-plugin-uni'
+import panda from '@pandacss/dev/postcss'
+import remToResponsivePixel from 'postcss-rem-to-responsive-pixel'
+import { defineConfig } from 'vite'
+import adapter from 'weapp-pandacss/postcss'
+
+const root = fileURLToPath(new URL('.', import.meta.url))
+const platform = process.env.UNI_PLATFORM || 'mp-weixin'
+const web = platform === 'h5'
+
+export default defineConfig({
+  plugins: [uni()],
+  resolve: {
+    alias: {
+      'styled-system': path.resolve(root, 'styled-system', platform),
+    },
+  },
+  css: {
+    postcss: {
+      plugins: [
+        panda({ cwd: root }),
+        adapter({ target: web ? 'web' : 'weapp' }),
+        remToResponsivePixel({
+          rootValue: 32,
+          propList: ['*'],
+          transformUnit: web ? 'px' : 'rpx',
+        }),
+      ],
+    },
+  },
+})
+~~~
+
+Panda generates CSS first, the adapter transforms it next, and optional unit conversion runs last. `rootValue: 32` is an example choice, not a platform requirement. When Vite supplies inline PostCSS plugins, put the complete pipeline there rather than splitting required stages between competing configurations.
+
+Add the default WeChat TypeScript path without replacing the rest of your tsconfig:
+
+~~~json
+{
+  "compilerOptions": {
+    "moduleResolution": "bundler",
+    "paths": { "styled-system/*": ["./styled-system/mp-weixin/*"] }
+  },
+  "include": ["src/**/*.ts", "src/**/*.vue", "src/**/*.d.ts", "styled-system"]
+}
+~~~
+
+For target-specific H5 type checking, use a separate tsconfig pointing to `styled-system/h5/*`.
+
+## Import the global entry
+
+~~~css
+/* src/panda.css */
+@layer reset, base, tokens, recipes, utilities;
+~~~
+
+In `src/main.ts`, alongside your existing `createSSRApp` entry:
+
+~~~ts
+import './panda.css'
+~~~
+
+Use the generated runtime in SFC scripts:
+
+~~~vue
+<script setup lang="ts">
+import { css } from 'styled-system/css/index.mjs'
+
+const panelClass = css({ padding: '4', bg: 'blue.800', color: 'white' })
+</script>
+
+<template>
+  <view :class="panelClass">Panda CSS + Uni-app</view>
+</template>
+~~~
+
+`cva()` and `sva()` work through the same generated naming contract. Update reactive recipe variants using Vue `computed`, and check component isolation when global styles do not reach a native component.
+
+## Choose the target before codegen
+
+Save the [shared launcher](/frameworks/#target-aware-build-script) as `scripts/run-platform.mjs` and add:
+
+~~~json
+{
+  "scripts": {
+    "build:mp-weixin": "node scripts/run-platform.mjs uni mp-weixin build -p mp-weixin",
+    "dev:mp-weixin": "node scripts/run-platform.mjs uni mp-weixin -p mp-weixin",
+    "build:h5": "node scripts/run-platform.mjs uni h5 build",
+    "dev:h5": "node scripts/run-platform.mjs uni h5"
+  }
+}
+~~~
+
+The launcher sets `UNI_PLATFORM` for both codegen and Uni. WeChat runtime goes to `styled-system/mp-weixin`; H5 goes to `styled-system/h5`. Uni's production output is `dist/build/mp-weixin` or `dist/build/h5`; development output is under `dist/dev/`.
+
+## Coexist with Tailwind v4
+
+The repository's comparison example needs additional entry handling. Copy its [full Vite configuration](https://github.com/weapp-pandacss/weapp-pandacss/blob/main/examples/uni-app-vue3/vite.config.ts), [panda-postcss.cjs](https://github.com/weapp-pandacss/weapp-pandacss/blob/main/examples/uni-app-vue3/panda-postcss.cjs) and [main entry](https://github.com/weapp-pandacss/weapp-pandacss/blob/main/examples/uni-app-vue3/src/main.ts) together:
+
+- `src/tailwind.css` belongs to Tailwind's generator and naming runtime.
+- `src/panda.css` is expanded by Panda through `virtual:panda-styles.css` before Tailwind's Vite plugin can discard layer-order-only input.
+- The adapter wrapper skips the Tailwind entry and adapts Panda/authored styles, forwarding PostCSS diagnostics.
+- `main.ts` imports both the Tailwind entry and the Panda virtual entry; replacing the virtual import with the simplified setup above changes the pipeline.
+
+Applying Panda encoding to Tailwind output breaks that stylesheet's runtime contract. Separate entries also do not provide one shared cross-file cascade-layer registry; combine layered inputs before adaptation when their relative order matters.
+
+## Verify the example
+
+From the repository root:
+
+~~~sh
+pnpm exec turbo run build --filter=weapp-pandacss
+pnpm --filter @weapp-pandacss/uni-app-vue3 build
+pnpm --filter @weapp-pandacss/uni-app-vue3 build:h5
+pnpm --filter @weapp-pandacss/uni-app-vue3 typecheck
+~~~
+
+Open `dist/build/mp-weixin` in WeChat DevTools. Repository artifact checks cover selected WeChat/H5 output; optional IDE probes verify selected rendered styles. App, SSR and other mini-program scripts are not evidence of adapter acceptance. Ignore `dist/` and `styled-system/`.

@@ -1,34 +1,74 @@
 ---
-title: weapp-pandacss
-description: Panda CSS for mini-programs and Web, with matching class names.
+title: Panda CSS for mini-programs
+description: Write styles in TypeScript. Generate class names and CSS that agree in WeChat and on the Web.
 sidebar:
+  label: Overview
   order: 0
 ---
 
-Use Panda CSS **2.1.2** in Taro, Uni-app and Weapp Vite projects. Version **2.0** adapts Panda's generated runtime and CSS together, so special characters produce the same class names in your UI and stylesheet.
+**weapp-pandacss** connects Panda CSS **2.1.2** to mini-program builds. Use Panda's styles, recipes and tokens in Taro, Uni-app or Weapp Vite; keep the same class naming on Web/H5.
 
-## Get started
+## Start with your project
 
-Follow the [installation guide](/get-started/), configure the [Panda plugin](/panda/) and [PostCSS adapter](/postcss/), then run Panda codegen before your framework build.
-
-The adapter uses Panda's existing plugin API. It transforms artifacts with controlled AST changes during generation; Panda writes the files. PostCSS handles CSS and does not patch JavaScript.
-
-## What is supported?
-
-| Area | Baseline |
+| Your next step | Read |
 | --- | --- |
-| Panda CSS and presets | 2.1.2 |
-| Generated runtime | JavaScript `.js` or `.mjs` |
-| Package imports | ESM and CommonJS |
-| Targets | Mini-programs and Web/H5 |
-| Node.js | 22.18+ on Node 22, 24.11+ on Node 24, or 26+ |
+| Install the two build-time plugins | [Get started](/get-started/) |
+| Set up your framework's build pipeline | [Framework guides](/frameworks/) |
+| Handle dynamic values, components and multiple targets | [Scenario guides](/guides/) |
+| Look up a function or configuration option | [API reference](/api/) |
+| Diagnose missing styles or a build error | [Troubleshooting](/troubleshooting/) |
 
-See the [five framework examples](/frameworks/) and the [public API](/api/). For existing projects, start with the [2.0 migration guide](/migration/).
+## From a style to WXSS
 
-## Read in your preferred format
+The Panda plugin adapts generated JavaScript. The PostCSS plugin adapts the matching stylesheet. Both sides use the same class-name encoding.
 
-This is the canonical documentation site: [panda.weapp.dev](https://panda.weapp.dev/). English is at `/` and Chinese is at `/zh/`; the language switch keeps your current page.
+### 1. Author a style
 
-Every page has a Markdown link. AI tools can use [llms.txt](/llms.txt), the [Chinese index](/zh/llms.txt) or [all documentation](/llms-full.txt).
+~~~ts
+import { css } from '../styled-system/css'
 
-[Source and issues](https://github.com/weapp-pandacss/weapp-pandacss) · [Panda CSS documentation](https://panda-css.com/docs) · [简体中文](/zh/)
+export const badgeClass = css({ color: '#0f766e' })
+~~~
+
+### 2. Panda generates a portable class
+
+~~~text
+Panda class:       c_#0f766e
+Mini-program/Web:  c__wp_23_0f766e
+~~~
+
+Assign `badgeClass` to `className` in Taro React, or to `:class` in Vue/Wevu. It already contains the portable class; use it directly.
+
+### 3. PostCSS produces the matching selector
+
+~~~css
+.c__wp_23_0f766e {
+  color: #0f766e;
+}
+~~~
+
+The shown class and declaration are checked against real Panda codegen and CSS extraction. The complete stylesheet also contains Panda's other configured layers and the adapter's processing marker.
+
+## Choose the right build target
+
+| Concern | Mini-program | Web/H5 |
+| --- | --- | --- |
+| Panda generation plugin | `weappPanda()` | `weappPanda()` |
+| PostCSS target | `'weapp'` (default) | `'web'` |
+| Class naming | Shared portable encoding | Shared portable encoding |
+| Cascade layers | Compile layer order for WXSS | Retain native layers |
+| Selector compatibility | Limited platform transformations | Retain native selectors |
+
+Set `polyfill: false` in Panda so the adapter receives the original layers. See [PostCSS behavior](/postcss/) for conflicts and selector limits. The adapter handles naming and selected CSS transformations; platform CSS support still matters.
+
+## Compatibility and migration
+
+The adapter requires Panda **2.1.2** and JavaScript runtime artifacts (`.js` or `.mjs`). Its package entries support ESM, CommonJS and TypeScript declarations. Application code can import the dependency-free [standalone runtime](/api/runtime/).
+
+The [framework matrix](/frameworks/) distinguishes verified build artifacts, browser interactions and mini-program runtime checks. For an existing v1 setup, follow the [2.0 migration guide](/migration/).
+
+## Read, search or use with AI
+
+Use the header search or **⌘ / Ctrl K** to find APIs and problems. Each page has Markdown and MDX exports; tools can start from [llms.txt](/llms.txt), the [Chinese index](/zh/llms.txt) or [the complete document](/llms-full.txt).
+
+[GitHub and issues](https://github.com/weapp-pandacss/weapp-pandacss) · [Panda CSS](https://panda-css.com/docs) · [简体中文](/zh/)

@@ -8,6 +8,19 @@ Documentation: [English](https://panda.weapp.dev/) · [简体中文](https://pan
 
 This repository is a pnpm/Turborepo monorepo managed by [repoctl](https://github.com/icelib/repoctl). The published adapter lives in [packages/weapp-pandacss](./packages/weapp-pandacss); the [Chinese configuration guide](./packages/weapp-pandacss/README.zh.md) covers installation, PostCSS and runtime codegen.
 
+## Documentation / 文档
+
+| Start here                                          | English                                                     | 简体中文                                                |
+| --------------------------------------------------- | ----------------------------------------------------------- | ------------------------------------------------------- |
+| Install and generate your first styles / 安装与生成 | [Get started](https://panda.weapp.dev/get-started/)         | [快速开始](https://panda.weapp.dev/zh/get-started/)     |
+| Configure your framework / 框架接入                 | [Frameworks](https://panda.weapp.dev/frameworks/)           | [框架指南](https://panda.weapp.dev/zh/frameworks/)      |
+| Dynamic styles, components and builds / 场景处理    | [Guides](https://panda.weapp.dev/guides/)                   | [使用场景](https://panda.weapp.dev/zh/guides/)          |
+| Adapter and common Panda APIs / API 大全            | [API reference](https://panda.weapp.dev/api/)               | [API 参考](https://panda.weapp.dev/zh/api/)             |
+| Find a cause and verify a fix / 问题排查            | [Troubleshooting](https://panda.weapp.dev/troubleshooting/) | [排错指南](https://panda.weapp.dev/zh/troubleshooting/) |
+| Upgrade an existing project / 旧版迁移              | [Migration](https://panda.weapp.dev/migration/)             | [迁移指南](https://panda.weapp.dev/zh/migration/)       |
+
+The site documents every public adapter function and PostCSS option, with separate guides for Panda's generated styling APIs. Compatibility tables distinguish build-artifact checks, browser interactions and mini-program runtime checks. Every page also has Markdown/MDX exports; AI tools can use [llms.txt](https://panda.weapp.dev/llms.txt) or the [Chinese index](https://panda.weapp.dev/zh/llms.txt).
+
 ## Brand assets
 
 The selected logo is the Panda CSS P mark with a mini-program badge. All six designs, SVG sources, transparent PNGs and the comparison preview are available in [assets/brand](./assets/brand/README.md).
@@ -29,7 +42,7 @@ The historical Linaria example remains in `examples/taro-app-linaria` as referen
 
 ## Development
 
-Use Node.js 22.18+ (or 24.11+) and the pnpm version declared by `packageManager`:
+Use a Node.js version matching the root `engines` field and the pnpm version declared by `packageManager`. CI verifies Node 22 and 24:
 
 ```bash
 corepack enable
@@ -53,7 +66,7 @@ pnpm --filter @weapp-pandacss/react-app dev
 pnpm --filter @weapp-pandacss/weapp-vite-app dev
 ```
 
-Use `pnpm exec repo doctor` and `pnpm exec repo check` to validate workspace health. `pnpm change` records release intent; repoctl manages the release workflow. The published adapter is `2.0.0`. Generated `dist`, coverage and example `styled-system` directories are ignored; real Panda fixtures are generated in isolated temporary directories during tests.
+Use `pnpm exec repo doctor` and `pnpm exec repo check` to validate workspace health. `pnpm change` records release intent; repoctl manages the release workflow. See each package manifest for its version. Generated `dist`, coverage and example `styled-system` directories are ignored; real Panda fixtures are generated in isolated temporary directories during tests.
 
 Run `pnpm --filter @weapp-pandacss/docs dev` to edit the bilingual site. See [the documentation workspace](./apps/docs/README.md) for build, validation and Cloudflare deployment commands.
 

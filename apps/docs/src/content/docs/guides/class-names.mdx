@@ -1,0 +1,104 @@
+---
+title: Class names
+description: Keep generated classes intact and encode authored names once, with matching CSS selectors.
+sidebar:
+  order: 1
+---
+
+## Choose the source of the class
+
+| Class source | Application code | Stylesheet |
+| --- | --- | --- |
+| Panda `css()`, `cva()`, `sva()`, recipes or patterns | Use the generated result directly | Generate with Panda, then process with the adapter |
+| Authored special class | Encode the raw name once | Author its original selector using normal CSS escapes, then process with the adapter |
+| Ordinary authored class such as `custom-tabs__scroll` | Can remain unchanged | Remains unchanged by the naming pass |
+| Third-party class generator | Keep its own runtime/CSS contract | See [third-party styles](/guides/component-styles/#third-party-styles) before adapting |
+
+Panda's generated runtime already encodes its output. `encodeClassName(css(...))` changes the name again and no longer matches the stylesheet.
+
+## Authored names
+
+The separate runtime works without Panda, PostCSS, Babel or Node APIs:
+
+~~~sh
+pnpm add @weapp-pandacss/runtime
+~~~
+
+~~~ts
+import { encodeClassList, encodeClassName } from '@weapp-pandacss/runtime'
+
+const activeClass = encodeClassName('custom/active')
+const labelClasses = encodeClassList('a.b 中文')
+~~~
+
+~~~css
+/* Source CSS: use the original class name with CSS syntax escaping. */
+.custom\/active { color: green; }
+.a\.b { font-weight: bold; }
+.中文 { padding: 0.5rem; }
+~~~
+
+After the PostCSS adapter, the class names match these selectors:
+
+~~~css
+.custom_wp_2f_active { color: green; }
+.a_wp_2e_b { font-weight: bold; }
+._wp_4e2d__wp_6587_ { padding: 0.5rem; }
+~~~
+
+This example shows the naming pass; whitespace and units can change in later plugins. The runtime package only encodes JavaScript strings. It does not process the CSS for you.
+
+## Exact encoding examples
+
+These outputs are covered by the runtime tests:
+
+| Input | `encodeClassName` output |
+| --- | --- |
+| `custom-tabs__scroll` | `custom-tabs__scroll` |
+| `c_red.500` | `c_red_wp_2e_500` |
+| `a.b` | `a_wp_2e_b` |
+| `a_wp_2e_b` | `a_wp_5f_wp_2e_b` |
+| `1card` | `_wp_31_card` |
+| `-1` | `_wp_2d_1` |
+| `中文` | `_wp_4e2d__wp_6587_` |
+| `💡` | `_wp_1f4a1_` |
+
+Special characters use `_wp_<hexadecimal code point>_`. A literal `_wp_` marker escapes its underscore so it cannot collide with an encoded name. Unicode uses full code points, including characters outside the basic multilingual plane.
+
+Use `encodeClassName` for **one class** and `encodeClassList` for a whitespace-separated list. For example:
+
+~~~ts
+encodeClassName('a b') // 'a_wp_20_b': one name containing a space
+encodeClassList('a.b 中文') // 'a_wp_2e_b _wp_4e2d__wp_6587_'
+encodeClassList('  \n\t ') // ''
+~~~
+
+`encodeClassList` normalizes whitespace between names. It accepts a string; convert arrays or conditional values into the appropriate string first.
+
+## Mixing generated and authored classes
+
+~~~ts
+import { encodeClassName } from '@weapp-pandacss/runtime'
+import { css, cx } from '../../styled-system/css/index.mjs'
+
+const classes = cx(
+  css({ fontSize: '1.25rem' }),
+  encodeClassName('custom/active'),
+)
+~~~
+
+`cx()` joins names and does not encode them. Passing a raw special name to `cx()` does not make it portable. Preserve the normal Panda semantics of `css.raw`, variants and recipe metadata; use generated recipe results directly.
+
+## Reprocessing and published components
+
+The encoding function itself is **not idempotent**. Calling it on an encoded value treats that value as a new raw name. Generated artifacts carry markers to let the adapter recognize repeat processing:
+
+~~~css
+/*! weapp-pandacss:portable-v1 */
+~~~
+
+Keep generation markers when reprocessing output. Do not concatenate already encoded, unmarked CSS with raw CSS and run one naming pass over both; that mixes two different input contracts.
+
+A component library may depend on the standalone runtime without bringing build tooling into the application. Its CSS still needs the matching adapter contract. The published adapter pins its runtime dependency to an exact version; check that dependency when selecting the version for a separately published component. The compatibility import `weapp-pandacss/runtime` re-exports the same implementation. Panda's generated runtime remains self-contained.
+
+For a mismatch inspect the actual node class and final selector together. See [missing styles](/troubleshooting/#the-class-exists-but-styles-do-not-apply) and the [runtime reference](/runtime/).

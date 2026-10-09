@@ -1,0 +1,110 @@
+---
+title: Panda 插件
+description: weappPanda 签名、配置调整、生成 hook 与受支持的 artifacts。
+sidebar:
+  order: 1
+---
+
+## weappPanda()
+
+```ts
+import { weappPanda } from 'weapp-pandacss/panda'
+
+const plugin = weappPanda()
+```
+
+函数无参数，返回名称为 `weapp-pandacss` 的 Panda 插件。在 Panda 配置的 `plugins` 中注册，主包根入口也导出相同函数。
+
+```ts
+declare function weappPanda(): import('@pandacss/types').PandaPlugin
+```
+
+```ts
+import { defineConfig } from '@pandacss/dev'
+import { weappPanda } from 'weapp-pandacss/panda'
+
+export default defineConfig({
+  plugins: [weappPanda()],
+  polyfill: false,
+  preflight: false,
+  presets: ['@pandacss/preset-base', '@pandacss/preset-panda'],
+  include: ['./src/**/*.{js,jsx,ts,tsx,vue}'],
+  outdir: 'styled-system',
+  outExtension: 'mjs',
+  forceImportExtension: true,
+})
+```
+
+CommonJS 配置：
+
+```js
+const { weappPanda } = require('weapp-pandacss/panda')
+
+module.exports = { plugins: [weappPanda()], polyfill: false }
+```
+
+插件适配生成的 JavaScript 名称。CSS 还必须经过 [weapp-pandacss/postcss](/zh/api/postcss-plugin/)，Web/H5 构建也一样。
+
+## 版本与环境
+
+| 要求 | 支持值 |
+| --- | --- |
+| `@pandacss/dev` | 精确 `2.1.2`，调用 `weappPanda()` 时检查 |
+| 示例使用的 presets | `@pandacss/preset-base@2.1.2`、`@pandacss/preset-panda@2.1.2` |
+| 适配器 Node.js engine | `^22.18.0 \|\| >=24.11.0` |
+| 生成的 runtime 扩展名 | `js` 或 `mjs` |
+
+未安装 Panda 或版本不匹配时，抛出 `weappPanda requires Panda CSS 2.1.2`。使用已验证的版本，不要绕过检查。Node engine 支持 22.x 中的 22.18 及以上版本，以及 24.11 及以上版本，不包含 Node 23 和低于 24.11 的 24.x。
+
+## 配置调整
+
+`config:resolved` hook 返回规范化配置，不修改传入的原始对象。
+
+| 输入 | 结果 |
+| --- | --- |
+| 未设置 `hash` 或 `hash.className` | `hash: { className: false, cssVar: true }` |
+| 布尔值 `hash` | 将该布尔值保留为 `className`，启用 `cssVar` |
+| 对象 `hash` | 保留 `className`，始终设置 `cssVar: true` |
+| 字符串 `prefix` | 拆分为 `prefix.className` 和 `prefix.cssVar` |
+| 对象 `prefix` | 分别处理 class 与变量前缀 |
+| Recipe 或 slot recipe 的 `className` | 在 Panda 转义 CSS 前，规范化前导数字、连字符或原始 `_wp_` 标记 |
+
+Recipe 规范化同时覆盖 `theme` 与 `theme.extend`。`button` 这类普通名称保持可读。CSS 变量前缀使用 portable 编码；PostCSS adapter 不重命名 CSS 变量声明。
+
+```ts
+hash: { className: true, cssVar: false }
+// Resolved: { className: true, cssVar: true }
+```
+
+`polyfill`、`preflight`、`include`、`outdir` 和 `forceImportExtension` 仍由 Panda 配置决定。显式设置 `polyfill: false`，为 ordered 编译器保留原始 layer；不要将生成目录纳入源码扫描。
+
+## 生成生命周期
+
+| Hook | 行为 |
+| --- | --- |
+| `config:resolved` | 规范化 class 标识符、前缀与原生 CSS 变量 hash |
+| 同步 `codegen:prepare` | 在 Panda 写文件前，转换完整的生成 artifacts 批次 |
+
+生成 hook 包装 Panda 的 CSS serializer 和 compound variant class 输出，适配 slot class 元数据，并在生成目录内添加 `weapp-panda/runtime.js` 或 `.mjs`。这个模块内嵌 [portable runtime](/zh/api/runtime/)，没有 runtime 包导入。
+
+`css`、`cva`、`sva`、named/slot recipes、patterns 和 styled 的输出使用匹配的 portable class。样式对象、`.raw` 结果、变体元数据、合并行为及 serializer 属性描述符保留 Panda 原有语义。`cx()` 只拼接，不编码原始手写名称。
+
+Panda 的 PostCSS 自动生成流程执行相同 hook。配置重载后按当前配置重新生成，无需备份文件、子进程补丁或 `codegen:done` hook。
+
+## Artifact 错误与恢复
+
+| 诊断 | 原因 | 处理 |
+| --- | --- | --- |
+| `Cannot find Panda helpers` | 非标准或不完整的 codegen 批次 | 使用标准 Panda codegen 流程 |
+| `supports outExtension "js" or "mjs"` | 仅 TypeScript 或其他 runtime 扩展名 | 改为 `mjs` 或 `js` 后重新生成 |
+| `missing css/sva runtime`、`missing createSerializeCss` 或 slot producer 结构变化 | 产物与已验证的 runtime 结构不符 | 检查 Panda 版本并恢复标准 codegen |
+| `Legacy weapp-panda patch detected` | 遗留旧文件补丁产物 | 删除生成目录，再运行 `panda codegen` |
+| `Incomplete or incompatible` 或 `missing generation markers` | 混合、部分转换或被修改的产物 | 删除生成目录，再运行 `panda codegen` |
+
+`// weapp-pandacss:portable-v1` 标记用于识别完整适配批次，重复处理完整批次是安全的。不要在生成目录间单独复制 helper，也不要在下一次生成前删除标记。
+
+## 构建边界
+
+并行构建各目标时，使用独立 `outdir` 和匹配的别名；两个 codegen 进程不能写同一目录。已验证的配置见[框架指南](/zh/frameworks/)。
+
+适配器不会为小程序引擎降级生成的 JavaScript，请交给框架处理语法兼容。内联原始 class、绕过生成 runtime 的 Panda 源码转换不属于支持路径。动态样式值仍需被 Panda 提取或预生成，命名适配本身不会创建 CSS。

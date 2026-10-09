@@ -1,7 +1,6 @@
-/* Nimbus emits token classes with dual-theme variables in /_nimbus/shiki.css.
-   The site applies those variables because the generated sheet only defines them. */
-.astro-code,
-.astro-code span {
+/* Nimbus emits Shiki variables;
+apply both themes without an external theme request. */
+.astro-code, .astro-code span {
   font-style: var(--shiki-light-font-style, normal);
   font-weight: var(--shiki-light-font-weight, normal);
   color: var(--shiki-light);
@@ -9,19 +8,53 @@
 }
 
 .astro-code {
-  background-color: var(--shiki-light-bg);
+  background-color: var(--soft);
 }
 
-@media (prefers-color-scheme: dark) {
-  .astro-code,
-  .astro-code span {
-    font-style: var(--shiki-dark-font-style, normal);
-    font-weight: var(--shiki-dark-font-weight, normal);
-    color: var(--shiki-dark);
-    text-decoration: var(--shiki-dark-text-decoration, none);
-  }
+:root[data-theme="dark"] .astro-code,
+:root[data-theme="dark"] .astro-code span {
+  font-style: var(--shiki-dark-font-style, normal);
+  font-weight: var(--shiki-dark-font-weight, normal);
+  color: var(--shiki-dark);
+  text-decoration: var(--shiki-dark-text-decoration, none);
+}
 
-  .astro-code {
-    background-color: var(--shiki-dark-bg);
-  }
+:root[data-theme="dark"] .astro-code {
+  background-color: var(--shiki-dark-bg);
+}
+
+.code-frame {
+  min-width: 0;
+  margin: 1.5rem 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+}
+
+.code-frame pre {
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+}
+
+.code-toolbar {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.4rem 0.8rem;
+  font-family: SFMono-Regular, Consolas, monospace;
+  font-size: 0.7rem;
+  color: var(--muted);
+  background: var(--soft);
+  border-bottom: 1px solid var(--line);
+}
+
+.copy-code {
+  padding: 0.25rem 0.5rem;
+  font-family: inherit;
+  font-size: 0.7rem;
+  color: var(--muted);
+  background: var(--surface);
+  border: 1px solid var(--line);
 }

@@ -1,0 +1,144 @@
+---
+title: Taro React
+description: 为 Taro Webpack 与 React 配置 Panda CSS，隔离微信与 H5 生成目录。
+sidebar:
+  order: 2
+---
+
+参考 [Taro React 示例](https://github.com/weapp-pandacss/weapp-pandacss/tree/main/examples/taro-app)使用 **Taro 4.3.0**、**React 18** 与 **Webpack 5**。这是本指南的验证基线，Taro Vite 编译器和 React Native 需要单独验证。
+
+## 在已有 Taro 项目安装
+
+Taro 依赖组保持匹配版本。adapter 声明 Node `^22.18.0 || >=24.11.0`，推荐 Node 22.18+ 或 24.11+ 的 LTS 版本，在应用目录执行：
+
+~~~sh
+pnpm add -D @pandacss/dev@2.1.2 @pandacss/preset-base@2.1.2 @pandacss/preset-panda@2.1.2 weapp-pandacss@^2 postcss postcss-rem-to-responsive-pixel
+~~~
+
+手写特殊 class 还需要 `pnpm add @weapp-pandacss/runtime`。Panda 和 PostCSS 放在构建依赖中，独立编码器放在应用依赖中。
+
+## Panda 配置
+
+~~~ts
+// panda.config.ts
+import process from 'node:process'
+import { defineConfig } from '@pandacss/dev'
+import { weappPanda } from 'weapp-pandacss/panda'
+
+export default defineConfig({
+  plugins: [weappPanda()],
+  polyfill: false,
+  presets: ['@pandacss/preset-base', '@pandacss/preset-panda'],
+  preflight: process.env.TARO_ENV === 'h5',
+  include: ['./src/**/*.{js,jsx,ts,tsx}'],
+  outdir: `styled-system/${process.env.TARO_ENV || 'weapp'}`,
+  importMap: 'styled-system',
+  outExtension: 'mjs',
+  forceImportExtension: true,
+  jsxFramework: 'react',
+})
+~~~
+
+逻辑导入路径保持 `styled-system`，实际生成目录随目标变化。生成目录不纳入 `include`。`polyfill: false` 保留适配器需要的 layer 信息。
+
+## 同步 bundler 与 TypeScript 别名
+
+将以下字段合并到已有 `config/index.ts`，保留项目其他 Taro 配置：
+
+~~~ts
+import path from 'node:path'
+import process from 'node:process'
+
+// 合并到 Taro 配置对象：
+const platformOptions = {
+  alias: {
+    'styled-system': path.resolve(
+      __dirname, '..', 'styled-system', process.env.TARO_ENV || 'weapp',
+    ),
+  },
+  outputRoot: `dist/${process.env.TARO_ENV || 'weapp'}`,
+  framework: 'react',
+  compiler: { type: 'webpack5' },
+}
+~~~
+
+在 `tsconfig.json` 添加默认编辑器/类型检查路径：
+
+~~~json
+{
+  "compilerOptions": {
+    "moduleResolution": "bundler",
+    "paths": { "styled-system/*": ["./styled-system/weapp/*"] }
+  },
+  "include": ["src", "types", "config", "styled-system"]
+}
+~~~
+
+这些片段用于扩展已有配置，不替换其 React/compiler 设置。检查 H5 类型时，可以使用指向 `styled-system/h5/*` 的独立 tsconfig。只有 TypeScript 别名不能解析 runtime 导入。
+
+Taro 小程序 bundler 需要转译生成的 `.mjs`。源码示例为 `/\.[cm]js$/i` 添加了 `babel-loader` 与 `type: 'javascript/auto'` 规则，复制完整示例时应保留。适配器转换 class 名称，不处理 JavaScript 语法兼容。
+
+## PostCSS 与全局入口
+
+~~~js
+// postcss.config.cjs
+const process = require('node:process')
+
+module.exports = {
+  plugins: {
+    '@pandacss/dev/postcss': {},
+    'weapp-pandacss/postcss': {
+      target: process.env.TARO_ENV === 'h5' ? 'web' : 'weapp',
+    },
+    'postcss-rem-to-responsive-pixel': {
+      rootValue: 32,
+      propList: ['*'],
+      transformUnit: process.env.TARO_ENV === 'h5' ? 'px' : 'rpx',
+    },
+  },
+}
+~~~
+
+创建 `src/app.css`，写入 `@layer reset, base, tokens, recipes, utilities;`，并在 `src/app.ts` 导入 `./app.css`。单位转换可选，`rootValue: 32` 是示例的设计选择；需要与 Taro 的 `designWidth`、`pxtransform` 协调，避免尺寸重复转换。
+
+## 按目标生成
+
+将[目标构建脚本](/zh/frameworks/#在-codegen-前选择目标)保存为 `scripts/run-platform.mjs`，再添加：
+
+~~~json
+{
+  "scripts": {
+    "codegen": "panda codegen",
+    "build:weapp": "node scripts/run-platform.mjs taro weapp build --type weapp",
+    "dev:weapp": "node scripts/run-platform.mjs taro weapp build --type weapp --watch",
+    "build:h5": "node scripts/run-platform.mjs taro h5 build --type h5",
+    "dev:h5": "node scripts/run-platform.mjs taro h5 build --type h5 --watch"
+  }
+}
+~~~
+
+Panda 在 Taro 之前运行，两者接收相同 `TARO_ENV`。开发阶段 PostCSS 集成也会重新生成。微信输出为 `styled-system/weapp`、`dist/weapp`，H5 输出为 `styled-system/h5`、`dist/h5`。
+
+## 使用样式
+
+~~~tsx
+import { View } from '@tarojs/components'
+import { css } from 'styled-system/css/index.mjs'
+
+export default function Index() {
+  return <View className={css({ color: 'red.400', padding: '4' })}>Panda</View>
+}
+~~~
+
+Panda styled components 使用 `styled(View)` 包装 Taro 标签。不要再次编码 `css()` 或 recipe 返回值。独立自定义组件需要允许应用级样式进入，并将属性传给实际原生节点。
+
+## 运行与验证示例
+
+~~~sh
+pnpm exec turbo run build --filter=weapp-pandacss
+pnpm --filter @weapp-pandacss/taro-app build:weapp
+pnpm --filter @weapp-pandacss/taro-app build:h5
+pnpm --filter @weapp-pandacss/taro-app typecheck
+~~~
+
+在仓库根目录执行。微信工程使用已提交的 project 配置，其中选定 `dist/weapp`。样式缺失时检查最终 class 和 WXSS selector。产物检查与可选 IDE 渲染探针覆盖部分样式，不承诺手机具备浏览器 hover/focus 行为，也不代表验收了全部 NutUI 交互。忽略生成目录与私有 IDE 设置。

@@ -1,0 +1,123 @@
+---
+title: Runtime 编码
+description: 完整函数签名、编码规则、空白行为与 runtime 工厂。
+sidebar:
+  order: 3
+---
+
+页面代码安装零依赖 runtime：
+
+```bash
+pnpm add @weapp-pandacss/runtime
+```
+
+```ts
+import {
+  createPortableRuntime,
+  encodeClassList,
+  encodeClassName,
+} from '@weapp-pandacss/runtime'
+```
+
+`weapp-pandacss/runtime` 提供相同函数。主适配器根入口导出两个编码函数，不导出工厂。独立包支持 ESM、CommonJS，附带类型声明，构建目标为 ES2018，不使用 Node API；平台语法与 polyfill 仍由 bundler 负责。
+
+## 输入与目标约定
+
+两个编码函数都要求传入基本类型字符串 `value`，没有默认值，不进行类型转换或运行时类型校验。误传非字符串可能抛出原生 `TypeError`，没有自定义校验错误约定。外部输入应在页面代码中先校验，再调用函数。空字符串有效，返回空字符串。
+
+编码函数没有 target 参数，同一输入在 Web 与小程序得到相同名称。按目标转换 CSS 的行为由 [PostCSS 插件](/zh/api/postcss-plugin/)负责。工厂无参数，返回的两个函数遵守相同字符串约定。
+
+## encodeClassName(value)
+
+```ts
+declare function encodeClassName(value: string): string
+```
+
+| 参数 | 必填 | 含义 |
+| --- | --- | --- |
+| `value` | 是 | 尚未进行 CSS 转义的单个原始手写 class 名称 |
+| 返回值 | — | 对应的 portable class 名称 |
+
+ASCII 字母、下划线、非首位数字及非首位连字符保持可读。其他字符编码为 `_wp_<小写十六进制码点>_`。前导数字、连字符和每个原始 `_wp_` 标记也会转义，避免与编码名称碰撞。
+
+| 输入 | 输出 |
+| --- | --- |
+| `card` | `card` |
+| `custom-tabs__scroll` | `custom-tabs__scroll` |
+| `c_red.500` | `c_red_wp_2e_500` |
+| `1card` | `_wp_31_card` |
+| `-1` | `_wp_2d_1` |
+| `a_wp_2e_b` | `a_wp_5f_wp_2e_b` |
+| `中文` | `_wp_4e2d__wp_6587_` |
+| `💡` | `_wp_1f4a1_` |
+| 空字符串 | 空字符串 |
+
+Unicode 按完整码点处理。参数是名称而非 selector：传入 `custom/active`，不要传 `.custom\/active`。`encodeClassName('a b')` 会把空格编码成单个名称的一部分；class 列表应使用 `encodeClassList`。
+
+## encodeClassList(value)
+
+```ts
+declare function encodeClassList(value: string): string
+```
+
+按 JavaScript 空白字符（`\s+`）拆分原始 class 列表，移除空项，逐项编码，再以单个空格连接。保留顺序和重复项。
+
+`value` 必填且没有默认值，空列表应显式传入 `''`。
+
+```ts
+encodeClassList('  a.b\n中文\tcard  ')
+// 'a_wp_2e_b _wp_4e2d__wp_6587_ card'
+
+encodeClassList('card card') // 'card card'
+encodeClassList(' \n\t ') // ''
+```
+
+Tab、换行、不换行空格、Unicode 行分隔符及 BOM 都属于空白。零宽空格（`\u200B`）属于名称内容，编码为 `_wp_200b_`。函数只接受字符串，数组、对象及条件 class 表达式应先整理成原始列表。
+
+## createPortableRuntime()
+
+```ts
+declare function createPortableRuntime(): {
+  encodeClassName(value: string): string
+  encodeClassList(value: string): string
+}
+```
+
+无参数，返回两个编码函数。工厂实现自包含，供 Panda 内嵌到生成产物，无需导入或 Node 全局对象。页面代码通常直接导入两个命名函数。
+
+```ts
+const runtime = createPortableRuntime()
+runtime.encodeClassName('custom/active') // 'custom_wp_2f_active'
+```
+
+## 对齐手写 CSS 与页面 class
+
+样式使用普通 CSS 转义，再经过 PostCSS adapter：
+
+```css
+.custom\/active { color: green; }
+```
+
+页面代码传入原始名称：
+
+```ts
+const activeClass = encodeClassName('custom/active')
+// Bind activeClass to className or class in your framework.
+```
+
+独立 runtime 只处理 JavaScript 名称，不转换 CSS、不提取 Panda 样式，也不重命名变量。匹配 selector 使用 [PostCSS 插件](/zh/api/postcss-plugin/)，变量使用 Panda 原生 token hash。
+
+## 只编码一次
+
+编码函数**不幂等**，再次编码时会将生成的 `_wp_` 标记视为原始文本，从而改变名称。
+
+| 值 | 处理方式 |
+| --- | --- |
+| `custom/active` 这类原始手写名称 | 编码一次 |
+| `css()`、recipe、pattern 或 styled 输出 | 直接使用 |
+| 已编码名称 | 直接使用 |
+| 混合生成与手写 class | 用 `cx(generated, encodeClassName(raw))` 拼接 |
+
+生成 JS 与 CSS 的标记保护重复构建处理；字符串编码函数不会记录某个值是否已编码。没有公开解码 API。
+
+发布组件库时，使用与适配器匹配的 runtime 版本。主适配器打包后精确锁定 runtime 依赖；独立分发的组件 JS 和转换后的 CSS 必须遵守同一编码约定。

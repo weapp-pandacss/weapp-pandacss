@@ -1,0 +1,137 @@
+---
+title: Tokens、patterns 与 styled
+description: Token 值与变量、布局 patterns 及 React Web styled 的使用边界。
+sidebar:
+  order: 6
+---
+
+这些是 Panda 生成的 API。可用 token、pattern 与 JSX 类型由 presets、theme 和 `jsxFramework` 决定。示例使用生成目录 `styled-system` 与 `.mjs` 输出。
+
+上游模型见 Panda 官方 [token 指南](https://panda-css.com/docs/theming/tokens)、[pattern 指南](https://panda-css.com/docs/styling/patterns)和 [style props 指南](https://panda-css.com/docs/styling/style-props)。本页说明与 Panda 2.1.2 一起验证的适配行为。
+
+## token(path)
+
+```ts
+import { token } from '../styled-system/tokens/index.mjs'
+
+const spacing = token('spacing.0.5')
+const color = token('colors.red.500')
+```
+
+输入是包含分类的完整 token 路径。返回值遵循 Panda token 表示方式，普通值、引用、负值及语义 token 保留原生行为。它是值而不是 class 名称，不应传给 class 编码函数。
+
+`token(path, fallback?)` 与 `token.var(path, fallback?)` 均接受可选字符串 fallback。运行时路径没有生成条目时，原样返回 fallback，`token.var` 不会再包成 `var()`。生成类型限定可用路径，应定义需要的 token，不要用 fallback 隐藏路径错误。
+
+```ts
+import { css } from '../styled-system/css/index.mjs'
+import { token } from '../styled-system/tokens/index.mjs'
+
+const className = css({ padding: token('spacing.0.5') })
+```
+
+`css({ color: 'red.500' })` 按属性推导 colors 分类；`token('colors.red.500')` 则要显式写分类。确保路径在主题中存在，并导入对应 token CSS。
+
+## token.var(path)
+
+```ts
+const spacingVariable = token.var('spacing.0.5')
+const className = css({ padding: spacingVariable })
+```
+
+返回 token 的 Panda CSS 变量引用。`weappPanda()` 启用原生 `hash.cssVar`，因此引用与 CSS 中生成的 hash 声明保持一致；Unicode token 名称、负 spacing 和语义 token 也适用。
+
+| 用法 | 示例 | 返回类型 |
+| --- | --- | --- |
+| Token 值 | `token('spacing.0.5')` | Panda token 值或表示 |
+| Token 变量 | `token.var('spacing.0.5')` | CSS 变量引用 |
+| 属性 token 简写 | `css({ padding: '0.5' })` | Portable class 字符串 |
+
+不要手写生成变量的 hash。通过 `token.var` 引用，让它随配置和 codegen 保持一致。
+
+## 自定义与语义 tokens
+
+```ts
+// Inside defineConfig(...)
+theme: {
+  extend: {
+    tokens: {
+      spacing: { gutter: { value: '16px' } },
+    },
+    semanticTokens: {
+      colors: { brand: { value: '{colors.blue.500}' } },
+    },
+  },
+}
+```
+
+```ts
+const brand = token.var('colors.brand')
+const gutter = token('spacing.gutter')
+const className = css({ color: 'brand', padding: 'gutter' })
+```
+
+主题变更后重新生成。多目标构建从与目标 CSS 匹配的生成目录导入 tokens。适配器不重命名任意手写变量；小程序手写 custom property 必须使用 ASCII `--[A-Za-z0-9_-]+`，见[变量校验](/zh/api/postcss-plugin/#命名变量与重复处理)。
+
+## Patterns
+
+Patterns 是根据 presets 与配置生成的布局辅助函数。Panda presets 提供 `box`、`stack` 等函数，自定义 pattern 可生成项目自己的 API。
+
+```ts
+import { css } from '../styled-system/css/index.mjs'
+import { box, stack } from '../styled-system/patterns/index.mjs'
+
+const surface = box({ padding: '4', color: 'red.500' })
+const verticalLayout = stack({ gap: '4' })
+const layoutStyles = stack.raw({ gap: '4' })
+const compactLayout = css(layoutStyles, { padding: '2' })
+```
+
+| 调用形式 | 返回值 | 用途 |
+| --- | --- | --- |
+| `pattern(options)` | Portable class 字符串 | 绑定到元素 |
+| `pattern.raw(options)` | 转换后的样式对象 | 与 `css()` 组合 |
+
+Pattern class 使用已适配 serializer，不要再次编码。Pattern 是 CSS 辅助函数而非原生组件，底层布局能力必须被目标支持，定义及使用也需要能被 Panda 提取器发现。
+
+## styled：React Web
+
+配置 `jsxFramework: 'react'` 后，Panda 在 `styled-system/jsx` 生成 JSX 辅助函数。下列示例用于 React **Web**，其中 `div` 是 DOM 元素：
+
+```tsx
+import { styled } from '../styled-system/jsx/index.mjs'
+
+const Surface = styled('div', {
+  base: { padding: '4', borderRadius: 'lg' },
+  variants: {
+    tone: {
+      neutral: { backgroundColor: 'gray.50' },
+      accent: { backgroundColor: 'blue.50' },
+    },
+  },
+})
+
+export function Example() {
+  return (
+    <Surface tone="accent">
+      <styled.div css={{ color: 'red.500' }}>Panda on Web</styled.div>
+    </Surface>
+  )
+}
+```
+
+Styled 生成的 class 与 recipes、patterns 一起适配。手写特殊 `className` 仍需 [runtime 编码](/zh/api/runtime/)。
+
+`styled.div` 不会提供小程序 `view`。Taro 将 class 绑定到自己的 `View`/`Text`，Uni-app 或 Wevu 绑定到对应模板元素。Vue 和原生小程序模板不使用这个 React Web JSX 示例，组件与构建约定见[框架指南](/zh/frameworks/)。
+
+## 辅助函数无效果时检查
+
+| 现象 | 检查项 |
+| --- | --- |
+| `token` 路径不存在或类型报错 | 主题定义与最新 codegen |
+| 变量引用存在但值缺失 | Token CSS 导入与匹配的生成目标 |
+| Pattern 函数缺失 | Preset、自定义 pattern 注册与生成导出 |
+| 小程序布局有差异 | 最终 CSS 单位、组件 display 规则与原生 CSS 支持 |
+| JSX 辅助函数或类型缺失 | `jsxFramework`、扫描范围与生成的 JSX 目录 |
+| 只有动态选项缺少样式 | Panda 提取或 `staticCss` 预生成 |
+
+适配器对齐命名并转换 CSS，不替代平台组件 API，不实现缺失的 CSS 布局能力，也不在运行时注入样式规则。

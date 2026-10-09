@@ -1,0 +1,168 @@
+---
+title: 原生微信小程序
+description: 在 Node 中生成有限 class 状态，再将 Panda CSS 编译为原生应用的 WXSS。
+sidebar:
+  order: 6
+---
+
+已有原生微信项目可以在构建期使用 Panda，无需把生成 ESM 导入小程序。本方案在 Node 中计算有限 class 状态，写入普通 CommonJS 数据模块，再通过 PostCSS 生成配套 `app.wxss`。
+
+仓库**暂无独立原生项目示例或原生 E2E 验收**。这是一份接入方案，生成的项目需要在所选微信开发者工具与真机验证。[Weapp Vite 指南](/zh/frameworks/weapp-vite/)提供了已有编译产物/headless 测试的集成路线。
+
+## 安装构建依赖
+
+adapter 声明 Node `^22.18.0 || >=24.11.0`，推荐 Node 22.18+ 或 24.11+ 的 LTS 版本，在包含 `package.json` 的项目目录执行：
+
+~~~sh
+pnpm add -D @pandacss/dev@2.1.2 @pandacss/preset-base@2.1.2 @pandacss/preset-panda@2.1.2 weapp-pandacss@^2 postcss postcss-cli postcss-rem-to-responsive-pixel
+~~~
+
+以下路径假设原生应用位于 `miniprogram/`。如果 `project.config.json` 的 `miniprogramRoot` 不同，应一起调整。
+
+~~~text
+panda.config.ts
+postcss.config.cjs
+styles/app.css
+styles/page.mjs
+scripts/generate-classes.mjs
+miniprogram/app.js
+miniprogram/app.json
+miniprogram/pages/index/index.js
+miniprogram/pages/index/index.wxml
+~~~
+
+## 配置 Panda 与 CSS
+
+~~~ts
+// panda.config.ts
+import { defineConfig } from '@pandacss/dev'
+import { weappPanda } from 'weapp-pandacss/panda'
+
+export default defineConfig({
+  plugins: [weappPanda()],
+  polyfill: false,
+  presets: ['@pandacss/preset-base', '@pandacss/preset-panda'],
+  preflight: false,
+  include: ['./styles/**/*.{js,mjs,ts}'],
+  outdir: 'styled-system',
+  outExtension: 'mjs',
+  forceImportExtension: true,
+})
+~~~
+
+Panda 扫描样式编写模块，不扫描 WXML 模板或生成 class 模块。样式值保持可静态提取，`styled-system` 放在小程序 root 之外。
+
+~~~js
+// postcss.config.cjs
+module.exports = {
+  plugins: {
+    '@pandacss/dev/postcss': {},
+    'weapp-pandacss/postcss': { target: 'weapp' },
+    'postcss-rem-to-responsive-pixel': {
+      rootValue: 32,
+      propList: ['*'],
+      transformUnit: 'rpx',
+    },
+  },
+}
+~~~
+
+~~~css
+/* styles/app.css */
+@layer reset, base, tokens, recipes, utilities;
+~~~
+
+手写应用 CSS 追加到这份源码中，或在适配前合并 layer 输入。下面的构建会覆盖 `miniprogram/app.wxss`，应以 `styles/app.css` 为源文件。单位转换可选，换算比例由设计决定。
+
+## 声明全部所需状态
+
+~~~js
+// styles/page.mjs
+import { css, cva } from '../styled-system/css/index.mjs'
+
+const button = cva({
+  base: { padding: '4', borderRadius: 'md' },
+  variants: {
+    tone: {
+      neutral: { bg: 'slate.200', color: 'slate.900' },
+      accent: { bg: 'sky.600', color: 'white' },
+    },
+  },
+  defaultVariants: { tone: 'neutral' },
+})
+
+export const classes = {
+  page: css({ padding: '4', display: 'flex', flexDirection: 'column' }),
+  neutral: button({ tone: 'neutral' }),
+  accent: button({ tone: 'accent' }),
+}
+~~~
+
+创建构建期导出脚本：
+
+~~~js
+// scripts/generate-classes.mjs
+import { mkdir, writeFile } from 'node:fs/promises'
+import { classes } from '../styles/page.mjs'
+
+const output = new URL('../miniprogram/generated/', import.meta.url)
+await mkdir(output, { recursive: true })
+await writeFile(
+  new URL('panda-classes.js', output),
+  `module.exports = ${JSON.stringify(classes, null, 2)};\n`,
+)
+~~~
+
+Node 执行生成的 Panda runtime，小程序只加载导出的字符串数据模块，不执行 `.mjs`、Panda 或 PostCSS。
+
+## 按顺序构建
+
+~~~json
+{
+  "scripts": {
+    "codegen": "panda codegen",
+    "build:styles": "pnpm codegen && node scripts/generate-classes.mjs && postcss styles/app.css -o miniprogram/app.wxss"
+  }
+}
+~~~
+
+打开或编译原生应用前执行 `pnpm build:styles`。新增样式值、变体或源码 CSS 后重新运行。导出脚本必须位于 codegen 之后，WXSS 也需要来自同一配置。忽略 `styled-system/`、`miniprogram/generated/` 和生成的 `miniprogram/app.wxss`，提交对应源码。
+
+## 通过 Page 与 setData 使用 class
+
+~~~js
+// miniprogram/pages/index/index.js
+const classes = require('../../generated/panda-classes.js')
+
+Page({
+  data: {
+    pageClass: classes.page,
+    buttonClass: classes.neutral,
+    selected: false,
+  },
+  toggle() {
+    const selected = !this.data.selected
+    this.setData({
+      selected,
+      buttonClass: selected ? classes.accent : classes.neutral,
+    })
+  },
+})
+~~~
+
+~~~html
+<!-- miniprogram/pages/index/index.wxml -->
+<view class="{{pageClass}}">
+  <button class="{{buttonClass}}" bindtap="toggle">
+    {{selected ? 'Accent' : 'Neutral'}}
+  </button>
+</view>
+~~~
+
+保留已有 `App({})` 和 `app.json` 中的页面注册。平台会自动加载应用 `app.wxss`，自定义组件仍需要合适的样式隔离才能接收全局样式。
+
+## 边界与验收
+
+本方案覆盖有限生成状态。任意 runtime 样式构造需要 bundler/转译器和单独验证的 runtime 集成。不要把未经转译的 `.mjs` 复制到原生页面，也不要使用旧 adapter CLI。
+
+构建后检查 WXML 绑定的 class 是否存在于最终 WXSS、token 声明是否完整，并验证按钮两种状态在点击和重新启动后正确渲染。基础库、组件隔离和 CSS 能力都需要在实际目标验收。其他框架的浏览器/headless 结果不能证明原生真机渲染兼容。

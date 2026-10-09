@@ -1,58 +1,61 @@
 ---
-title: Public API
-description: Stable package entries for Panda, PostCSS and browser runtime.
+title: API reference
+description: Every public adapter function and option, plus the Panda APIs used in application code.
 sidebar:
   order: 6
 ---
 
-## Entries
+Choose the API by where it runs: configure the adapter at build time, use Panda's generated functions for styles, and encode authored class names in application code.
 
-Every entry provides ESM, CommonJS and corresponding TypeScript declarations.
+## Adapter APIs
+
+| Reference | Functions and configuration | Runs in |
+| --- | --- | --- |
+| [Panda plugin](/api/panda-plugin/) | `weappPanda()` and generation lifecycle | Panda configuration |
+| [PostCSS plugin](/api/postcss-plugin/) | `postcssPlugin()` and every `IPostcssPluginOptions` field | CSS build |
+| [Runtime encoders](/api/runtime/) | `encodeClassName()`, `encodeClassList()`, `createPortableRuntime()` | Application or generated runtime |
+
+## Panda generated APIs
+
+These functions belong to **Panda CSS 2.1.2** and are imported from your generated `styled-system` directory. They are not exports of `weapp-pandacss`.
+
+| Reference | APIs | Use |
+| --- | --- | --- |
+| [css and cx](/api/styling/) | `css()`, `css.raw()`, `cx()` | Atomic styles, style composition and class lists |
+| [Recipes](/api/recipes/) | `cva()`, `sva()`, named recipes, slot recipes and variant helpers | Component variants and multiple parts |
+| [Tokens, patterns and styled](/api/tokens-patterns/) | `token()`, `token.var()`, patterns, `styled` | Theme values, layout helpers and React Web components |
+
+## Package entries
+
+Every JavaScript entry supports ESM, CommonJS and corresponding TypeScript declarations. `IPostcssPluginOptions` is a type export.
 
 | Entry | Exports |
 | --- | --- |
 | `weapp-pandacss` | `weappPanda`, `postcssPlugin`, `encodeClassName`, `encodeClassList`, `IPostcssPluginOptions` |
 | `weapp-pandacss/panda` | `weappPanda` |
-| `weapp-pandacss/postcss` | Default PostCSS plugin |
+| `weapp-pandacss/postcss` | Default `postcssPlugin` factory |
 | `@weapp-pandacss/runtime` | `encodeClassName`, `encodeClassList`, `createPortableRuntime` |
-| `weapp-pandacss/runtime` | Same exports; compatibility entry |
+| `weapp-pandacss/runtime` | Same three runtime exports; compatibility entry |
+| Either package's `/package.json` | Package metadata |
 
-## Panda plugin
+Use `@weapp-pandacss/runtime` in application code. It has no Panda, PostCSS, Babel or Node dependencies. The main adapter package is build tooling; the standalone runtime also suits independently published component libraries.
 
-~~~ts
+```ts
 import { weappPanda } from 'weapp-pandacss/panda'
-
-const plugin = weappPanda()
-~~~
-
-No options are required. The return type is Panda's `PandaPlugin`. It verifies the installed Panda version and adapts naming and artifacts; see [Panda configuration](/panda/).
-
-## PostCSS plugin
-
-~~~ts
 import postcssPlugin from 'weapp-pandacss/postcss'
 import type { IPostcssPluginOptions } from 'weapp-pandacss'
+import { encodeClassName } from '@weapp-pandacss/runtime'
 
+const panda = weappPanda()
 const options: IPostcssPluginOptions = { target: 'weapp' }
-const plugin = postcssPlugin(options)
-~~~
+const postcss = postcssPlugin(options)
+const authored = encodeClassName('custom/active')
+```
 
-CommonJS consumers can use:
+The root entry does not export `createPortableRuntime`. Internal helpers are not public APIs. The v1 file-patching APIs, adapter configuration loader, wildcard internal paths and adapter CLI binaries were removed; see the [migration guide](/migration/).
 
-~~~js
-const postcssPlugin = require('weapp-pandacss/postcss')
-const plugin = postcssPlugin({ target: 'weapp' })
-~~~
+## Before using a generated API
 
-The CJS PostCSS entry supports direct `require()`. See the [option reference](/postcss/) for the full configuration.
+Register both `weappPanda()` and the PostCSS adapter, run `panda codegen`, and import the generated global CSS. Keep generated runtime and CSS from the same configuration. The [Panda guide](/panda/) and [PostCSS guide](/postcss/) provide the setup.
 
-## Runtime encoding
-
-~~~ts
-encodeClassName(value: string): string
-encodeClassList(value: string): string
-~~~
-
-Prefer the standalone `@weapp-pandacss/runtime` in application code; installing it does not bring in Panda, PostCSS or Babel. The existing `/runtime` entry remains compatible. `createPortableRuntime()` returns the two encoders for embedding a self-contained generation runtime. Encode only raw authored names, once; see [runtime and naming](/runtime/).
-
-The v1 file-patching APIs, adapter configuration loader, wildcard internal paths and adapter CLI binaries were removed. Their replacements are listed in the [migration guide](/migration/).
+Panda outputs are already encoded. Encode only raw authored names, once. The adapter changes naming and CSS output; it does not generate runtime CSS, make arbitrary dynamic styles extractable, or add support for CSS features missing from a target platform. See [troubleshooting](/troubleshooting/) when a generated class has no matching style.

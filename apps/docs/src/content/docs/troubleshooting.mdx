@@ -1,32 +1,154 @@
 ---
 title: Troubleshooting
-description: Diagnose codegen, missing styles and cross-target build problems.
+description: Diagnose missing styles, generation errors, dynamic values, JavaScript syntax and DevTools output.
 sidebar:
   order: 8
 ---
 
+## Start with the generated output
+
+Follow the chain: source style → Panda extraction → generated runtime → PostCSS CSS → framework artifact → rendered node. Check the first point where the expected class, rule or value disappears. Encoding changes cannot repair a missing stylesheet, extraction failure or JavaScript compilation error.
+
+| Symptom | First check |
+| --- | --- |
+| Panda refuses to generate | Installed version and complete generated-artifact contract |
+| Class exists, rule missing | Source scan, codegen, stylesheet import and target directory |
+| Page works, component fails | Style isolation and emitted component scope |
+| Only dynamic values fail | Static extraction and bounded variant generation |
+| `Unexpected token ?` or optional chaining error | Final AppService JS and framework transpilation |
+| H5 works, WeChat fails | CSS target, units, renderer and final WXML/WXSS |
+| Switching targets restores old output | Environment, alias, output paths and cache ownership |
+
 ## Unsupported Panda version or runtime
 
-Install `@pandacss/dev`, `@pandacss/preset-base` and `@pandacss/preset-panda` at **2.1.2**. Set `outExtension: 'mjs'` and `forceImportExtension: true`, then regenerate. Unsupported extensions, missing runtime or changed generation structures produce explicit errors; do not suppress them.
+**Symptom:** `weappPanda requires Panda CSS 2.1.2`, unsupported runtime, missing helpers/sva or TS-only output.
+
+**Cause:** The plugin depends on the verified Panda artifact structure. A different version, unsupported extension or incomplete generation cannot be safely adapted.
+
+**Fix:** Pin `@pandacss/dev`, `@pandacss/preset-base` and `@pandacss/preset-panda` to **2.1.2**. Use `outExtension: 'mjs'` and `forceImportExtension: true`, or supported `.js` output. Register `weappPanda()` and regenerate the complete directory. Remove old generated backups/patch hooks through the [migration steps](/migration/).
+
+**Verify:** Repeated codegen succeeds, helpers and slot runtime contain the portable generation marker, and no old helper backup is needed. Do not suppress the diagnostic or patch one generated file while retaining another generation.
 
 ## The class exists but styles do not apply
 
-Check that both the Panda plugin and PostCSS adapter are registered, the global layer CSS is imported, and codegen ran before the build. Runtime and CSS must come from the same configuration and portable generation.
+**Symptom:** A node has a class, but no corresponding color or spacing appears.
 
-Do not encode Panda outputs twice. Keep authored CSS selectors raw with normal CSS escapes. Inspect the final WXML and WXSS rather than only the source class string.
+**Cause:** The rule was not extracted or loaded, imports use another target's runtime, the class was encoded twice, or later CSS wins.
+
+**Fix:** Check `include` (including `.vue` where needed), the Panda plugin, Panda → adapter order and the application's global layer CSS import. Check that runtime imports and bundler aliases use the same target directory. Use generated `css()`/recipe output directly; encode only raw authored special names.
+
+**Verify:** Inspect the actual node class and final CSS/WXSS selector together. For example, raw `a.b` becomes `a_wp_2e_b` on both sides, while raw `a_wp_2e_b` becomes `a_wp_5f_wp_2e_b`. If a matching rule exists, inspect declarations, token values, isolation and competing specificity rather than changing the codec. See [class names](/guides/class-names/).
+
+## Styles work on a page but not in a component
+
+**Symptom:** The same class works in page content and fails inside a custom component.
+
+**Cause:** Global WXSS is blocked by component isolation, or framework scoping has changed the selectors.
+
+**Fix:** In the Wevu example, `defineComponentJson({ component: true, styleIsolation: 'apply-shared' })` permits shared application styles. Native WeChat puts `styleIsolation` in `Component({ options: ... })`. Choose a policy appropriate to the component; do not widen every component to `shared` automatically.
+
+**Verify:** Inspect the component's rendered class, emitted scope and available stylesheet. Check both initial and changed variants. See [component styles](/guides/component-styles/).
+
+## Dynamic values have no matching rule
+
+**Symptom:** `css({ color: runtimeColor })` produces a string but the selected color has no stylesheet rule.
+
+**Cause:** Panda cannot extract an arbitrary runtime value. A named recipe's runtime-only variants may also be absent from generated CSS.
+
+**Fix:** Define finite states with `cva()`/`sva()`, keep named-recipe literal uses visible, or generate a bounded set using Panda `staticCss`. Use a static `var(--runtime-color)` expression and runtime style assignment for arbitrary values. This is a Panda extraction concern, not an extra encoding step.
+
+**Verify:** Each allowed finite value has an emitted rule; a runtime variable has both a static referencing rule and the element's assigned property. Check reload and repeated state changes. See [dynamic styles](/guides/dynamic-styles/).
 
 ## Alias or generated-type errors
 
-Map `styled-system` in TypeScript and the framework bundler. In the Wevu example, run `wv prepare` before codegen on a clean checkout. Ensure the generated runtime is transpiled to the target mini-program's supported JavaScript; the adapter is not a language polyfill.
+**Symptom:** `Cannot find module 'styled-system/...'`, missing generated declarations or missing `.weapp-vite` support files.
 
-## Web and mini-program builds interfere
+**Cause:** Codegen has not run, the import points to another directory, or a clean Wevu checkout has not prepared its managed types.
 
-Use independent `outdir` values, output directories and aliases. Do not let two codegen processes write to the same directory or restore one platform's cache over another. Web uses `target: 'web'`, retaining the adapter for matching class names.
+**Fix:** Configure the logical import in both TypeScript paths and the bundler alias. Preserve `importMap` when aliases replace Panda's default generated import. For Weapp Vite + Wevu run `wv prepare` before Panda codegen, then the normal typecheck/build script.
+
+**Verify:** Type checking and the real framework build both resolve the current target's generated files. Editor completion alone is insufficient. See [build targets](/guides/build-targets/).
+
+## Optional chaining or JavaScript syntax errors
+
+**Symptom:** AppService reports `Unexpected token ?`, an optional chaining/nullish syntax error, or cannot parse a generated `.mjs` module.
+
+**Cause:** Panda generated runtime was not passed through the framework's target-language compilation, or the selected runtime cannot parse its final syntax. The adapter transforms class producers; it does not transpile JavaScript for a mini-program or add language/API polyfills.
+
+**Fix:** Locate the final emitted JavaScript and the loader/preset responsible for it. The Taro Webpack mini configurations explicitly run `/\.[cm]js$/i` files through `babel-loader` with the framework preset. Check target settings, loader exclusions and which Babel version resolves in that workspace. Keep codegen output as input to the normal bundler. Configure any required syntax transforms/API polyfills at the framework boundary.
+
+**Verify:** Rebuild and run the real application in the selected IDE/base library. Confirm AppService has no parse/runtime exception and interactions work. Do not fix this by editing helpers, replacing `?.` text or enabling random IDE switches; inspect which stage is actually missing.
+
+## Mini-program dimensions or variables differ from H5
+
+**Symptom:** Classes match, but dimensions or token-driven values differ across targets.
+
+**Cause:** A Web CSS target was used for WXSS, rem conversion differs, an inline runtime style bypassed PostCSS, or the renderer does not support the CSS feature.
+
+**Fix:** Use `target: 'web'` for H5 and `weapp` for mini-program CSS. Put optional unit conversion after the adapter and select a design `rootValue`. With `rootValue: 32`, `0.5rem` becomes `16rpx` when `transformUnit: 'rpx'`. Runtime style strings need their intended unit directly.
+
+**Verify:** Compare the final declaration, referenced token variable and computed/displayed result in the actual renderer. A class/selector match does not validate layout. See [units](/guides/component-styles/#units-and-design-scale).
 
 ## CSS variable diagnostic
 
-Mini-program custom properties need ASCII `--[A-Za-z0-9_-]+` names. Check declarations, `var()` references and `@property`. Use Panda tokens for generated variables; their hashing is handled natively.
+**Symptom:** `Unsupported mini-program CSS variable` reports a declaration, `var()` reference or `@property` name.
+
+**Cause:** The raw custom-property identifier is not supported by the adapter's ASCII check.
+
+**Fix:** Use `--[A-Za-z0-9_-]+` identifiers for authored variables. Prefer Panda tokens for generated variables; `weappPanda()` enables native `hash.cssVar` so declarations and `token.var()` references agree. The adapter does not rename arbitrary custom properties.
+
+**Verify:** Both declarations and references contain the same supported name. For tokens, read the returned variable reference rather than reconstructing the hash.
+
+## Layers, specificity or polyfill errors
+
+**Symptom:** `WP_LAYER_SPECIFICITY`, `WP_LAYER_CONDITIONAL_ORDER`, `WP_LAYER_SELECTOR_UNKNOWN`, a Panda polyfill error, or rejected nesting/import/`revert-layer` input.
+
+**Cause:** Ordered conversion needs original layer information and cannot reproduce every native cascade relationship.
+
+**Fix:** Set Panda `polyfill: false` and regenerate. Declare layer order before conditional blocks. Expand imports/nesting earlier and use comparable cross-layer specificity. Do not mix explicit ordered mode with legacy options. The [CSS compatibility guide](/guides/css-compatibility/#diagnostic-fixes) maps each diagnostic to its fix.
+
+**Verify:** Inspect PostCSS warnings and the actual winning declaration. Use `onConflict: 'error'` when a conservative risk should fail the build. Layer sorting covers one PostCSS root, not independently compiled files or isolated component styles.
+
+## Web and mini-program builds interfere
+
+**Symptom:** H5 generation changes a mini-program's runtime, or a cache restore brings back the wrong platform.
+
+**Cause:** Platform variables are set too late, targets share an `outdir`/output directory, aliases point to another platform, or competing watchers write the same files.
+
+**Fix:** Set the platform before Panda reads its config. Use independent generated/output paths and matching aliases. Stop the affected target's writers before regenerating; restore caches only to their original target. Keep the Web adapter enabled—`disabled: true` disables encoding as well as CSS conversion.
+
+**Verify:** Build the two targets sequentially from clean target directories first, then test parallelism only with independent paths. Check each final class, selector and token. See [build targets](/guides/build-targets/).
+
+## Tailwind or third-party classes stop matching
+
+**Symptom:** Panda styles work, but a library's generated special class has no matching selector.
+
+**Cause:** Its CSS passed through the portable codec while its own runtime still returns another naming format, or two CSS generators handled the same entry.
+
+**Fix:** Keep each generator's runtime and CSS paired. The Uni-app example isolates `tailwind.css` and pre-expands Panda's separate virtual entry. Do not apply Panda's encoding to Tailwind output. For vendor CSS, inspect its names before choosing the processing boundary.
+
+**Verify:** Compare one actual node per styling system with its final selectors and token values. See [entry isolation](/guides/build-targets/#panda-and-tailwind-entry-isolation).
+
+## Package imports or Node APIs fail
+
+**Symptom:** `ERR_PACKAGE_PATH_NOT_EXPORTED`, a missing legacy adapter CLI, or unresolved `node:` modules in application code.
+
+**Cause:** Code uses removed internal paths or imports build-time plugins into the application runtime.
+
+**Fix:** Use the [public entrypoints](/api/). Application code needing only authored-class encoding imports `@weapp-pandacss/runtime`, or the compatibility `weapp-pandacss/runtime` entry. Keep `/panda` and `/postcss` in build configuration. The v1 adapter CLI and wildcard internal imports were removed.
+
+**Verify:** Build application code with the runtime entry. For a published component, check the runtime version paired with the adapter; version equality between the two differently versioned package names is not required.
+
+## DevTools loads stale output or rejects acceptance
+
+**Symptom:** The simulator shows another target's page, preview fails after a successful build, or `test:e2e:devtools` stops during preflight.
+
+**Cause:** The IDE project points at another output directory, stale framework artifacts remain, the AppID lacks the required capability, or the real IDE acceptance prerequisites are missing.
+
+**Fix:** Check `miniprogramRoot` against the active build: Taro uses `dist/weapp`, the Wevu example uses `dist`, and Uni-app outputs differ between dev/build. For ordinary preview configure the project's own authorized AppID where the platform requires it. For the repository's real IDE test, provide an absolute verified stable CLI path, authorized real AppID, matching official stable/installed IDE versions and a version check timestamp within 24 hours. The tourist AppID is rejected by that acceptance entry.
+
+**Verify:** Confirm the IDE's actual project and output, inspect AppService errors, relaunch and repeat interaction. The acceptance prerequisites and cleanup procedure are documented in the repository [testing strategy](https://github.com/weapp-pandacss/weapp-pandacss/blob/main/docs/testing-strategy.md). mpcore logic tests, IDE rendering and physical-device validation are distinct evidence.
 
 ## Reporting an issue
 
-Include package and Panda versions, framework/target, relevant Panda/PostCSS configuration, a minimal source example and matching generated class/selector output. Report it in [GitHub Issues](https://github.com/weapp-pandacss/weapp-pandacss/issues). Remove secrets and private application data before sharing.
+Include adapter/runtime/Panda versions, Node version, framework/bundler/target, renderer/base library where relevant, Panda/PostCSS configuration, the smallest failing source and paired final class/selector. Add the exact error, expected result and whether the failure occurs in codegen, build, IDE or device. Submit it to [GitHub Issues](https://github.com/weapp-pandacss/weapp-pandacss/issues), with private application data and secrets removed.

@@ -1,32 +1,154 @@
 ---
 title: 故障排查
-description: 定位 codegen、样式缺失与跨平台构建问题。
+description: 定位样式缺失、生成错误、动态值、JavaScript 语法与开发者工具产物问题。
 sidebar:
   order: 8
 ---
 
+## 从最终产物开始
+
+沿着“源码样式 → Panda 提取 → 生成 runtime → PostCSS CSS → 框架产物 → 实际节点”检查，找出 class、规则或值最先丢失的阶段。修改编码不能修复未导入的样式、提取失败或 JavaScript 编译错误。
+
+| 症状 | 首先检查 |
+| --- | --- |
+| Panda 拒绝生成 | 安装版本与完整生成产物约定 |
+| 有 class，无规则 | 源码扫描、codegen、样式导入与目标目录 |
+| 页面有效，组件失效 | 样式隔离与最终组件作用域 |
+| 仅动态值失效 | 静态提取与有限变体生成 |
+| `Unexpected token ?`、optional chaining 错误 | 最终 AppService JS 与框架转译 |
+| H5 正常，微信异常 | CSS target、单位、渲染器与最终 WXML/WXSS |
+| 切换目标后恢复旧产物 | 环境、alias、输出目录与缓存归属 |
+
 ## Panda 版本或 runtime 不支持
 
-将 `@pandacss/dev`、`@pandacss/preset-base` 和 `@pandacss/preset-panda` 安装为 **2.1.2**。使用 `outExtension: 'mjs'`、`forceImportExtension: true` 后重新生成。不支持的扩展名、缺少 runtime 或结构变化都会明确报错，不要吞掉诊断。
+**症状：** 出现 `weappPanda requires Panda CSS 2.1.2`、不支持的 runtime、缺少 helpers/sva 或 TS-only 输出诊断。
+
+**根因：** 插件依赖已验收的 Panda 产物结构，不同版本、不支持的扩展名或不完整生成不能安全适配。
+
+**修复：** 固定 `@pandacss/dev`、`@pandacss/preset-base` 与 `@pandacss/preset-panda` 为 **2.1.2**。使用 `outExtension: 'mjs'` 与 `forceImportExtension: true`，也可使用支持的 `.js` 输出。注册 `weappPanda()` 后完整重新生成，旧备份/补丁 hook 按[迁移步骤](/zh/migration/)移除。
+
+**验证：** 重复 codegen 成功，helpers 与 slot runtime 带有 portable 生成标记，不依赖旧 helper 备份。不要吞掉诊断，也不要只修改一个生成文件而保留另一轮产物。
 
 ## 有 class，但样式未生效
 
-确认 Panda 插件与 PostCSS adapter 均已注册，全局 layer CSS 已导入，构建前执行了 codegen。runtime 与 CSS 必须来自同一配置与配套的 portable 生成流程。
+**症状：** 节点有 class，但看不到对应颜色或间距。
 
-不要重复编码 Panda 输出。手写 CSS selector 保留原名并按 CSS 语法转义。检查最终 WXML 和 WXSS，而不是仅看源码 class。
+**根因：** 规则没有被提取或加载，导入了另一目标 runtime，class 重复编码，或后续 CSS 胜出。
+
+**修复：** 检查 `include`（需要时包含 `.vue`）、Panda 插件、Panda → adapter 顺序，以及应用入口的全局 layer CSS 导入。确认 runtime 导入与 bundler alias 使用同一目标目录，直接使用生成的 `css()`/recipe 结果，仅对原始手写特殊名称编码。
+
+**验证：** 同时查看实际节点 class 与最终 CSS/WXSS selector。例如原始 `a.b` 两侧均为 `a_wp_2e_b`，原始 `a_wp_2e_b` 则为 `a_wp_5f_wp_2e_b`。已有匹配规则时，继续检查声明、token 值、隔离与竞争权重，而不是修改编码器。详见[类名处理](/zh/guides/class-names/)。
+
+## 页面有效，组件内无效
+
+**症状：** 同一 class 在页面中有效，在自定义组件内失效。
+
+**根因：** 全局 WXSS 被组件隔离，或者框架作用域改变了 selector。
+
+**修复：** Wevu 示例使用 `defineComponentJson({ component: true, styleIsolation: 'apply-shared' })` 接收共享应用样式；原生微信在 `Component({ options: ... })` 中设置 `styleIsolation`。按组件设计选择隔离策略，不要自动把所有组件改成 `shared`。
+
+**验证：** 检查组件实际 class、生成作用域与可访问的样式，同时验证初始与切换后的变体。详见[组件样式](/zh/guides/component-styles/)。
+
+## 动态值没有对应规则
+
+**症状：** `css({ color: runtimeColor })` 返回字符串，但所选颜色没有对应样式规则。
+
+**根因：** Panda 无法提取任意运行时值；命名 recipe 仅来自运行时的变体也可能没有生成 CSS。
+
+**修复：** 有限状态使用 `cva()`/`sva()`，让命名 recipe 的字面量调用可见，或使用 Panda `staticCss` 预生成有限集合。任意值使用静态 `var(--runtime-color)` 表达式与运行时 style 赋值。这属于 Panda 提取问题，不需要额外编码。
+
+**验证：** 每个允许的有限值都存在对应规则；动态变量同时存在静态引用规则与元素赋值。检查 reload 与重复切换，详见[动态样式](/zh/guides/dynamic-styles/)。
 
 ## 别名或生成类型报错
 
-在 TypeScript 与框架 bundler 中同时配置 `styled-system` 别名。Wevu 全新安装先运行 `wv prepare` 再 codegen。生成 runtime 仍需转译为目标小程序支持的 JavaScript，适配器不提供语法 polyfill。
+**症状：** `Cannot find module 'styled-system/...'`、缺少生成声明或 `.weapp-vite` 支持文件。
 
-## Web 与小程序构建相互覆盖
+**根因：** 尚未 codegen、导入指向另一目录，或全新 Wevu checkout 尚未 prepare 受管类型。
 
-分别配置 `outdir`、构建输出目录和别名。不要让多个 codegen 进程写同一目录，也不要用一个平台缓存覆盖另一个。Web 使用 `target: 'web'`，保留 adapter 以确保 class 匹配。
+**修复：** 同时设置 TypeScript paths 与 bundler alias。别名替代 Panda 默认导入时，保留对应 `importMap`。Weapp Vite + Wevu 先执行 `wv prepare`，再 Panda codegen，随后运行正常 typecheck/build 脚本。
+
+**验证：** 类型检查和真实框架构建都解析到当前目标的生成文件，编辑器补全不能代替构建验证。详见[多目标构建](/zh/guides/build-targets/)。
+
+## Optional chaining 或 JavaScript 语法错误
+
+**症状：** AppService 报 `Unexpected token ?`、optional chaining/nullish 语法错误，或者无法解析生成 `.mjs` 模块。
+
+**根因：** Panda 生成 runtime 没有进入框架的目标语言编译，或选定运行时无法解析最终语法。Adapter 转换 class 生成逻辑，不负责小程序 JavaScript 转译或语言/API polyfill。
+
+**修复：** 找到最终 JS 及负责它的 loader/preset。Taro Webpack 小程序配置显式将 `/\.[cm]js$/i` 文件交给 `babel-loader` 与框架 preset。核对 target、loader 排除范围及工作区实际解析的 Babel 版本，让 codegen 产物继续作为正常 bundler 输入。所需语法转换/API polyfill 配置在框架边界。
+
+**验证：** 重建并在选定 IDE/基础库运行真实应用，确认 AppService 无解析/运行异常，交互正常。不要修改 helper、文本替换 `?.` 或随机开启 IDE 开关，先查清缺失的实际阶段。
+
+## 小程序尺寸或变量与 H5 不同
+
+**症状：** Class 匹配，但不同目标的尺寸或 token 样式值不同。
+
+**根因：** WXSS 使用了 Web target、rem 转换设置不同、运行时内联样式绕过 PostCSS，或渲染器不支持对应 CSS 能力。
+
+**修复：** H5 使用 `target: 'web'`，小程序 CSS 使用 `weapp`。按需单位转换放在 adapter 之后，按设计设置 `rootValue`。`rootValue: 32` 与 `transformUnit: 'rpx'` 会把 `0.5rem` 转成 `16rpx`，运行时 style 字符串需直接携带预期单位。
+
+**验证：** 在实际渲染器对照最终声明、引用的 token 变量与 computed/可见结果。Class/selector 匹配不能验证布局，详见[单位设置](/zh/guides/component-styles/#单位与设计比例)。
 
 ## CSS 变量诊断
 
-小程序手写变量使用 ASCII `--[A-Za-z0-9_-]+` 名称。检查声明、`var()` 引用和 `@property`。生成变量优先使用 Panda token，由 Panda 原生 hash 保证一致。
+**症状：** `Unsupported mini-program CSS variable` 指向声明、`var()` 引用或 `@property` 名称。
+
+**根因：** 原始自定义属性名称不符合 adapter 的 ASCII 检查。
+
+**修复：** 手写变量使用 `--[A-Za-z0-9_-]+`。生成变量优先使用 Panda token，`weappPanda()` 启用原生 `hash.cssVar`，使声明与 `token.var()` 引用一致。Adapter 不会重命名任意手写变量。
+
+**验证：** 声明与引用使用同一受支持名称；token 读取实际返回的变量引用，不要自行重建 hash。
+
+## Layer、权重或 polyfill 错误
+
+**症状：** 出现 `WP_LAYER_SPECIFICITY`、`WP_LAYER_CONDITIONAL_ORDER`、`WP_LAYER_SELECTOR_UNKNOWN`、Panda polyfill 错误，或 nesting/import/`revert-layer` 被拒绝。
+
+**根因：** Ordered 转换需要原始 layer 信息，且不能重现每种原生 cascade 关系。
+
+**修复：** 设置 Panda `polyfill: false` 后重新生成，条件块前声明 layer 顺序，在前序阶段展开 import/nesting，跨层保持接近的权重。不要把显式 ordered 与旧选项混用。[CSS 兼容指南](/zh/guides/css-compatibility/#诊断修复)列出各项诊断的对应修复。
+
+**验证：** 查看 PostCSS warnings 与实际胜出的声明。希望保守风险直接阻止构建时，使用 `onConflict: 'error'`。Layer 排序只覆盖单个 PostCSS root，不包含独立编译文件或隔离组件。
+
+## Web 与小程序构建相互覆盖
+
+**症状：** H5 生成改变了小程序 runtime，或恢复缓存后出现错误平台。
+
+**根因：** 平台变量设置过晚，目标共用 `outdir`/输出目录，alias 指向其它平台，或多个 watcher 竞争写入。
+
+**修复：** Panda 读配置前先设置平台，使用独立生成/输出目录与对应 alias。停止受影响目标的写入进程后再生成，缓存只恢复到原目标。Web 同样保留 adapter，`disabled: true` 会连 class 编码一起禁用。
+
+**验证：** 先分别从干净目标目录串行构建，再仅在路径独立时验证并行，检查各自最终 class、selector 与 token。详见[多目标构建](/zh/guides/build-targets/)。
+
+## Tailwind 或第三方 class 失配
+
+**症状：** Panda 样式有效，库生成的特殊 class 找不到对应 selector。
+
+**根因：** 库 CSS 经过 portable 编码，但其 runtime 仍返回另一种名称，或两个 CSS generator 处理了同一入口。
+
+**修复：** 每套 generator 的 runtime 与 CSS 保持配套。Uni-app 示例隔离 `tailwind.css`，提前展开 Panda 独立虚拟入口。不要把 Panda 编码用于 Tailwind 产物；第三方 CSS 应先检查类名，再选择处理边界。
+
+**验证：** 每套样式系统各选一个实际节点，对照最终 selector 与 token 值。详见[入口隔离](/zh/guides/build-targets/#panda-与-tailwind-入口隔离)。
+
+## 包导入或 Node API 报错
+
+**症状：** `ERR_PACKAGE_PATH_NOT_EXPORTED`、找不到旧 adapter CLI，或业务代码无法解析 `node:` 模块。
+
+**根因：** 使用了已删除的内部路径，或业务 runtime 导入了构建期插件。
+
+**修复：** 使用[公共入口](/zh/api/)。仅需要手写 class 编码的业务代码导入 `@weapp-pandacss/runtime`，也可使用兼容入口 `weapp-pandacss/runtime`；`/panda` 与 `/postcss` 留在构建配置中。v1 adapter CLI 与内部 wildcard 导入已删除。
+
+**验证：** 使用 runtime 入口重新构建业务代码。发布组件需检查与 adapter 配套的 runtime 版本，这两个不同版本体系的包无需版本号相同。
+
+## 开发者工具加载旧产物或拒绝验收
+
+**症状：** 模拟器显示另一目标页面、构建成功但预览失败，或 `test:e2e:devtools` 在预检阶段停止。
+
+**根因：** IDE 项目指向其它输出目录、框架残留旧产物、AppID 缺少所需能力，或真实 IDE 验收前提尚未满足。
+
+**修复：** 核对 `miniprogramRoot` 与当前构建：Taro 使用 `dist/weapp`，Wevu 示例使用 `dist`，Uni-app dev/build 的输出不同。普通预览需要平台能力时，配置项目有权限的 AppID。仓库真实 IDE 测试还需提供绝对路径的已核对稳定 CLI、有权限的真实 AppID、相同的官方稳定/实际 IDE 版本，以及 24 小时内的版本核对时间；该验收入口拒绝游客 AppID。
+
+**验证：** 确认 IDE 实际项目与输出，检查 AppService 错误，relaunch 后重复交互。验收前提与资源清理步骤见仓库[测试策略](https://github.com/weapp-pandacss/weapp-pandacss/blob/main/docs/testing-strategy.zh.md)。Mpcore 逻辑测试、IDE 渲染与实体设备验收是不同证据。
 
 ## 反馈问题
 
-提供包与 Panda 版本、框架/目标、Panda/PostCSS 配置、最小源码以及配套的生成 class/selector，提交到 [GitHub Issues](https://github.com/weapp-pandacss/weapp-pandacss/issues)。分享前移除密钥与应用私有数据。
+提供 adapter/runtime/Panda 版本、Node 版本、框架/bundler/目标、相关渲染器/基础库、Panda/PostCSS 配置、最小失败源码及配套最终 class/selector。补充精确报错、预期结果，以及错误发生在 codegen、构建、IDE 还是设备，提交到 [GitHub Issues](https://github.com/weapp-pandacss/weapp-pandacss/issues)，分享前移除私有应用数据与密钥。

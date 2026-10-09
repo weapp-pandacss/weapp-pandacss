@@ -1,0 +1,88 @@
+---
+title: Components and units
+description: Share Panda styles across component boundaries, choose conversion units, and keep third-party CSS in sync.
+sidebar:
+  order: 3
+---
+
+## Component isolation
+
+A class can be correct while its global WXSS is blocked by a component boundary. Check both the stylesheet's import location and the framework's isolation setting.
+
+The Weapp Vite + Wevu example keeps Panda CSS at application level and explicitly allows it into its button component:
+
+~~~ts
+// Inside the component's <script setup lang="ts">.
+defineComponentJson({
+  component: true,
+  styleIsolation: 'apply-shared',
+})
+~~~
+
+For a native WeChat component, the corresponding option belongs in the component definition's `options`:
+
+~~~js
+Component({
+  options: { styleIsolation: 'apply-shared' },
+  // properties, data and methods...
+})
+~~~
+
+`apply-shared` permits page styles to affect the component while keeping component styles from affecting the page. Select an isolation policy intentionally; changing to `shared` has a wider effect. Framework-generated component scopes or `scoped` styles are a separate mechanism. Inspect the emitted selectors instead of assuming a source class survives every scoping step unchanged.
+
+When distributing components, document their expected isolation and shared stylesheet imports. The runtime encoder cannot bypass style isolation. Native `externalClasses` can expose a supported styling surface, but callers still need matching names and accessible styles. See WeChat's [component templates and styles](https://developers.weixin.qq.com/miniprogram/dev/framework/custom-component/wxml-wxss.html).
+
+## Units and design scale
+
+Class encoding does not convert dimensions. Install a unit converter only when your design needs it:
+
+~~~sh
+pnpm add -D postcss-rem-to-responsive-pixel
+~~~
+
+~~~js
+// After Panda and weapp-pandacss/postcss.
+'postcss-rem-to-responsive-pixel': {
+  rootValue: 32,
+  propList: ['*'],
+  transformUnit: 'rpx',
+},
+~~~
+
+With these options, `1rem = 32rpx` and `0.5rem = 16rpx`. The Wevu integration test checks emitted `16rpx`. This is the configured design conversion, not the browser's root font size.
+
+| Input with this converter | Mini-program `rpx` output | H5 `px` output |
+| --- | --- | --- |
+| `1rem` | `32rpx` | `32px` |
+| `0.5rem` | `16rpx` | `16px` |
+
+For the H5 column use `transformUnit: 'px'` with the same `rootValue`. The React Web example uses no rem converter and leaves rem values to the browser. Taro also has its own designWidth/pxtransform pipeline; decide which stage owns each input unit before adding another converter.
+
+Runtime inline styles do not pass through PostCSS. If application data produces a width string, choose `rpx`, `px` or `%` there. Device width and the renderer determine the final displayed size; a matching class/WXSS test does not verify physical-device layout. See WeChat's [WXSS reference](https://developers.weixin.qq.com/miniprogram/dev/framework/view/wxss.html).
+
+## Third-party styles
+
+The adapter's naming pass covers every class selector in the processed root, including authored and vendor styles. Ordinary identifiers usually stay readable, but special characters, leading digits/hyphens and the literal `_wp_` marker change.
+
+If a library produces class strings at runtime, transforming only its CSS can break it. Before including that stylesheet in the adapter pipeline:
+
+1. Identify which code supplies its class names and which file supplies its selectors.
+2. Check whether those names are unchanged by the portable codec.
+3. Use the library's own adaptation workflow where it has one, or keep its entry separate from Panda's processing.
+4. Compare a rendered node's class with the final selector after framework scoping and unit conversion.
+
+Do not repair a vendor mismatch by encoding all class strings again; Panda-generated values may already be encoded. The Taro examples use NutUI, but their current integration is not a guarantee for every UI library, generated selector or version.
+
+## Resets, CSS Modules and overrides
+
+The installation baseline sets `preflight: false` to avoid introducing a global reset by default. Some repository examples enable preflight intentionally. If you enable it, inspect native tags and third-party controls after the adapter replaces root and universal selectors.
+
+The Taro examples disable CSS Modules for their shared Panda styles. Applying another class-renaming system requires a matching runtime mapping; the portable adapter does not automatically integrate every CSS Modules pipeline. Keep the application-level Panda stylesheet in a global path.
+
+Use recipe variants or a documented component styling surface for overrides. Cross-layer order does not always defeat a high-specificity vendor rule in WXSS. Check the [specificity boundary](/guides/css-compatibility/#specificity-is-a-compatibility-boundary) before relying on layers to override a library.
+
+## Panda with Tailwind
+
+The Uni-app example keeps Panda and Tailwind entries separate, with each runtime paired to its own selector encoding. Do not send Tailwind output through the Panda naming pass. The actual virtual-entry and processing order are explained in [build targets](/guides/build-targets/#panda-and-tailwind-entry-isolation).
+
+Verify a component's initial and selected variants, token variables and visible dimensions inside its actual boundary. For an isolated component failure use [troubleshooting](/troubleshooting/#styles-work-on-a-page-but-not-in-a-component).

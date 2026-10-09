@@ -1,52 +1,105 @@
 ---
-title: Framework examples
-description: Taro React, Taro Vue, Uni-app, React Web and Weapp Vite + Wevu.
+title: Framework integration
+description: Choose an integration, follow its build pipeline and check its verification scope.
 sidebar:
   order: 5
 ---
 
-## Run the repository examples
+Register both parts of the adapter in every target: `weappPanda()` adapts generated JavaScript, and `weapp-pandacss/postcss` creates matching CSS. Web/H5 needs both too. All guides use Panda CSS **2.1.2** and JavaScript `.js` / `.mjs` runtime output.
 
-Install once from the repository root and build the local adapter first:
+## Choose your framework
+
+| Integration | Guide | Repository baseline |
+| --- | --- | --- |
+| Weapp Vite + Wevu | [Vue SFC integration](/frameworks/weapp-vite/) | weapp-vite and Wevu 7.4.0; WeChat target |
+| Taro React | [Webpack integration](/frameworks/taro-react/) | Taro 4.3.0, React 18; WeChat and H5 |
+| Taro Vue | [Vue SFC integration](/frameworks/taro-vue/) | Taro 4.3.0, Vue 3.5, Webpack; WeChat and H5 |
+| Uni-app Vue | [Vite integration](/frameworks/uni-app/) | Matched DCloud packages, Vue 3.4.21, Vite 5.2.8 |
+| React Web / H5 | [Web integration](/frameworks/web/) | React 19 and Vite 8; `target: 'web'` |
+| Native WeChat | [Build-time class generation](/frameworks/native/) | Integration recipe; no independent native example or E2E |
+
+Matching names does not make every browser selector, media query or CSS property work in WXSS. Follow the [PostCSS compatibility guidance](/postcss/) and test the actual target renderer.
+
+## Verification levels
+
+| Area | Repository verification | Boundary |
+| --- | --- | --- |
+| Taro React / Vue | Final framework styles and runtime class matching | Artifact checks do not prove all interactions or visual layout |
+| Uni-app | Mini-program and H5 CSS artifacts | Tailwind comparison styles use a separate pipeline |
+| Weapp Vite + Wevu | Compiled WXML, components, taps and changing classes through mpcore | Headless mpcore does not emulate CSS layout |
+| React Web | Production computed styles and interactions in Chromium, Firefox and WebKit | Browser behavior is not mini-program device evidence |
+| Real WeChat DevTools | Opt-in rendering probes for the four mini-program examples | Requires an actual run, stable IDE and authorized AppID; simulator evidence is not physical-device evidence |
+| Native WeChat, Taro Vite, other mini-program targets, App/RN | No dedicated integration acceptance | Existing framework scripts do not establish adapter support |
+
+Use [the testing guide](https://github.com/weapp-pandacss/weapp-pandacss/blob/main/docs/testing-strategy.md) for commands and prerequisites. These levels describe test scope, rather than claim that every suite ran for your application.
+
+## Run a repository example
+
+From the repository root, build the adapter **and its runtime dependency** before invoking an example directly:
 
 ~~~sh
 corepack enable
-pnpm install
-pnpm --filter weapp-pandacss build
-~~~
-
-| Example | Workspace | Source |
-| --- | --- | --- |
-| Taro React | `@weapp-pandacss/taro-app` | [taro-app](https://github.com/weapp-pandacss/weapp-pandacss/tree/main/examples/taro-app) |
-| Taro Vue | `@weapp-pandacss/taro-app-vue3` | [taro-app-vue3](https://github.com/weapp-pandacss/weapp-pandacss/tree/main/examples/taro-app-vue3) |
-| Uni-app Vue | `@weapp-pandacss/uni-app-vue3` | [uni-app-vue3](https://github.com/weapp-pandacss/weapp-pandacss/tree/main/examples/uni-app-vue3) |
-| React Web | `@weapp-pandacss/react-app` | [react-app](https://github.com/weapp-pandacss/weapp-pandacss/tree/main/examples/react-app) |
-| Weapp Vite + Wevu | `@weapp-pandacss/weapp-vite-app` | [weapp-vite-app](https://github.com/weapp-pandacss/weapp-pandacss/tree/main/examples/weapp-vite-app) |
-
-~~~sh
+pnpm install --frozen-lockfile
+pnpm exec turbo run build --filter=weapp-pandacss
 pnpm --filter @weapp-pandacss/weapp-vite-app build
-pnpm --filter @weapp-pandacss/weapp-vite-app dev
-pnpm --filter @weapp-pandacss/weapp-vite-app open
 ~~~
 
-Replace the workspace name to build another example. Root `pnpm build` builds the adapter, all five applications and this documentation site.
+| Workspace | Source | Default output |
+| --- | --- | --- |
+| `@weapp-pandacss/weapp-vite-app` | [weapp-vite-app](https://github.com/weapp-pandacss/weapp-pandacss/tree/main/examples/weapp-vite-app) | `dist/` |
+| `@weapp-pandacss/taro-app` | [taro-app](https://github.com/weapp-pandacss/weapp-pandacss/tree/main/examples/taro-app) | `dist/weapp/` |
+| `@weapp-pandacss/taro-app-vue3` | [taro-app-vue3](https://github.com/weapp-pandacss/weapp-pandacss/tree/main/examples/taro-app-vue3) | `dist/weapp/` |
+| `@weapp-pandacss/uni-app-vue3` | [uni-app-vue3](https://github.com/weapp-pandacss/weapp-pandacss/tree/main/examples/uni-app-vue3) | `dist/build/mp-weixin/` |
+| `@weapp-pandacss/react-app` | [react-app](https://github.com/weapp-pandacss/weapp-pandacss/tree/main/examples/react-app) | `dist/` |
 
-## Weapp Vite + Wevu
+Replace the workspace name for another example. Root `pnpm build` includes all five applications and this documentation site. The historical Linaria example is outside the active Panda workspace.
 
-The example uses weapp-vite/Wevu **7.4.0**, Vue SFC and `<script setup lang="ts">`. Import reactive APIs from `wevu`, rather than a second Vue runtime.
+## Target-aware build script
 
-Scripts run `wv prepare` before Panda codegen, creating the managed type files on a clean checkout. The button uses `styleIsolation: 'apply-shared'` to access application-level Panda styles. Tailwind integration is disabled.
+Taro and Uni-app select generated directories using an environment variable. Set it **before Panda reads its configuration**, then pass the same value to the framework build. Setting it only inside the framework is too late for a preceding codegen process.
 
-Open the example directory in WeChat DevTools or run the `open` script. The default AppID is a tourist AppID; configure your own locally for platform features. mpcore tests check real WXML/WXSS and class updates after a click; they do not assert pixel layout.
+For a standalone project, save this source-derived helper as `scripts/run-platform.mjs`:
 
-## Taro and Uni-app
+~~~js
+import { spawnSync } from 'node:child_process'
+import { createRequire } from 'node:module'
+import path from 'node:path'
+import process from 'node:process'
 
-Taro retains Webpack and React 18 for its React example. Web and mini-program targets use independent generated directories and matching aliases.
+const [framework, target, ...args] = process.argv.slice(2)
+if (!['taro', 'uni'].includes(framework) || !target) {
+  throw new Error('Expected <taro|uni> <target> <framework arguments>')
+}
+const require = createRequire(path.resolve('package.json'))
+const env = {
+  ...process.env,
+  [framework === 'taro' ? 'TARO_ENV' : 'UNI_PLATFORM']: target,
+}
 
-Uni-app retains a Tailwind v4 comparison stylesheet. Its Tailwind pipeline and Panda stylesheet are separate; each owns its matching runtime and selector naming. Copy the full example configuration rather than applying the Panda adapter to Tailwind output.
+function run(packageName, command, commandArgs) {
+  const manifest = require.resolve(`${packageName}/package.json`)
+  const bin = require(manifest).bin[command]
+  const result = spawnSync(
+    process.execPath,
+    [path.resolve(path.dirname(manifest), bin), ...commandArgs],
+    { env, stdio: 'inherit' },
+  )
+  if (result.error) throw result.error
+  if (result.status !== 0) process.exit(result.status ?? 1)
+}
 
-## React Web
+run('@pandacss/dev', 'panda', ['codegen'])
+run(
+  framework === 'taro' ? '@tarojs/cli' : '@dcloudio/vite-plugin-uni',
+  framework,
+  args,
+)
+~~~
 
-React Web uses PostCSS `target: 'web'`, retaining Web selectors and layers while sharing portable class encoding.
+The framework guides provide matching package scripts. Run them in the application directory. The repository uses the same approach in [examples/run-platform.mjs](https://github.com/weapp-pandacss/weapp-pandacss/blob/main/examples/run-platform.mjs); its scripts point to `../run-platform.mjs` instead.
 
-Ignore `dist`, `styled-system` and `.weapp-vite` output. The historical Linaria example is archived and excluded from active workspace builds.
+## Generated output
+
+Ignore `styled-system/`, framework `dist/` and Weapp Vite's `.weapp-vite/`. Commit source configuration and the layer entry stylesheet. Parallel Web and mini-program builds need independent generated directories, output directories and aliases. Do not restore an old runtime over newer CSS or encode Panda's `css()` / recipe output again.
+
+Continue with [Panda configuration](/panda/), [PostCSS configuration](/postcss/) and [troubleshooting](/troubleshooting/).
