@@ -1,0 +1,22 @@
+---
+import { withBase } from '@cloudflare/nimbus-docs/runtime'
+import type { IconName } from '../lib/icons'
+import DocIcon from './doc-icon.astro'
+import '../styles/overview.css'
+
+interface Props {
+  icon: IconName
+  title: string
+  href: string
+}
+const { icon, title, href } = Astro.props
+---
+
+<a class="link-card" href={withBase(href, import.meta.env.BASE_URL)}>
+  <span class="link-card-icon"><DocIcon name={icon} size={21} /></span>
+  <div class="link-card-content">
+    <strong class="link-card-title">{title}</strong>
+    <div class="link-card-description"><slot /></div>
+  </div>
+  <DocIcon name="arrow-right" size={17} class="link-card-arrow" />
+</a>

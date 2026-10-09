@@ -1,0 +1,8 @@
+---
+import '../styles/overview.css'
+
+interface Props { columns?: 1 | 2 }
+const { columns = 2 } = Astro.props
+---
+
+<div class="link-grid" data-columns={columns}><slot /></div>

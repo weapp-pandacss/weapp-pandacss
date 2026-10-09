@@ -1,0 +1,30 @@
+---
+import type { HTMLAttributes } from 'astro/types'
+import type { IconName } from '../lib/icons'
+import DocIcon from './doc-icon.astro'
+
+type Props = HTMLAttributes<'button'> & Pick<HTMLAttributes<'a'>, 'target' | 'rel' | 'download'> & {
+  id: string
+  icon: IconName
+  label: string
+  href?: string
+}
+
+const { id, icon, label, href, class: className, type = 'button', ...attributes } = Astro.props
+const Tag = href ? 'a' : 'button'
+---
+
+<Tag
+  {...attributes}
+  id={id}
+  href={href}
+  type={href ? undefined : type}
+  class:list={['icon-button', className]}
+  aria-label={label}
+  aria-describedby={id + '-tip'}
+  data-tooltip-trigger
+  data-tooltip-label={label}
+>
+  <DocIcon name={icon} aria-hidden="true" />
+  <span id={id + '-tip'} class="icon-tooltip" role="tooltip" data-tooltip hidden>{label}</span>
+</Tag>

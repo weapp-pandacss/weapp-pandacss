@@ -1,4 +1,5 @@
 import type { Breadcrumb, PrevNext, SidebarGroupItem, SidebarItem, SidebarLinkItem } from '@cloudflare/nimbus-docs/types'
+import type { IconName } from './icons'
 
 function linksFrom(items: SidebarItem[]): SidebarLinkItem[] {
   return items.flatMap((item): SidebarLinkItem[] => {
@@ -14,12 +15,48 @@ function linksFrom(items: SidebarItem[]): SidebarLinkItem[] {
 
 export function documentationSections(chinese: boolean) {
   return [
-    { label: chinese ? '快速开始' : 'Get started', href: 'get-started/', roots: ['', 'get-started', 'panda', 'postcss', 'runtime'] },
-    { label: chinese ? '框架接入' : 'Frameworks', href: 'frameworks/', roots: ['frameworks'] },
-    { label: chinese ? '使用场景' : 'Guides', href: 'guides/', roots: ['guides'] },
-    { label: chinese ? 'API 参考' : 'API reference', href: 'api/', roots: ['api'] },
-    { label: chinese ? '迁移与排错' : 'Migration & troubleshooting', href: 'troubleshooting/', roots: ['migration', 'troubleshooting'] },
-  ]
+    { id: 'start', icon: 'rocket', label: chinese ? '快速开始' : 'Get started', href: 'get-started/', roots: ['', 'get-started', 'panda', 'postcss', 'runtime'] },
+    { id: 'frameworks', icon: 'blocks', label: chinese ? '框架接入' : 'Frameworks', href: 'frameworks/', roots: ['frameworks'] },
+    { id: 'guides', icon: 'route', label: chinese ? '使用场景' : 'Guides', href: 'guides/', roots: ['guides'] },
+    { id: 'api', icon: 'braces', label: chinese ? 'API 参考' : 'API reference', href: 'api/', roots: ['api'] },
+    { id: 'troubleshooting', icon: 'wrench', label: chinese ? '迁移与排错' : 'Migration & troubleshooting', href: 'troubleshooting/', roots: ['migration', 'troubleshooting'] },
+  ] satisfies { id: string, icon: IconName, label: string, href: string, roots: string[] }[]
+}
+
+const pageIcons: Record<string, IconName> = {
+  '': 'home',
+  'get-started': 'rocket',
+  'panda': 'puzzle',
+  'postcss': 'file-cog',
+  'runtime': 'code',
+  'migration': 'workflow',
+  'troubleshooting': 'wrench',
+  'frameworks/web': 'monitor',
+  'frameworks/native': 'code',
+  'api/panda-plugin': 'puzzle',
+  'api/postcss-plugin': 'file-cog',
+  'api/runtime': 'code',
+  'api/styling': 'braces',
+  'api/recipes': 'component',
+  'api/tokens-patterns': 'palette',
+  'guides/class-names': 'tag',
+  'guides/dynamic-styles': 'sliders',
+  'guides/component-styles': 'component',
+  'guides/build-targets': 'workflow',
+  'guides/css-compatibility': 'layers',
+}
+
+function documentationSlug(href: string) {
+  return href.replace(/^\/zh(?=\/)/, '').replace(/^\/|\/$/g, '')
+}
+
+export function sectionIcon(href: string): IconName {
+  const root = documentationSlug(href).split('/')[0]
+  return documentationSections(false).find(section => section.roots.includes(root))?.icon ?? 'file-text'
+}
+
+export function pageIcon(href: string): IconName {
+  return pageIcons[documentationSlug(href)] ?? sectionIcon(href)
 }
 
 /** Group Nimbus's generated links without maintaining a second page inventory. */

@@ -9,21 +9,33 @@ sidebar:
 
 ## 适配器 API
 
-| 参考 | 函数与配置 | 执行位置 |
-| --- | --- | --- |
-| [Panda 插件](/zh/api/panda-plugin/) | `weappPanda()` 与生成生命周期 | Panda 配置 |
-| [PostCSS 插件](/zh/api/postcss-plugin/) | `postcssPlugin()` 与全部 `IPostcssPluginOptions` 字段 | CSS 构建 |
-| [Runtime 编码](/zh/api/runtime/) | `encodeClassName()`、`encodeClassList()`、`createPortableRuntime()` | 页面或生成的 runtime |
+<LinkGrid>
+  <LinkCard icon="puzzle" title="Panda 插件" href="/zh/api/panda-plugin/">
+    `weappPanda()` 与生成生命周期，在 Panda 配置中执行。
+  </LinkCard>
+  <LinkCard icon="file-cog" title="PostCSS 插件" href="/zh/api/postcss-plugin/">
+    `postcssPlugin()` 与全部 `IPostcssPluginOptions` 字段，在 CSS 构建中执行。
+  </LinkCard>
+  <LinkCard icon="code" title="Runtime 编码" href="/zh/api/runtime/">
+    `encodeClassName()`、`encodeClassList()` 与 `createPortableRuntime()`，用于页面或生成的 runtime。
+  </LinkCard>
+</LinkGrid>
 
 ## Panda 生成 API
 
 这些函数属于 **Panda CSS 2.1.2**，从项目生成的 `styled-system` 目录导入，不是 `weapp-pandacss` 的包导出。
 
-| 参考 | API | 用途 |
-| --- | --- | --- |
-| [css 与 cx](/zh/api/styling/) | `css()`、`css.raw()`、`cx()` | 原子样式、样式组合与 class 列表 |
-| [Recipes](/zh/api/recipes/) | `cva()`、`sva()`、named/slot recipes 与变体辅助函数 | 组件变体及多个部件 |
-| [Tokens、patterns 与 styled](/zh/api/tokens-patterns/) | `token()`、`token.var()`、patterns、`styled` | 主题值、布局辅助函数与 React Web 组件 |
+<LinkGrid>
+  <LinkCard icon="braces" title="css 与 cx" href="/zh/api/styling/">
+    `css()`、`css.raw()` 与 `cx()`，用于原子样式、样式组合与 class 列表。
+  </LinkCard>
+  <LinkCard icon="component" title="Recipes" href="/zh/api/recipes/">
+    `cva()`、`sva()`、named/slot recipes 与变体辅助函数，用于组件变体及多个部件。
+  </LinkCard>
+  <LinkCard icon="palette" title="Tokens、patterns 与 styled" href="/zh/api/tokens-patterns/">
+    `token()`、`token.var()`、patterns 与 `styled`，用于主题值、布局辅助函数与 React Web 组件。
+  </LinkCard>
+</LinkGrid>
 
 ## 包入口
 
@@ -58,4 +70,6 @@ const authored = encodeClassName('custom/active')
 
 注册 `weappPanda()` 和 PostCSS adapter，执行 `panda codegen`，并导入生成的全局 CSS。runtime 与 CSS 必须来自相同配置。接入步骤见 [Panda 配置](/zh/panda/)和 [PostCSS 配置](/zh/postcss/)。
 
-Panda 输出已经编码，只有原始手写名称需要编码一次。适配器调整命名及 CSS 产物，不会在运行时生成 CSS、让任意动态样式可被提取，或补齐目标平台缺失的 CSS 能力。生成 class 没有对应样式时，按[排障指南](/zh/troubleshooting/)检查。
+<Aside title="编码边界" icon="tag">
+  Panda 输出已经编码，只有原始手写名称需要编码一次。适配器调整命名及 CSS 产物，不会在运行时生成 CSS、让任意动态样式可被提取，或补齐目标平台缺失的 CSS 能力。生成 class 没有对应样式时，按[排障指南](/zh/troubleshooting/)检查。
+</Aside>

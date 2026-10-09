@@ -39,31 +39,15 @@
   border-radius: 0.3rem;
 }
 
-.search-trigger {
-  display: flex;
-  gap: 0.7rem;
-  align-items: center;
-  width: min(25rem, 35vw);
+.icon-button.search-trigger {
   margin-left: auto;
-  font-weight: 400;
-  color: var(--muted);
   background: var(--soft);
   border: 1px solid var(--line);
 }
 
-.search-trigger kbd {
-  padding: 0.1rem 0.4rem;
-  margin-left: auto;
-  font-size: 0.65rem;
-  white-space: nowrap;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 0.25rem;
-}
-
 .header-links {
   display: flex;
-  gap: 1rem;
+  gap: 0.25rem;
   align-items: center;
   font-size: 0.8rem;
   white-space: nowrap;
@@ -88,6 +72,7 @@
 .section-tabs a {
   display: flex;
   flex-shrink: 0;
+  gap: 0.5rem;
   align-items: center;
   font-size: 0.85rem;
   font-weight: 550;
@@ -101,8 +86,129 @@
   border-color: var(--accent);
 }
 
-.menu-trigger {
+.icon-button.menu-trigger {
   display: none;
+}
+
+.doc-icon {
+  flex-shrink: 0;
+}
+
+.icon-button {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0.65rem;
+  color: var(--muted);
+  text-decoration: none;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 0.4rem;
+}
+
+.icon-button:hover, .icon-button:focus-visible {
+  color: var(--ink);
+  background: var(--soft);
+  border-color: var(--line);
+  filter: none;
+}
+
+.icon-tooltip {
+  position: fixed;
+  z-index: 40;
+  max-width: calc(100vw - 1rem);
+  padding: 0.35rem 0.55rem;
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--surface);
+  white-space: nowrap;
+  background: var(--ink);
+  border-radius: 0.3rem;
+  box-shadow: 0 0.2rem 0.8rem rgb(0 0 0 / 12%);
+}
+
+.icon-tooltip[hidden] {
+  display: none;
+}
+
+/* Keep the tooltip reachable across the space between it and its control. */
+.icon-tooltip::before {
+  position: absolute;
+  right: 0;
+  bottom: 100%;
+  left: 0;
+  height: 8px;
+  content: '';
+}
+
+.icon-tooltip[data-side="above"]::before {
+  top: 100%;
+  bottom: auto;
+}
+
+.theme-popover {
+  position: fixed;
+  inset: 4.75rem max(1rem, calc((100vw - 93rem) / 2)) auto auto;
+  width: min(14rem, calc(100vw - 2rem));
+  padding: 1rem;
+  margin: 0;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 0.6rem;
+  box-shadow: 0 0.75rem 2rem rgb(0 0 0 / 12%);
+}
+
+.theme-popover fieldset {
+  min-width: 0;
+  padding: 0;
+  margin: 0;
+  border: 0;
+}
+
+.theme-popover legend {
+  padding: 0;
+  margin-bottom: 0.65rem;
+  font-size: 0.8rem;
+  font-weight: 650;
+}
+
+.theme-option {
+  display: flex;
+  gap: 0.65rem;
+  align-items: center;
+  min-height: 44px;
+  padding: 0.4rem 0.6rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  border-radius: 0.3rem;
+}
+
+.theme-option:hover {
+  background: var(--soft);
+}
+
+.theme-option:has(:checked) {
+  color: var(--ink);
+  background: var(--accent);
+}
+
+.theme-option input {
+  width: 1rem;
+  height: 1rem;
+  padding: 0;
+  margin: 0;
+  accent-color: #18181b;
+}
+
+:root[data-theme="dark"] .theme-option:has(:checked) {
+  color: #18181b;
 }
 
 .docs-grid {
@@ -132,6 +238,9 @@
 }
 
 .rail-title {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
   margin: 0 0 1rem;
   font-family: SFMono-Regular, Consolas, monospace;
   font-size: 0.66rem;
@@ -149,6 +258,13 @@
 
 .navigation-list li + li {
   margin-top: 0;
+}
+
+.site-rail .navigation-list a {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  min-height: 44px;
 }
 
 .navigation-list a {
@@ -178,6 +294,10 @@
 }
 
 .navigation-group summary {
+  display: flex;
+  gap: 0.55rem;
+  align-items: center;
+  min-height: 44px;
   padding: 0.4rem 0;
   margin-bottom: 0.35rem;
   font-size: 0.8rem;
@@ -185,17 +305,21 @@
   color: var(--ink);
 }
 
-.navigation-group summary::marker {
-  font-size: 0.65rem;
+.navigation-group summary::-webkit-details-marker {
+  display: none;
+}
+
+.group-chevron {
+  margin-left: auto;
   color: var(--muted);
 }
 
+.navigation-group:not([open]) .group-chevron {
+  transform: rotate(-90deg);
+}
+
 .index-link {
-  display: inline-block;
   margin-top: 0.5rem;
-  font-family: SFMono-Regular, Consolas, monospace;
-  color: var(--muted);
-  text-decoration: none;
 }
 
 main {
@@ -229,6 +353,9 @@ main {
 }
 
 .breadcrumbs a {
+  display: inline-flex;
+  gap: 0.35rem;
+  align-items: center;
   color: var(--muted);
   text-decoration: none;
 }
@@ -282,7 +409,8 @@ article > :first-child {
 
 .previous-next a {
   display: flex;
-  flex-direction: column;
+  gap: 0.8rem;
+  align-items: center;
   padding: 1rem;
   text-decoration: none;
   border: 1px solid var(--line);
@@ -293,9 +421,7 @@ article > :first-child {
   border-color: var(--muted);
 }
 
-.previous-next span {
-  margin-bottom: 0.4rem;
-  font-size: 0.75rem;
+.previous-next .doc-icon {
   color: var(--muted);
 }
 
@@ -307,6 +433,7 @@ article > :first-child {
 
 .next-page {
   grid-column: 2;
+  justify-content: flex-end;
   text-align: right;
 }
 
@@ -320,7 +447,7 @@ footer {
   border-top: 1px solid var(--line);
 }
 
-footer a {
+footer .icon-button {
   color: var(--muted);
   text-decoration: none;
 }
@@ -364,6 +491,9 @@ footer a {
 }
 
 .dialog-heading h2 {
+  display: flex;
+  gap: 0.65rem;
+  align-items: center;
   padding: 0;
   margin: 0;
   font-size: 1rem;
@@ -377,6 +507,11 @@ footer a {
 
 .search-controls button {
   flex-shrink: 0;
+}
+
+.search-submit {
+  color: #18181b;
+  background: var(--accent);
 }
 
 .search-hint {
@@ -433,9 +568,6 @@ footer a {
     display: none;
   }
 
-  .search-trigger kbd {
-    display: none;
-  }
 }
 
 @media (max-width: 48rem) {
@@ -458,30 +590,21 @@ footer a {
     height: 30px;
   }
 
-  .version-label, .github-link, .search-trigger span, .search-trigger kbd {
+  .version-label {
     display: none;
   }
 
-  .search-trigger {
-    justify-content: center;
-    width: auto;
-    padding: 0.4rem;
-    margin-left: auto;
-  }
-
   .header-links {
-    gap: 0.6rem;
+    gap: 0.125rem;
     font-size: 0.7rem;
   }
 
-  .theme-control select {
-    max-width: 5rem;
-    font-size: 0.7rem;
+  .theme-popover {
+    top: 4.25rem;
   }
 
-  .menu-trigger {
-    display: block;
-    font-size: 1rem;
+  .icon-button.menu-trigger {
+    display: inline-flex;
   }
 
   .section-tabs {
@@ -521,5 +644,11 @@ footer a {
 
   .previous-next a {
     padding: 0.75rem;
+  }
+}
+
+@media (max-width: 30rem) {
+  .brand span {
+    display: none;
   }
 }

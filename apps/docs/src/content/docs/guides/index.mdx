@@ -7,12 +7,22 @@ sidebar:
 
 Panda generates classes and CSS at build time. The adapter gives those classes a portable name and adapts CSS for the selected target. Use these guides when the basic installation works and you need to fit styles into an application.
 
-| Situation | Guide |
-| --- | --- |
-| A manual class contains dots, slashes, Unicode or a leading digit | [Class names](/guides/class-names/) |
-| A button changes variants, a slot changes state or a value arrives from an API | [Dynamic styles](/guides/dynamic-styles/) |
-| Global styles miss a component, dimensions need rpx or a library supplies CSS | [Components and units](/guides/component-styles/) |
-| H5 and mini-program builds share source or a watch process shows stale output | [Build targets](/guides/build-targets/) |
-| Layer order, specificity or a selector changes after compilation | [CSS compatibility](/guides/css-compatibility/) |
+<LinkGrid>
+  <LinkCard icon="tag" title="Class names" href="/guides/class-names/">
+    A manual class contains dots, slashes, Unicode or a leading digit.
+  </LinkCard>
+  <LinkCard icon="sliders" title="Dynamic styles" href="/guides/dynamic-styles/">
+    A button changes variants, a slot changes state or a value arrives from an API.
+  </LinkCard>
+  <LinkCard icon="component" title="Components and units" href="/guides/component-styles/">
+    Global styles miss a component, dimensions need rpx or a library supplies CSS.
+  </LinkCard>
+  <LinkCard icon="workflow" title="Build targets" href="/guides/build-targets/">
+    H5 and mini-program builds share source or a watch process shows stale output.
+  </LinkCard>
+  <LinkCard icon="layers" title="CSS compatibility" href="/guides/css-compatibility/">
+    Layer order, specificity or a selector changes after compilation.
+  </LinkCard>
+</LinkGrid>
 
 For an error message start with [troubleshooting](/troubleshooting/). For signatures, defaults and import paths use the [API reference](/api/). [Framework integrations](/frameworks/) identify the repository examples and their verification boundaries.

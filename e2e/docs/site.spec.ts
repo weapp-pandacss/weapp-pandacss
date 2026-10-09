@@ -1,5 +1,47 @@
+import type { Locator, Page } from '@playwright/test'
 import { readdir } from 'node:fs/promises'
 import { expect, test } from '@playwright/test'
+
+const themeLabels = {
+  en: { title: 'Color theme', system: 'System', light: 'Light', dark: 'Dark' },
+  zh: { title: '颜色主题', system: '跟随系统', light: '浅色', dark: '深色' },
+} as const
+
+async function chooseTheme(page: Page, value: 'system' | 'light' | 'dark', locale: 'en' | 'zh' = 'en') {
+  const labels = themeLabels[locale]
+  const trigger = page.getByRole('button', { name: labels.title, exact: true })
+  await trigger.click()
+  const popover = page.locator('#theme-popover')
+  await expect(popover).toBeVisible()
+  const choices = popover.getByRole('group', { name: labels.title, exact: true })
+  await choices.getByRole('radio', { name: labels[value], exact: true }).check()
+  await expect(popover).not.toBeVisible()
+  await expect(trigger).toHaveAttribute('data-theme-preference', value)
+  await expect(trigger).toBeFocused()
+}
+
+async function waitForHorizontalScroll(locator: Locator) {
+  await locator.evaluate(element => new Promise<void>((resolve, reject) => {
+    let previous = element.scrollLeft
+    let stableFrames = 0
+    let frames = 0
+    const check = () => {
+      const current = element.scrollLeft
+      stableFrames = current === previous ? stableFrames + 1 : 0
+      previous = current
+      if (stableFrames >= 8) {
+        resolve()
+      }
+      else if (++frames >= 180) {
+        reject(new Error('Horizontal scroll did not settle'))
+      }
+      else {
+        requestAnimationFrame(check)
+      }
+    }
+    requestAnimationFrame(check)
+  }))
+}
 
 test('every translated page has HTML, reciprocal language links and text exports', async ({ request }) => {
   const files = await readdir(new URL('../../apps/docs/src/content/docs/', import.meta.url), { recursive: true })
@@ -40,7 +82,62 @@ test('every translated page has HTML, reciprocal language links and text exports
     const body = await response.text()
     expect(body).toContain(expected)
   }
+  const complete = await (await request.get('/llms-full.txt')).text()
+  for (const content of ['Author a style', 'Generate a portable class', 'Match the WXSS selector', '编写样式', '生成兼容的 class', '对齐 WXSS 选择器', 'c__wp_23_0f766e']) {
+    expect(complete).toContain(content)
+  }
+  expect(complete).not.toMatch(/<(?:LinkGrid|LinkCard|BuildFlow|FlowStep|svg)\b/i)
 })
+
+for (const locale of ['en', 'zh'] as const) {
+  const prefix = locale === 'zh' ? '/zh' : ''
+  const entries = ['get-started', 'frameworks', 'guides', 'api', 'troubleshooting']
+  const flowTitles = locale === 'zh'
+    ? ['编写样式', '生成兼容的 class', '对齐 WXSS 选择器']
+    : ['Author a style', 'Generate a portable class', 'Match the WXSS selector']
+
+  test(`${locale} homepage entries and build flow retain their content in text exports`, async ({ page, request }) => {
+    await page.goto(`${prefix}/`)
+    const article = page.locator('article')
+    for (const entry of entries) {
+      const link = article.locator(`a[href="${prefix}/${entry}/"]`).first()
+      await expect(link).toBeVisible()
+      const response = await request.get((await link.getAttribute('href'))!)
+      expect(response.ok(), entry).toBeTruthy()
+    }
+    const flow = article.locator('ol').filter({ hasText: flowTitles[0] })
+    await expect(flow).toHaveCount(1)
+    await expect(flow.locator('li')).toHaveCount(3)
+    for (const [index, title] of flowTitles.entries()) {
+      await expect(flow.locator('li').nth(index)).toContainText(title)
+    }
+    await expect(article).toContainText('c_#0f766e')
+    await expect(article).toContainText('.c__wp_23_0f766e')
+    for (const extension of ['md', 'mdx']) {
+      const exported = await request.get(`${prefix}/index.${extension}`)
+      expect(exported.ok()).toBeTruthy()
+      const body = await exported.text()
+      for (const entry of entries) {
+        expect(body).toContain(`${prefix}/${entry}/`)
+      }
+      for (const title of flowTitles) {
+        expect(body).toContain(title)
+      }
+      for (const content of ['css()', 'c_#0f766e', 'c__wp_23_0f766e', '.c__wp_23_0f766e']) {
+        expect(body).toContain(content)
+      }
+      if (extension === 'md') {
+        expect(body).not.toMatch(/<(?:LinkGrid|LinkCard|BuildFlow|FlowStep|svg)\b/i)
+        expect(body).not.toContain('icon="')
+      }
+    }
+    const started = article.locator(`a[href="${prefix}/get-started/"]`).first()
+    await started.click()
+    await expect(page).toHaveURL(new RegExp(`${prefix}/get-started/$`))
+    await expect(page.locator('html')).toHaveAttribute('lang', locale === 'zh' ? 'zh-CN' : 'en')
+    await expect(page.locator('#site-navigation [aria-current="page"]')).toHaveAttribute('href', `${prefix}/get-started/`)
+  })
+}
 
 test('grouped navigation and page links follow the active language', async ({ page }) => {
   await page.goto('/zh/api/runtime/')
@@ -143,21 +240,110 @@ test('a failed search leaves a readable recovery message', async ({ page }) => {
   await expect(page.locator('#site-navigation')).toBeVisible()
 })
 
-test('themes persist and system choice follows the operating system', async ({ page }) => {
-  await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' })
-  await page.goto('/api/postcss-plugin/')
-  await page.getByLabel('Color theme').selectOption('dark')
-  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
-  const darkBackground = await page.locator('pre').first().evaluate(element => getComputedStyle(element).backgroundColor)
-  await page.reload()
-  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
-  await expect(page.getByLabel('Color theme')).toHaveValue('dark')
-  await page.getByLabel('Color theme').selectOption('light')
-  const lightBackground = await page.locator('pre').first().evaluate(element => getComputedStyle(element).backgroundColor)
-  expect(lightBackground).not.toBe(darkBackground)
-  await page.getByLabel('Color theme').selectOption('system')
-  await page.emulateMedia({ colorScheme: 'dark' })
-  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
+for (const locale of ['en', 'zh'] as const) {
+  test(`${locale} theme choices persist, fixed choices ignore the OS and system follows it`, async ({ page }) => {
+    await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' })
+    await page.goto(`${locale === 'zh' ? '/zh' : ''}/api/postcss-plugin/`)
+    const labels = themeLabels[locale]
+    const trigger = page.getByRole('button', { name: labels.title, exact: true })
+    const popover = page.locator('#theme-popover')
+    await expect(popover).toHaveAttribute('popover', /^(?:auto)?$/)
+    await expect(trigger).toHaveAttribute('data-theme-preference', 'system')
+    await trigger.click()
+    await expect(popover).toBeVisible()
+    expect(await popover.evaluate(element => element.matches(':popover-open'))).toBeTruthy()
+    const choices = popover.getByRole('group', { name: labels.title, exact: true })
+    await expect(choices.getByRole('radio')).toHaveCount(3)
+    await expect(choices.locator('input[type="radio"]:checked')).toHaveCount(1)
+    for (const value of ['system', 'light', 'dark'] as const) {
+      const radio = choices.getByRole('radio', { name: labels[value], exact: true })
+      await expect(radio).toHaveAttribute('value', value)
+      const label = choices.locator('label').filter({ hasText: labels[value] })
+      await expect(label.locator('input')).toHaveAttribute('value', value)
+      await expect(label).toContainText(labels[value])
+      await expect(label.locator('svg')).toHaveAttribute('aria-hidden', 'true')
+    }
+    await page.keyboard.press('Escape')
+    await expect(popover).not.toBeVisible()
+    await expect(trigger).toBeFocused()
+
+    await chooseTheme(page, 'dark', locale)
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
+    const darkBackground = await page.locator('pre').first().evaluate(element => getComputedStyle(element).backgroundColor)
+    await page.emulateMedia({ colorScheme: 'dark' })
+    await page.emulateMedia({ colorScheme: 'light' })
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
+    await page.reload()
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
+    await expect(trigger).toHaveAttribute('data-theme-preference', 'dark')
+    await trigger.click()
+    await expect(choices.getByRole('radio', { name: labels.dark, exact: true })).toBeChecked()
+    await expect(choices.locator('input[type="radio"]:checked')).toHaveCount(1)
+    await page.keyboard.press('Escape')
+
+    await chooseTheme(page, 'light', locale)
+    const lightBackground = await page.locator('pre').first().evaluate(element => getComputedStyle(element).backgroundColor)
+    expect(lightBackground).not.toBe(darkBackground)
+    await page.emulateMedia({ colorScheme: 'dark' })
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light')
+    await chooseTheme(page, 'system', locale)
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
+    await page.emulateMedia({ colorScheme: 'light' })
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light')
+    await page.reload()
+    await expect(trigger).toHaveAttribute('data-theme-preference', 'system')
+    await page.emulateMedia({ colorScheme: 'dark' })
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
+  })
+}
+
+test('theme selection supports keyboard input, Escape and outside dismissal', async ({ page }) => {
+  await page.goto('/api/')
+  const trigger = page.getByRole('button', { name: 'Color theme', exact: true })
+  const popover = page.locator('#theme-popover')
+  await trigger.focus()
+  await page.keyboard.press('Space')
+  await expect(popover).toBeVisible()
+  await expect(popover.getByRole('radio', { name: 'System', exact: true })).toBeFocused()
+  await popover.getByRole('radio', { name: 'Light', exact: true }).focus()
+  await page.keyboard.press('Space')
+  await expect(popover).not.toBeVisible()
+  await expect(trigger).toHaveAttribute('data-theme-preference', 'light')
+  await expect(trigger).toBeFocused()
+  await page.keyboard.press('Space')
+  await expect(popover).toBeVisible()
+  await expect(popover.getByRole('radio', { name: 'Light', exact: true })).toBeFocused()
+  for (let attempts = 0; attempts < 4 && await popover.evaluate(element => element.contains(document.activeElement)); attempts++) {
+    await page.keyboard.press('Tab')
+  }
+  expect(await popover.evaluate(element => element.contains(document.activeElement))).toBeFalsy()
+  await page.keyboard.press('Escape')
+  await expect(popover).not.toBeVisible()
+  await expect(trigger).toBeFocused()
+  await trigger.click()
+  await expect(popover).toBeVisible()
+  await page.locator('.page-heading h1').click()
+  await expect(popover).not.toBeVisible()
+  await trigger.click()
+  await page.keyboard.press('Control+k')
+  await expect(page.locator('#search-dialog')).toBeVisible()
+  await expect(popover).not.toBeVisible()
+  await expect(page.getByRole('searchbox')).toBeFocused()
+  await page.keyboard.press('Escape')
+})
+
+test('choosing the current theme closes its popover and returns focus to the trigger', async ({ page }) => {
+  await page.goto('/api/')
+  const trigger = page.getByRole('button', { name: 'Color theme', exact: true })
+  const popover = page.locator('#theme-popover')
+  await expect(trigger).toHaveAttribute('data-theme-preference', 'system')
+  await trigger.click()
+  const current = popover.getByRole('radio', { name: 'System', exact: true })
+  await expect(current).toBeChecked()
+  await current.click()
+  await expect(popover).not.toBeVisible()
+  await expect(trigger).toHaveAttribute('data-theme-preference', 'system')
+  await expect(trigger).toBeFocused()
 })
 
 test('copy buttons copy code and retain a keyboard fallback when clipboard is blocked', async ({ page }) => {
@@ -169,16 +355,24 @@ test('copy buttons copy code and retain a keyboard fallback when clipboard is bl
   })
   const frame = page.locator('.code-frame').first()
   const expected = await frame.locator('code').textContent()
-  await frame.getByRole('button', { name: 'Copy code' }).click()
-  await expect(frame.getByRole('button')).toHaveText('Copied')
+  const button = frame.getByRole('button', { name: 'Copy code', exact: true })
+  await button.click()
+  await expect(button).toHaveAttribute('data-copy-state', 'copied')
+  await expect(button).toHaveAccessibleName('Copy code')
+  await expect(frame.getByRole('status')).toHaveText('Copied')
   expect(await page.locator('html').getAttribute('data-clipboard')).toBe(expected)
+  await expect(button).not.toHaveAttribute('data-copy-state', 'copied', { timeout: 4000 })
   await page.evaluate(() => {
     Object.defineProperty(navigator, 'clipboard', { configurable: true, value: {
       writeText: async () => { throw new Error('Clipboard blocked') },
     } })
   })
-  await frame.getByRole('button').click()
-  await expect(frame.getByRole('status')).toContainText('Code selected')
+  await button.click()
+  const feedback = frame.getByRole('status')
+  await expect(feedback).toContainText('Code selected')
+  expect(await feedback.evaluate(element => element.getBoundingClientRect().height)).toBeGreaterThan(10)
+  await expect(button).toHaveAccessibleName('Copy code')
+  await expect(button).not.toHaveAttribute('data-copy-state', 'copied')
   expect(await page.evaluate(() => window.getSelection()?.toString())).toBe(expected)
 })
 
@@ -188,8 +382,11 @@ test('Chromium copies code through the real browser clipboard', async ({ page, c
   await page.goto('/api/runtime/')
   const frame = page.locator('.code-frame').first()
   const expected = await frame.locator('code').textContent()
-  await frame.getByRole('button', { name: 'Copy code' }).click()
-  await expect(frame.getByRole('button')).toHaveText('Copied')
+  const button = frame.getByRole('button', { name: 'Copy code', exact: true })
+  await button.click()
+  await expect(button).toHaveAttribute('data-copy-state', 'copied')
+  await expect(button).toHaveAccessibleName('Copy code')
+  await expect(frame.getByRole('status')).toHaveText('Copied')
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(expected)
 })
 
@@ -198,9 +395,13 @@ test('mobile navigation is modal, supports Escape and reaches the requested guid
   await page.goto('/zh/api/')
   await expect(page.getByRole('button', { name: '搜索文档', exact: true })).toBeVisible()
   const button = page.getByRole('button', { name: '打开导航' })
+  const theme = page.getByRole('button', { name: '颜色主题', exact: true })
+  await theme.click()
+  await expect(page.locator('#theme-popover')).toBeVisible()
   await button.click()
   const menu = page.locator('#navigation-dialog')
   await expect(menu).toBeVisible()
+  await expect(page.locator('#theme-popover')).not.toBeVisible()
   await expect(button).toHaveAttribute('aria-expanded', 'true')
   await expect(menu.locator('#site-navigation')).toBeVisible()
   await page.keyboard.press('Escape')
@@ -211,13 +412,40 @@ test('mobile navigation is modal, supports Escape and reaches the requested guid
   await expect(page).toHaveURL(/\/zh\/guides\/dynamic-styles\/$/)
   await expect(page.locator('#navigation-dialog')).not.toBeVisible()
   await page.getByRole('button', { name: '打开导航' }).click()
+  await page.setViewportSize({ width: 768, height: 900 })
+  await expect(page.locator('#navigation-dialog')).toBeVisible()
+  await expect(page.locator('#navigation-dialog #site-navigation')).toBeVisible()
   await page.setViewportSize({ width: 769, height: 900 })
   await expect(page.locator('#navigation-dialog')).not.toBeVisible()
   await expect(page.locator('.docs-grid > #site-navigation')).toBeVisible()
   await expect(page.locator('#site-navigation [aria-current="page"]')).toBeFocused()
 })
 
-test('navigation and search remain usable when storage is blocked', async ({ page }) => {
+test('a collapsed current navigation group receives visible focus when returning to desktop', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/zh/api/runtime/')
+  await page.getByRole('button', { name: '打开导航', exact: true }).click()
+  const menu = page.locator('#navigation-dialog')
+  const current = menu.locator('#site-navigation [aria-current="page"]')
+  const group = menu.locator('details').filter({ has: page.locator('[aria-current="page"]') })
+  await expect(group).toHaveCount(1)
+  const summary = group.locator(':scope > summary')
+  await expect(current).toBeVisible()
+  await summary.click()
+  await expect(current).not.toBeVisible()
+  await expect(summary).toBeVisible()
+  await page.setViewportSize({ width: 769, height: 900 })
+  await expect(menu).not.toBeVisible()
+  await expect(page.locator('.docs-grid > #site-navigation')).toBeVisible()
+  const desktopGroup = page.locator('#site-navigation details').filter({ has: page.locator('[aria-current="page"]') })
+  await expect(desktopGroup.locator(':scope > summary')).toBeVisible()
+  await expect(desktopGroup.locator(':scope > summary')).toBeFocused()
+  await expect(page.locator('#site-navigation [aria-current="page"]')).not.toBeVisible()
+})
+
+test('theme, navigation, search and copy initialize when storage is blocked', async ({ page }) => {
+  const errors: string[] = []
+  page.on('pageerror', error => errors.push(error.message))
   await page.addInitScript(() => {
     Object.defineProperty(window, 'localStorage', {
       get: () => {
@@ -225,37 +453,80 @@ test('navigation and search remain usable when storage is blocked', async ({ pag
       },
     })
   })
+  await page.setViewportSize({ width: 390, height: 844 })
   await page.goto('/api/runtime/')
-  await page.getByLabel('Color theme').selectOption('dark')
+  await chooseTheme(page, 'dark')
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
+  await page.getByRole('button', { name: 'Open navigation', exact: true }).click()
+  await expect(page.locator('#navigation-dialog #site-navigation')).toBeVisible()
+  await page.keyboard.press('Escape')
   await page.locator('[data-open-search]').click()
   await expect(page.getByRole('searchbox')).toBeFocused()
   await page.keyboard.press('Escape')
+  await page.evaluate(() => {
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: {
+      writeText: async (text: string) => { document.documentElement.dataset.clipboard = text },
+    } })
+  })
+  const frame = page.locator('.code-frame').first()
+  await frame.getByRole('button', { name: 'Copy code', exact: true }).click()
+  await expect(frame.getByRole('status')).toHaveText('Copied')
+  expect(await page.locator('html').getAttribute('data-clipboard')).toBe(await frame.locator('code').textContent())
+  expect(errors).toEqual([])
+})
+
+test('theme choices stay inside both narrow phone viewports', async ({ page }) => {
+  for (const width of [390, 375]) {
+    await page.setViewportSize({ width, height: 844 })
+    for (const locale of ['en', 'zh'] as const) {
+      await page.goto(`${locale === 'zh' ? '/zh' : ''}/api/`)
+      await page.getByRole('button', { name: themeLabels[locale].title, exact: true }).click()
+      const popover = page.locator('#theme-popover')
+      await expect(popover).toBeVisible()
+      const bounds = await popover.boundingBox()
+      expect(bounds).not.toBeNull()
+      expect(bounds!.x).toBeGreaterThanOrEqual(0)
+      expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(width)
+      await expect(popover.getByRole('radio')).toHaveCount(3)
+      for (const choice of await popover.locator('label').all()) {
+        const bounds = await choice.boundingBox()
+        expect(bounds).not.toBeNull()
+        expect(bounds!.height).toBeGreaterThanOrEqual(44)
+      }
+      expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)).toBeFalsy()
+      await page.keyboard.press('Escape')
+      await expect(popover).not.toBeVisible()
+    }
+  }
 })
 
 test('desktop, tablet and phone keep long API content inside the viewport', async ({ page }) => {
-  for (const width of [1440, 1024, 390]) {
+  for (const width of [1440, 1024, 390, 375]) {
     await page.setViewportSize({ width, height: 900 })
     for (const route of ['/', '/zh/api/postcss-plugin/']) {
       await page.goto(route)
       await expect(page.locator('.page-heading h1')).toBeVisible()
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)
       expect(overflow, `${route} at ${width}`).toBeFalsy()
-      if (width === 390 && route.includes('/api/')) {
+      if (width <= 390 && route.includes('/api/')) {
         const table = page.locator('article table').first()
-        await expect(table).toHaveAttribute('tabindex', '0')
-        const tableScroll = await table.evaluate((element) => {
-          element.scrollLeft = 120
-          return element.scrollLeft
-        })
-        expect(tableScroll).toBeGreaterThan(0)
         const pre = page.locator('article pre').first()
+        await expect(table).toHaveAttribute('tabindex', '0')
         await expect(pre).toHaveAttribute('tabindex', '0')
-        const codeScroll = await pre.evaluate((element) => {
-          element.scrollLeft = 120
-          return element.scrollLeft
-        })
-        expect(codeScroll).toBeGreaterThan(0)
+        await table.focus()
+        await page.keyboard.press('ArrowRight')
+        await expect.poll(() => table.evaluate(element => element.scrollLeft)).toBeGreaterThan(0)
+        await waitForHorizontalScroll(table)
+        expect(await pre.evaluate(element => element.scrollLeft)).toBe(0)
+        expect(await page.evaluate(() => window.scrollX)).toBe(0)
+        await table.evaluate(element => element.scrollLeft = 0)
+        await waitForHorizontalScroll(table)
+        await pre.focus()
+        await page.keyboard.press('ArrowRight')
+        await expect.poll(() => pre.evaluate(element => element.scrollLeft)).toBeGreaterThan(0)
+        await waitForHorizontalScroll(pre)
+        expect(await table.evaluate(element => element.scrollLeft)).toBe(0)
+        expect(await page.evaluate(() => window.scrollX)).toBe(0)
       }
     }
   }

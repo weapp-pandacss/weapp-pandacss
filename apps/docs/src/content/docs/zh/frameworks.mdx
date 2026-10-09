@@ -9,16 +9,30 @@ sidebar:
 
 ## 选择框架
 
-| 接入方案 | 指南 | 仓库基线 |
-| --- | --- | --- |
-| Weapp Vite + Wevu | [Vue SFC 接入](/zh/frameworks/weapp-vite/) | weapp-vite 与 Wevu 7.4.0；微信目标 |
-| Taro React | [Webpack 接入](/zh/frameworks/taro-react/) | Taro 4.3.0、React 18；微信与 H5 |
-| Taro Vue | [Vue SFC 接入](/zh/frameworks/taro-vue/) | Taro 4.3.0、Vue 3.5、Webpack；微信与 H5 |
-| Uni-app Vue | [Vite 接入](/zh/frameworks/uni-app/) | 配套的 DCloud 依赖组、Vue 3.4.21、Vite 5.2.8 |
-| React Web / H5 | [Web 接入](/zh/frameworks/web/) | React 19 与 Vite 8；`target: 'web'` |
-| 原生微信小程序 | [构建期生成 class](/zh/frameworks/native/) | 接入方案；暂无独立原生示例或 E2E |
+<LinkGrid>
+  <LinkCard icon="component" title="Weapp Vite + Wevu" href="/zh/frameworks/weapp-vite/">
+    Vue SFC 接入。仓库基线：weapp-vite 与 Wevu 7.4.0；微信目标。
+  </LinkCard>
+  <LinkCard icon="blocks" title="Taro React" href="/zh/frameworks/taro-react/">
+    Webpack 接入。仓库基线：Taro 4.3.0、React 18；微信与 H5。
+  </LinkCard>
+  <LinkCard icon="component" title="Taro Vue" href="/zh/frameworks/taro-vue/">
+    Vue SFC 接入。仓库基线：Taro 4.3.0、Vue 3.5、Webpack；微信与 H5。
+  </LinkCard>
+  <LinkCard icon="workflow" title="Uni-app Vue" href="/zh/frameworks/uni-app/">
+    Vite 接入。仓库基线：配套的 DCloud 依赖组、Vue 3.4.21、Vite 5.2.8。
+  </LinkCard>
+  <LinkCard icon="monitor" title="React Web / H5" href="/zh/frameworks/web/">
+    Web 接入。仓库基线：React 19 与 Vite 8；`target: 'web'`。
+  </LinkCard>
+  <LinkCard icon="code" title="原生微信小程序" href="/zh/frameworks/native/">
+    构建期生成 class。接入方案；暂无独立原生示例或 E2E。
+  </LinkCard>
+</LinkGrid>
 
-名称匹配不代表所有浏览器选择器、媒体查询和 CSS 属性都能在 WXSS 中工作。参考 [PostCSS 兼容说明](/zh/postcss/)，并在实际目标渲染器中验证。
+<Aside title="平台兼容边界" icon="alert-triangle">
+  名称匹配不代表所有浏览器选择器、媒体查询和 CSS 属性都能在 WXSS 中工作。参考 [PostCSS 兼容说明](/zh/postcss/)，并在实际目标渲染器中验证。
+</Aside>
 
 ## 验证层级
 

@@ -1,0 +1,8 @@
+---
+import '../styles/overview.css'
+
+interface Props { columns?: 2 | 3 }
+const { columns = 3 } = Astro.props
+---
+
+<ol class="build-flow" data-columns={columns}><slot /></ol>

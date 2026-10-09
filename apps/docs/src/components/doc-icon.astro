@@ -1,0 +1,28 @@
+---
+import Icon from '@cloudflare/nimbus-docs/components/Icon.astro'
+import type { HTMLAttributes } from 'astro/types'
+import type { IconName } from '../lib/icons'
+
+interface Props extends Omit<HTMLAttributes<'svg'>, 'width' | 'height'> {
+  name: IconName
+  size?: number | string
+  width?: number | string
+  height?: number | string
+  title?: string
+  desc?: string
+}
+
+const { name, size = 18, title, desc, class: className, ...attributes } = Astro.props
+---
+
+<Icon
+  {...attributes}
+  name={name}
+  size={size}
+  title={title}
+  desc={desc}
+  class:list={['doc-icon', className]}
+  role={attributes.role ?? (title || desc ? 'img' : undefined)}
+  aria-hidden={title || desc ? attributes['aria-hidden'] : 'true'}
+  focusable="false"
+/>

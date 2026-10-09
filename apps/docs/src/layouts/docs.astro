@@ -3,6 +3,8 @@ import type { DocsPageProps } from '@cloudflare/nimbus-docs/types'
 import { withBase } from '@cloudflare/nimbus-docs/runtime'
 import { config } from 'virtual:nimbus/config'
 import Head from '../components/head.astro'
+import DocIcon from '../components/doc-icon.astro'
+import IconControl from '../components/icon-control.astro'
 import Search from '../components/search/index.astro'
 import Sidebar from '../components/sidebar.astro'
 import { labels } from '../lib/locale'
@@ -48,53 +50,58 @@ const sections = documentationSections(chinese)
     <a class="skip-link" href="#main-content">{text.skip}</a>
     <header class="site-header">
       <div class="header-main">
-        <a class="brand" href={withBase(root, base)}>
+        <a class="brand" href={withBase(root, base)} aria-label={config.title}>
           <img src={withBase('/logo.svg', base)} alt="" width="38" height="38" />
           <span>{config.title}</span>
         </a>
         <span class="version-label">2.0</span>
-        <button type="button" class="search-trigger" data-open-search aria-label={text.search} aria-haspopup="dialog" aria-controls="search-dialog">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 5 5" /></svg>
-          <span>{text.search}</span><kbd>⌘ / Ctrl K</kbd>
-        </button>
+        <IconControl id="open-search" class="search-trigger" icon="search" label={text.search} data-open-search aria-haspopup="dialog" aria-controls="search-dialog" />
         <nav class="header-links" aria-label={chinese ? '全局导航' : 'Global navigation'}>
-          <a href="https://github.com/weapp-pandacss/weapp-pandacss" class="github-link">GitHub ↗</a>
-          <a class="language-link" href={withBase(alternate, base) + '?lang=' + (chinese ? 'en' : 'zh')} lang={chinese ? 'en' : 'zh-CN'} data-docs-locale={chinese ? 'en' : 'zh'}>{chinese ? 'English' : '简体中文'}</a>
-          <label class="theme-control"><span class="visually-hidden">{text.theme}</span><select data-theme-select aria-label={text.theme}><option value="system">{text.system}</option><option value="light">{text.light}</option><option value="dark">{text.dark}</option></select></label>
+          <IconControl id="github-link" class="github-link" icon="github" label={text.github} href="https://github.com/weapp-pandacss/weapp-pandacss" />
+          <IconControl id="language-link" class="language-link" icon="languages" label={text.language} href={withBase(alternate, base) + '?lang=' + (chinese ? 'en' : 'zh')} lang={chinese ? 'en' : 'zh-CN'} data-docs-locale={chinese ? 'en' : 'zh'} />
+          <IconControl id="theme-trigger" icon="monitor" label={text.theme} popovertarget="theme-popover" aria-controls="theme-popover" aria-expanded="false" data-theme-trigger />
+          <div id="theme-popover" class="theme-popover" popover>
+            <fieldset><legend>{text.theme}</legend>{(['system', 'light', 'dark'] as const).map(value => <label class="theme-option"><input type="radio" name="theme" value={value} checked={value === 'system'} /><DocIcon name={value === 'system' ? 'monitor' : value === 'light' ? 'sun' : 'moon'} size={18} /><span>{text[value]}</span></label>)}</fieldset>
+          </div>
         </nav>
-        <button type="button" class="menu-trigger quiet-button" data-open-menu aria-label={text.menu} aria-haspopup="dialog" aria-controls="navigation-dialog" aria-expanded="false">☰</button>
+        <IconControl id="open-menu" class="menu-trigger" icon="menu" label={text.menu} data-open-menu aria-haspopup="dialog" aria-controls="navigation-dialog" aria-expanded="false" />
       </div>
       <nav class="section-tabs" aria-label={chinese ? '文档分类' : 'Documentation sections'}>
-        {sections.map(section => <a href={withBase(root + section.href, base)} aria-current={activeSection === section.label ? 'true' : undefined}>{section.label}</a>)}
+        {sections.map(section => <a href={withBase(root + section.href, base)} aria-current={activeSection === section.label ? 'true' : undefined}><DocIcon name={section.icon} size={17} />{section.label}</a>)}
       </nav>
     </header>
     <div class="docs-grid">
       <aside class="site-rail" id="site-navigation">
         <nav aria-label={text.navigation}>
           <p class="rail-title">{text.navigation}</p>
-          {sidebar !== false && <Sidebar items={sidebar} />}
+          {sidebar !== false && <Sidebar items={sidebar} chinese={chinese} />}
         </nav>
-        <a class="index-link" href={indexUrl}>llms.txt ↗</a>
+        <IconControl id="rail-index" class="index-link" icon="bot" label={text.index} href={indexUrl} />
       </aside>
       <main id="main-content" tabindex="-1">
         <nav class="breadcrumbs" aria-label={chinese ? '面包屑' : 'Breadcrumbs'}>
-          <ol>{breadcrumbs.map((crumb, index) => <li>{crumb.href && index !== breadcrumbs.length - 1 ? <a href={withBase(crumb.href, base)}>{crumb.label}</a> : <span aria-current={index === breadcrumbs.length - 1 ? 'page' : undefined}>{crumb.label}</span>}</li>)}</ol>
+          <ol>{breadcrumbs.map((crumb, index) => <li>{crumb.href && index !== breadcrumbs.length - 1 ? <a href={withBase(crumb.href, base)}>{index === 0 && <DocIcon name="home" size={14} />}{crumb.label}</a> : <span aria-current={index === breadcrumbs.length - 1 ? 'page' : undefined}>{crumb.label}</span>}</li>)}</ol>
         </nav>
         <div data-pagefind-body={searchable !== false && !noindex && !draft ? '' : undefined} data-pagefind-ignore={searchable === false || noindex || draft ? '' : undefined}>
           <div class="page-heading"><span class="eyebrow">{home ? 'PANDA CSS × MINI-PROGRAMS' : 'WEAPP-PANDACSS / DOCS'}</span><h1>{title}</h1>{description && <p class="description">{description}</p>}</div>
           <article><slot /></article>
         </div>
         <nav class="previous-next" aria-label={chinese ? '文档翻页' : 'Page navigation'}>
-          {prevNext.prev && <a href={withBase(prevNext.prev.href, base)}><span>← {text.previous}</span><strong>{prevNext.prev.label}</strong></a>}
-          {prevNext.next && <a class="next-page" href={withBase(prevNext.next.href, base)}><span>{text.next} →</span><strong>{prevNext.next.label}</strong></a>}
+          {prevNext.prev && <a href={withBase(prevNext.prev.href, base)} aria-label={text.previous + ': ' + prevNext.prev.label}><DocIcon name="arrow-left" size={20} /><strong>{prevNext.prev.label}</strong></a>}
+          {prevNext.next && <a class="next-page" href={withBase(prevNext.next.href, base)} aria-label={text.next + ': ' + prevNext.next.label}><strong>{prevNext.next.label}</strong><DocIcon name="arrow-right" size={20} /></a>}
         </nav>
-        {markdownUrl && <footer><a href={withBase(markdownUrl, base)}>{text.markdown} ↗</a><a href={indexUrl}>{text.index} ↗</a></footer>}
+        {markdownUrl && <footer><IconControl id="read-markdown" icon="file-text" label={text.markdown} href={withBase(markdownUrl, base)} /><IconControl id="footer-index" icon="bot" label={text.index} href={indexUrl} /></footer>}
       </main>
       <aside class="page-rail">
-        {headings !== false && headings.length > 0 && <nav aria-label={text.contents}><p class="rail-title">{text.contents}</p><ul class="navigation-list">{headings.map(heading => <li class:list={{ 'toc-nested': heading.depth > 2 }}><a href={'#' + heading.slug}>{heading.text}</a></li>)}</ul></nav>}
+        {headings !== false && headings.length > 0 && <nav aria-label={text.contents}><p class="rail-title"><DocIcon name="list" size={14} />{text.contents}</p><ul class="navigation-list">{headings.map(heading => <li class:list={{ 'toc-nested': heading.depth > 2 }}><a href={'#' + heading.slug}>{heading.text}</a></li>)}</ul></nav>}
       </aside>
     </div>
-    <dialog id="navigation-dialog" class="navigation-dialog" aria-label={text.navigation}><div class="dialog-heading"><strong>{text.navigation}</strong><button type="button" class="quiet-button" data-close-menu aria-label={text.close}>×</button></div></dialog>
+    <dialog id="navigation-dialog" class="navigation-dialog" aria-label={text.navigation}><div class="dialog-heading"><strong>{text.navigation}</strong><IconControl id="close-menu" icon="x" label={text.close} data-close-menu /></div></dialog>
+    <template id="code-copy-template"><IconControl id="code-copy" class="copy-code" icon="copy" label={text.copy} /></template>
+    <template id="copy-check-icon"><DocIcon name="check" size={20} /></template>
+    <template id="theme-system-icon"><DocIcon name="monitor" size={20} /></template>
+    <template id="theme-light-icon"><DocIcon name="sun" size={20} /></template>
+    <template id="theme-dark-icon"><DocIcon name="moon" size={20} /></template>
     <Search chinese={chinese} />
   </body>
 </html>

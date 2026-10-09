@@ -1,9 +1,11 @@
 ---
 import type { SidebarItem } from '@cloudflare/nimbus-docs/types'
 import { withBase } from '@cloudflare/nimbus-docs/runtime'
+import { pageIcon, sectionIcon } from '../lib/navigation'
+import DocIcon from './doc-icon.astro'
 
-interface Props { items: SidebarItem[] }
-const { items } = Astro.props
+interface Props { items: SidebarItem[], chinese: boolean }
+const { items, chinese } = Astro.props
 ---
 
 <ul class="navigation-list">
@@ -12,13 +14,13 @@ const { items } = Astro.props
       {item.type === 'group'
         ? (
             <details class="navigation-group" open>
-              <summary>{item.label}</summary>
-              {item.indexHref && <a href={withBase(item.indexHref, import.meta.env.BASE_URL)} aria-current={item.indexIsCurrent ? 'page' : undefined}>{item.label}</a>}
-              <Astro.self items={item.children} />
+              <summary><DocIcon name={sectionIcon(item.indexHref ?? item.children.find(child => child.type !== 'group')?.href ?? '/')} size={17} /><span>{item.label}</span><DocIcon name="chevron-down" size={14} class="group-chevron" /></summary>
+              {item.indexHref && <a href={withBase(item.indexHref, import.meta.env.BASE_URL)} aria-current={item.indexIsCurrent ? 'page' : undefined}><DocIcon name={pageIcon(item.indexHref)} size={15} /><span>{item.label}</span></a>}
+              <Astro.self items={item.children} chinese={chinese} />
             </details>
           )
         : (
-            <a href={withBase(item.href, import.meta.env.BASE_URL)} aria-current={item.type === 'link' && item.isCurrent ? 'page' : undefined}>{item.label}</a>
+            <a href={withBase(item.href, import.meta.env.BASE_URL)} aria-current={item.type === 'link' && item.isCurrent ? 'page' : undefined}><DocIcon name={pageIcon(item.href)} size={15} /><span>{item.label}</span></a>
           )}
     </li>
   ))}

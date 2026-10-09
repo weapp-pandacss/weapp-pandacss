@@ -10,17 +10,39 @@ sidebar:
 
 ## Start with your project
 
-| Your next step | Read |
-| --- | --- |
-| Install the two build-time plugins | [Get started](/get-started/) |
-| Set up your framework's build pipeline | [Framework guides](/frameworks/) |
-| Handle dynamic values, components and multiple targets | [Scenario guides](/guides/) |
-| Look up a function or configuration option | [API reference](/api/) |
-| Diagnose missing styles or a build error | [Troubleshooting](/troubleshooting/) |
+<LinkGrid>
+  <LinkCard icon="rocket" title="Get started" href="/get-started/">
+    Install the two build-time plugins.
+  </LinkCard>
+  <LinkCard icon="blocks" title="Framework guides" href="/frameworks/">
+    Set up your framework's build pipeline.
+  </LinkCard>
+  <LinkCard icon="route" title="Scenario guides" href="/guides/">
+    Handle dynamic values, components and multiple targets.
+  </LinkCard>
+  <LinkCard icon="braces" title="API reference" href="/api/">
+    Look up a function or configuration option.
+  </LinkCard>
+  <LinkCard icon="wrench" title="Troubleshooting" href="/troubleshooting/">
+    Diagnose missing styles or a build error.
+  </LinkCard>
+</LinkGrid>
 
 ## From a style to WXSS
 
 The Panda plugin adapts generated JavaScript. The PostCSS plugin adapts the matching stylesheet. Both sides use the same class-name encoding.
+
+<BuildFlow>
+  <FlowStep icon="code" title="Author a style">
+    TypeScript styles with `css()`.
+  </FlowStep>
+  <FlowStep icon="tag" title="Generate a portable class">
+    `c_#0f766e` becomes `c__wp_23_0f766e`.
+  </FlowStep>
+  <FlowStep icon="file-cog" title="Match the WXSS selector">
+    PostCSS emits `.c__wp_23_0f766e`.
+  </FlowStep>
+</BuildFlow>
 
 ### 1. Author a style
 
@@ -59,7 +81,9 @@ The shown class and declaration are checked against real Panda codegen and CSS e
 | Cascade layers | Compile layer order for WXSS | Retain native layers |
 | Selector compatibility | Limited platform transformations | Retain native selectors |
 
-Set `polyfill: false` in Panda so the adapter receives the original layers. See [PostCSS behavior](/postcss/) for conflicts and selector limits. The adapter handles naming and selected CSS transformations; platform CSS support still matters.
+<Aside title="Panda configuration" icon="file-cog">
+  Set `polyfill: false` in Panda so the adapter receives the original layers. See [PostCSS behavior](/postcss/) for conflicts and selector limits. The adapter handles naming and selected CSS transformations; platform CSS support still matters.
+</Aside>
 
 ## Compatibility and migration
 

@@ -10,17 +10,39 @@ sidebar:
 
 ## 从你的项目开始
 
-| 你要做什么 | 阅读入口 |
-| --- | --- |
-| 安装两个生成期插件 | [快速开始](/zh/get-started/) |
-| 配置框架的构建流程 | [框架接入指南](/zh/frameworks/) |
-| 处理动态值、组件和多目标构建 | [使用场景](/zh/guides/) |
-| 查找函数或配置参数 | [API 参考](/zh/api/) |
-| 排查样式缺失和构建错误 | [排错指南](/zh/troubleshooting/) |
+<LinkGrid>
+  <LinkCard icon="rocket" title="快速开始" href="/zh/get-started/">
+    安装两个生成期插件。
+  </LinkCard>
+  <LinkCard icon="blocks" title="框架接入指南" href="/zh/frameworks/">
+    配置框架的构建流程。
+  </LinkCard>
+  <LinkCard icon="route" title="使用场景" href="/zh/guides/">
+    处理动态值、组件和多目标构建。
+  </LinkCard>
+  <LinkCard icon="braces" title="API 参考" href="/zh/api/">
+    查找函数或配置参数。
+  </LinkCard>
+  <LinkCard icon="wrench" title="排错指南" href="/zh/troubleshooting/">
+    排查样式缺失和构建错误。
+  </LinkCard>
+</LinkGrid>
 
 ## 从样式到 WXSS
 
 Panda 插件适配生成的 JavaScript，PostCSS 插件适配对应样式。两侧使用相同的 class 编码规则。
+
+<BuildFlow>
+  <FlowStep icon="code" title="编写样式">
+    用 `css()` 编写 TypeScript 样式。
+  </FlowStep>
+  <FlowStep icon="tag" title="生成兼容的 class">
+    `c_#0f766e` 转换为 `c__wp_23_0f766e`。
+  </FlowStep>
+  <FlowStep icon="file-cog" title="对齐 WXSS 选择器">
+    PostCSS 输出 `.c__wp_23_0f766e`。
+  </FlowStep>
+</BuildFlow>
 
 ### 1. 编写样式
 
@@ -59,7 +81,9 @@ Mini-program/Web:  c__wp_23_0f766e
 | Cascade layers | 为 WXSS 编译层顺序 | 保留原生 layers |
 | 选择器兼容 | 执行有限的平台转换 | 保留原生选择器 |
 
-Panda 中设置 `polyfill: false`，让适配器收到原始 layers。[PostCSS 行为说明](/zh/postcss/)介绍冲突与选择器限制。适配器处理命名和部分 CSS 转换，仍需核对目标平台的 CSS 支持情况。
+<Aside title="Panda 配置" icon="file-cog">
+  Panda 中设置 `polyfill: false`，让适配器收到原始 layers。[PostCSS 行为说明](/zh/postcss/)介绍冲突与选择器限制。适配器处理命名和部分 CSS 转换，仍需核对目标平台的 CSS 支持情况。
+</Aside>
 
 ## 兼容范围与迁移
 

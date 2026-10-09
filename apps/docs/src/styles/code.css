@@ -31,6 +31,14 @@ apply both themes without an external theme request. */
   border-radius: 0.5rem;
 }
 
+.nb-code-figure {
+  margin: 1.5rem 0;
+}
+
+.nb-code-figure .code-frame {
+  margin: 0;
+}
+
 .code-frame pre {
   margin: 0;
   border: 0;
@@ -42,7 +50,7 @@ apply both themes without an external theme request. */
   gap: 1rem;
   align-items: center;
   justify-content: space-between;
-  padding: 0.4rem 0.8rem;
+  padding: 0.15rem 0.5rem 0.15rem 1rem;
   font-family: SFMono-Regular, Consolas, monospace;
   font-size: 0.7rem;
   color: var(--muted);
@@ -51,10 +59,23 @@ apply both themes without an external theme request. */
 }
 
 .copy-code {
-  padding: 0.25rem 0.5rem;
   font-family: inherit;
-  font-size: 0.7rem;
-  color: var(--muted);
-  background: var(--surface);
-  border: 1px solid var(--line);
+}
+
+.copy-code[data-copy-state="copied"] {
+  color: var(--ink);
+  background: var(--accent);
+}
+
+:root[data-theme="dark"] .copy-code[data-copy-state="copied"] {
+  color: #18181b;
+}
+
+.copy-feedback:not(.visually-hidden) {
+  display: block;
+  padding: 0.5rem 1rem;
+  font-size: 0.8rem;
+  color: var(--ink);
+  background: var(--soft);
+  border-bottom: 1px solid var(--line);
 }

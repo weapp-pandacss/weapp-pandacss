@@ -7,12 +7,22 @@ sidebar:
 
 Panda 在构建期生成 class 与 CSS，适配器为 class 提供可跨目标使用的名称，并按目标转换 CSS。完成基础接入后，可以按实际场景继续阅读：
 
-| 场景 | 指南 |
-| --- | --- |
-| 手写类名带点、斜杠、Unicode 或前导数字 | [类名处理](/zh/guides/class-names/) |
-| 按钮切换变体、slot 响应状态，或样式值来自接口 | [动态样式](/zh/guides/dynamic-styles/) |
-| 全局样式不进入组件、尺寸需要 rpx，或第三方库自带 CSS | [组件与单位](/zh/guides/component-styles/) |
-| H5 与小程序共享源码，或 watch 后仍显示旧产物 | [多目标构建](/zh/guides/build-targets/) |
-| 编译后 layer 顺序、权重或选择器发生变化 | [CSS 兼容](/zh/guides/css-compatibility/) |
+<LinkGrid>
+  <LinkCard icon="tag" title="类名处理" href="/zh/guides/class-names/">
+    手写类名带点、斜杠、Unicode 或前导数字。
+  </LinkCard>
+  <LinkCard icon="sliders" title="动态样式" href="/zh/guides/dynamic-styles/">
+    按钮切换变体、slot 响应状态，或样式值来自接口。
+  </LinkCard>
+  <LinkCard icon="component" title="组件与单位" href="/zh/guides/component-styles/">
+    全局样式不进入组件、尺寸需要 rpx，或第三方库自带 CSS。
+  </LinkCard>
+  <LinkCard icon="workflow" title="多目标构建" href="/zh/guides/build-targets/">
+    H5 与小程序共享源码，或 watch 后仍显示旧产物。
+  </LinkCard>
+  <LinkCard icon="layers" title="CSS 兼容" href="/zh/guides/css-compatibility/">
+    编译后 layer 顺序、权重或选择器发生变化。
+  </LinkCard>
+</LinkGrid>
 
 遇到错误先查[故障排查](/zh/troubleshooting/)；签名、默认值与导入入口查 [API 大全](/zh/api/)。[框架接入指南](/zh/frameworks/)说明仓库示例及各自的验收范围。

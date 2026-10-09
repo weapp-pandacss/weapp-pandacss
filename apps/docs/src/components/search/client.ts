@@ -1,3 +1,5 @@
+import { closeThemePopover } from '../../lib/theme-client'
+
 interface SearchResult {
   url: string
   meta: { title?: string }
@@ -22,6 +24,7 @@ export function mountSearch(root: HTMLDialogElement) {
   let returnFocus: HTMLElement | undefined
 
   const open = (trigger?: HTMLElement) => {
+    closeThemePopover()
     document.querySelector<HTMLDialogElement>('#navigation-dialog')?.close()
     if (!root.open) {
       returnFocus = trigger ?? (document.activeElement instanceof HTMLElement && document.activeElement !== document.body ? document.activeElement : triggers[0])

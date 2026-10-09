@@ -1,5 +1,7 @@
 ---
 import { labels } from '../../lib/locale'
+import DocIcon from '../doc-icon.astro'
+import IconControl from '../icon-control.astro'
 
 interface Props { chinese: boolean }
 const { chinese } = Astro.props
@@ -8,14 +10,14 @@ const text = labels[chinese ? 'zh' : 'en']
 
 <dialog id="search-dialog" class="search-dialog" aria-labelledby="search-heading" data-search data-base={import.meta.env.BASE_URL} data-loading={text.loading} data-empty={text.empty} data-unavailable={text.unavailable}>
   <div class="dialog-heading">
-    <h2 id="search-heading">{text.search}</h2>
-    <button type="button" class="quiet-button" data-close-search aria-label={text.close}>×</button>
+    <h2 id="search-heading"><DocIcon name="search" size={20} />{text.search}</h2>
+    <IconControl id="close-search" icon="x" label={text.close} data-close-search />
   </div>
   <form role="search">
     <label class="visually-hidden" for="docs-search">{text.search}</label>
     <div class="search-controls">
       <input id="docs-search" name="query" type="search" placeholder={text.searchPlaceholder} autocomplete="off" />
-      <button type="submit">{text.submit}</button>
+      <IconControl id="submit-search" class="search-submit" type="submit" icon="search" label={text.submit} />
     </div>
   </form>
   <p role="status" aria-live="polite"></p>

@@ -9,16 +9,30 @@ Register both parts of the adapter in every target: `weappPanda()` adapts genera
 
 ## Choose your framework
 
-| Integration | Guide | Repository baseline |
-| --- | --- | --- |
-| Weapp Vite + Wevu | [Vue SFC integration](/frameworks/weapp-vite/) | weapp-vite and Wevu 7.4.0; WeChat target |
-| Taro React | [Webpack integration](/frameworks/taro-react/) | Taro 4.3.0, React 18; WeChat and H5 |
-| Taro Vue | [Vue SFC integration](/frameworks/taro-vue/) | Taro 4.3.0, Vue 3.5, Webpack; WeChat and H5 |
-| Uni-app Vue | [Vite integration](/frameworks/uni-app/) | Matched DCloud packages, Vue 3.4.21, Vite 5.2.8 |
-| React Web / H5 | [Web integration](/frameworks/web/) | React 19 and Vite 8; `target: 'web'` |
-| Native WeChat | [Build-time class generation](/frameworks/native/) | Integration recipe; no independent native example or E2E |
+<LinkGrid>
+  <LinkCard icon="component" title="Weapp Vite + Wevu" href="/frameworks/weapp-vite/">
+    Vue SFC integration. Repository baseline: weapp-vite and Wevu 7.4.0; WeChat target.
+  </LinkCard>
+  <LinkCard icon="blocks" title="Taro React" href="/frameworks/taro-react/">
+    Webpack integration. Repository baseline: Taro 4.3.0, React 18; WeChat and H5.
+  </LinkCard>
+  <LinkCard icon="component" title="Taro Vue" href="/frameworks/taro-vue/">
+    Vue SFC integration. Repository baseline: Taro 4.3.0, Vue 3.5, Webpack; WeChat and H5.
+  </LinkCard>
+  <LinkCard icon="workflow" title="Uni-app Vue" href="/frameworks/uni-app/">
+    Vite integration. Repository baseline: matched DCloud packages, Vue 3.4.21, Vite 5.2.8.
+  </LinkCard>
+  <LinkCard icon="monitor" title="React Web / H5" href="/frameworks/web/">
+    Web integration. Repository baseline: React 19 and Vite 8; `target: 'web'`.
+  </LinkCard>
+  <LinkCard icon="code" title="Native WeChat" href="/frameworks/native/">
+    Build-time class generation. Integration recipe; no independent native example or E2E.
+  </LinkCard>
+</LinkGrid>
 
-Matching names does not make every browser selector, media query or CSS property work in WXSS. Follow the [PostCSS compatibility guidance](/postcss/) and test the actual target renderer.
+<Aside title="Platform compatibility" icon="alert-triangle">
+  Matching names does not make every browser selector, media query or CSS property work in WXSS. Follow the [PostCSS compatibility guidance](/postcss/) and test the actual target renderer.
+</Aside>
 
 ## Verification levels
 

@@ -1,9 +1,16 @@
 ---
-interface Props { title?: string }
-const { title } = Astro.props
+import type { IconName } from '../lib/icons'
+import DocIcon from './doc-icon.astro'
+import '../styles/overview.css'
+
+interface Props {
+  title?: string
+  icon?: IconName
+}
+const { title, icon = 'alert-triangle' } = Astro.props
 ---
 
 <aside class="callout">
-  {title && <strong>{title}</strong>}
-  <slot />
+  {title && <div class="callout-heading"><DocIcon name={icon} size={18} /><strong>{title}</strong></div>}
+  <div class="callout-content"><slot /></div>
 </aside>

@@ -9,21 +9,33 @@ Choose the API by where it runs: configure the adapter at build time, use Panda'
 
 ## Adapter APIs
 
-| Reference | Functions and configuration | Runs in |
-| --- | --- | --- |
-| [Panda plugin](/api/panda-plugin/) | `weappPanda()` and generation lifecycle | Panda configuration |
-| [PostCSS plugin](/api/postcss-plugin/) | `postcssPlugin()` and every `IPostcssPluginOptions` field | CSS build |
-| [Runtime encoders](/api/runtime/) | `encodeClassName()`, `encodeClassList()`, `createPortableRuntime()` | Application or generated runtime |
+<LinkGrid>
+  <LinkCard icon="puzzle" title="Panda plugin" href="/api/panda-plugin/">
+    `weappPanda()` and generation lifecycle. Runs in Panda configuration.
+  </LinkCard>
+  <LinkCard icon="file-cog" title="PostCSS plugin" href="/api/postcss-plugin/">
+    `postcssPlugin()` and every `IPostcssPluginOptions` field. Runs in the CSS build.
+  </LinkCard>
+  <LinkCard icon="code" title="Runtime encoders" href="/api/runtime/">
+    `encodeClassName()`, `encodeClassList()` and `createPortableRuntime()`. Runs in application or generated runtime.
+  </LinkCard>
+</LinkGrid>
 
 ## Panda generated APIs
 
 These functions belong to **Panda CSS 2.1.2** and are imported from your generated `styled-system` directory. They are not exports of `weapp-pandacss`.
 
-| Reference | APIs | Use |
-| --- | --- | --- |
-| [css and cx](/api/styling/) | `css()`, `css.raw()`, `cx()` | Atomic styles, style composition and class lists |
-| [Recipes](/api/recipes/) | `cva()`, `sva()`, named recipes, slot recipes and variant helpers | Component variants and multiple parts |
-| [Tokens, patterns and styled](/api/tokens-patterns/) | `token()`, `token.var()`, patterns, `styled` | Theme values, layout helpers and React Web components |
+<LinkGrid>
+  <LinkCard icon="braces" title="css and cx" href="/api/styling/">
+    `css()`, `css.raw()` and `cx()` for atomic styles, style composition and class lists.
+  </LinkCard>
+  <LinkCard icon="component" title="Recipes" href="/api/recipes/">
+    `cva()`, `sva()`, named recipes, slot recipes and variant helpers for component variants and multiple parts.
+  </LinkCard>
+  <LinkCard icon="palette" title="Tokens, patterns and styled" href="/api/tokens-patterns/">
+    `token()`, `token.var()`, patterns and `styled` for theme values, layout helpers and React Web components.
+  </LinkCard>
+</LinkGrid>
 
 ## Package entries
 
@@ -58,4 +70,6 @@ The root entry does not export `createPortableRuntime`. Internal helpers are not
 
 Register both `weappPanda()` and the PostCSS adapter, run `panda codegen`, and import the generated global CSS. Keep generated runtime and CSS from the same configuration. The [Panda guide](/panda/) and [PostCSS guide](/postcss/) provide the setup.
 
-Panda outputs are already encoded. Encode only raw authored names, once. The adapter changes naming and CSS output; it does not generate runtime CSS, make arbitrary dynamic styles extractable, or add support for CSS features missing from a target platform. See [troubleshooting](/troubleshooting/) when a generated class has no matching style.
+<Aside title="Encoding boundary" icon="tag">
+  Panda outputs are already encoded. Encode only raw authored names, once. The adapter changes naming and CSS output; it does not generate runtime CSS, make arbitrary dynamic styles extractable, or add support for CSS features missing from a target platform. See [troubleshooting](/troubleshooting/) when a generated class has no matching style.
+</Aside>

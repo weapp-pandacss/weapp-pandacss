@@ -1,0 +1,17 @@
+---
+import type { IconName } from '../lib/icons'
+import DocIcon from './doc-icon.astro'
+import '../styles/overview.css'
+
+interface Props {
+  icon: IconName
+  title: string
+}
+const { icon, title } = Astro.props
+---
+
+<li class="flow-step">
+  <span class="flow-step-icon"><DocIcon name={icon} size={21} /></span>
+  <div class="flow-step-content"><strong>{title}</strong><div class="flow-step-description"><slot /></div></div>
+  <DocIcon name="arrow-right" size={17} class="flow-step-arrow" />
+</li>
