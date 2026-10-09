@@ -25,6 +25,9 @@ use `preview` to test search. Logo files in `public/` come from `assets/brand` a
 Machine-readable routes: `/llms.txt`, `/zh/llms.txt`, `/llms-full.txt`, and each page's `/index.md` and `/index.mdx`.
 Canonical URLs, language metadata, sitemap and robots all use `panda.weapp.dev`.
 
+Nimbus's `/_nimbus/shiki.css` defines token color variables; `src/styles/code.css`
+applies them for light and dark system themes. Verify computed token colors in both themes when changing code styles.
+
 ## Deployment / 部署
 
 The site is a static Cloudflare Worker named `weapp-pandacss-docs`. `wrangler.jsonc`

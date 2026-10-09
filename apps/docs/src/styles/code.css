@@ -1,0 +1,27 @@
+/* Nimbus emits token classes with dual-theme variables in /_nimbus/shiki.css.
+   The site applies those variables because the generated sheet only defines them. */
+.astro-code,
+.astro-code span {
+  font-style: var(--shiki-light-font-style, normal);
+  font-weight: var(--shiki-light-font-weight, normal);
+  color: var(--shiki-light);
+  text-decoration: var(--shiki-light-text-decoration, none);
+}
+
+.astro-code {
+  background-color: var(--shiki-light-bg);
+}
+
+@media (prefers-color-scheme: dark) {
+  .astro-code,
+  .astro-code span {
+    font-style: var(--shiki-dark-font-style, normal);
+    font-weight: var(--shiki-dark-font-weight, normal);
+    color: var(--shiki-dark);
+    text-decoration: var(--shiki-dark-text-decoration, none);
+  }
+
+  .astro-code {
+    background-color: var(--shiki-dark-bg);
+  }
+}
