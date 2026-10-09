@@ -23,7 +23,9 @@ it('builds matching Panda and Tailwind styles in Uni-app mini-program and H5 art
       expect(css).toContain('.hover\\:bg-blue-600:hover')
     }
     else {
-      for (const file of await fs.readdir(outdir, { recursive: true })) {
+      for (const file of await fs.readdir(outdir, {
+        recursive: true,
+      })) {
         if (file.endsWith('.wxss')) {
           css += await fs.readFile(path.join(outdir, file), 'utf8')
         }

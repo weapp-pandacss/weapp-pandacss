@@ -85,7 +85,25 @@ export default {
     vitest: {
       includeWorkspaceRootConfig: false,
       coverageExclude: ['**/dist/**'],
-      coverageSkipFull: true,
+      coverageSkipFull: false,
+      overrides: {
+        test: {
+          coverage: {
+            enabled: true,
+            // Measure owned library code, including files no test imports.
+            // Framework bundles emitted by mpcore are integration subjects.
+            include: ['packages/*/src/**/*.ts'],
+            reporter: ['text', 'json', 'json-summary', 'html', 'lcov'],
+            thresholds: {
+              perFile: true,
+              statements: 100,
+              branches: 100,
+              functions: 100,
+              lines: 100,
+            },
+          },
+        },
+      },
     },
     vitestProject: {
       globals: true,

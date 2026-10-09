@@ -1169,7 +1169,7 @@ exports[`postcss > default without layer 1`] = `
     animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
   }
 }
-page {
+page:not(n) {
   --made-with-panda: "🐼";
 }
 :not(n)::-webkit-backdrop {
@@ -1232,7 +1232,7 @@ view:not(n),text:not(n),view:not(n)::before,text:not(n)::before,view:not(n)::aft
   --scale-x: 1;
   --scale-y: 1;
 }
-page {
+page:not(n):not(n) {
   --borders-none: none;
   --easings-default: cubic-bezier(0.4, 0, 0.2, 1);
   --easings-linear: linear;

@@ -14,6 +14,37 @@ beforeAll(async () => {
   artifact = await buildWeappViteTestArtifact({ cwd: exampleRoot })
 })
 
+it('isolates page state between independent runtimes and resets it on a fresh launch', async () => {
+  const first = createTestProject({ artifact })
+  const second = createTestProject({ artifact })
+  try {
+    const a = await first.renderPage('/pages/index/index')
+    const b = await second.renderPage('/pages/index/index')
+    const original = b.screen.getByRole('button').getAttribute('class')
+    for (let cycle = 0; cycle < 4; cycle++) {
+      await a.user.tap(a.screen.getByRole('button'))
+      expect(a.screen.getByAttribute('id', 'status')).toHaveTextContent(cycle % 2 === 0 ? 'accent' : 'neutral')
+      expect(b.screen.getByAttribute('id', 'status')).toHaveTextContent('neutral')
+      expect(b.screen.getByRole('button').getAttribute('class')).toBe(original)
+    }
+    await b.user.tap(b.screen.getByRole('button'))
+    expect(b.screen.getByAttribute('id', 'status')).toHaveTextContent('accent')
+    expect(a.screen.getByAttribute('id', 'status')).toHaveTextContent('neutral')
+  }
+  finally {
+    await Promise.all([first.close(), second.close()])
+  }
+  const relaunched = createTestProject({ artifact })
+  try {
+    const { screen } = await relaunched.renderPage('/pages/index/index')
+    expect(screen.getByAttribute('id', 'status')).toHaveTextContent('neutral')
+    expect(screen.getByAttribute('id', 'manual').getAttribute('class')).toBe(encodeClassName('manual/中文_wp_2e_'))
+  }
+  finally {
+    await relaunched.close()
+  }
+})
+
 it('renders real Wevu output and keeps changing Panda classes in sync with WXSS', async () => {
   const stylesheet = await fs.readFile(path.join(artifact.miniprogramRootPath, 'app.wxss'), 'utf8')
   const classes = new Set<string>()
