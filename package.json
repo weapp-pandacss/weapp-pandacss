@@ -69,7 +69,7 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e:web": "turbo run build --filter=@weapp-pandacss/react-app... && playwright test",
     "test:e2e:weapp": "turbo run build --filter=@weapp-pandacss/weapp-vite-app... && vitest run examples/weapp-vite-app/test --coverage.enabled=false",
-    "test:e2e:devtools": "turbo run build --filter=@weapp-pandacss/weapp-vite-app... && node --experimental-strip-types e2e/devtools/run.ts",
+    "test:e2e:devtools": "turbo run build --filter=@weapp-pandacss/weapp-vite-app... --filter=@weapp-pandacss/taro-app --filter=@weapp-pandacss/taro-app-vue3 --filter=@weapp-pandacss/uni-app-vue3 && node --experimental-strip-types e2e/devtools/run.ts",
     "test:e2e": "pnpm test:e2e:weapp && pnpm test:e2e:web"
   },
   "devDependencies": {

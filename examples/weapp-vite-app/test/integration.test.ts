@@ -108,3 +108,45 @@ it('renders real Wevu output and keeps changing Panda classes in sync with WXSS'
     await project.close()
   }
 })
+
+it('covers the runtime acceptance page, named compounds and slot transitions with real emitted selectors', async () => {
+  const stylesheet = await fs.readFile(path.join(artifact.miniprogramRootPath, 'app.wxss'), 'utf8')
+  const classes = new Set([...stylesheet.matchAll(/\.([\w-]+)/g)].map(match => match[1]!))
+  // Inline sva slot markers are metadata; the remaining classes carry styles.
+  const markers = new Set(['root', 'label'].map(slot => encodeClassName(`inline/card__${slot}`)))
+  const project = createTestProject({ artifact })
+  try {
+    const { screen, user } = await project.renderPage('/pages/acceptance/index')
+    const ids = ['atomic', 'variable-token', 'value-token', 'semantic-token', 'important', 'merged', 'pattern', 'variant', 'slot-root', 'slot-label', 'named', 'named-root', 'named-label', 'collision-a', 'collision-b', 'leading', 'marked']
+    const changing = ['variant', 'slot-root', 'slot-label', 'named', 'named-root', 'named-label']
+    const initial = Object.fromEntries(changing.map(id => [id, screen.getByAttribute('id', id).getAttribute('class')]))
+    for (let cycle = 0; cycle <= 4; cycle++) {
+      expect(screen.getByAttribute('id', 'acceptance-status')).toHaveTextContent(cycle % 2 ? 'accent' : 'neutral')
+      for (const id of ids) {
+        const value = screen.getByAttribute('id', id).getAttribute('class')
+        for (const name of value.trim().split(/\s+/)) {
+          expect(name).toMatch(/^[A-Z_][\w-]*$/i)
+          expect(classes.has(name) || markers.has(name), `${id}: missing ${name}`).toBe(true)
+        }
+        if (changing.includes(id)) {
+          if (cycle % 2) {
+            expect(value).not.toBe(initial[id])
+          }
+          else {
+            expect(value).toBe(initial[id])
+          }
+        }
+      }
+      expect(screen.getByAttribute('id', 'collision-a').getAttribute('class')).toBe(encodeClassName('a.b'))
+      expect(screen.getByAttribute('id', 'collision-b').getAttribute('class')).toBe(encodeClassName('a_wp_2e_b'))
+      expect(screen.getByAttribute('id', 'leading').getAttribute('class')).toBe(encodeClassName('2leading/中文'))
+      expect(screen.getByAttribute('id', 'marked').getAttribute('class')).toBe(encodeClassName('-leading_wp_'))
+      if (cycle < 4) {
+        await user.tap(screen.getByAttribute('id', 'toggle'))
+      }
+    }
+  }
+  finally {
+    await project.close()
+  }
+})

@@ -43,6 +43,24 @@
   color: red;
 }
 
+/* stylelint-disable selector-class-pattern -- Encoding collision and unsafe-head acceptance probes. */
+.a\.b {
+  color: #dc2626;
+}
+
+.a_wp_2e_b {
+  color: #16a34a;
+}
+
+.\32 leading\/中文 {
+  color: #0369a1;
+}
+
+.-leading_wp_ {
+  color: #9333ea;
+}
+/* stylelint-enable selector-class-pattern */
+
 @layer base {
   page {
     color: #0f172a;
