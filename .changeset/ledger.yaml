@@ -1,0 +1,6 @@
+weapp-pandacss@2.0.0:
+  dir: packages/weapp-pandacss
+  intents:
+    - panda-two-monorepo
+    - smart-eggs-lie
+    - young-horses-shine
