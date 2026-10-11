@@ -13,7 +13,7 @@ This adapts a stylesheet's syntax and order. It does not add a CSS engine, make 
 
 ## Normal layer order
 
-Keep `polyfill: false` in Panda configuration so the adapter receives original layers. By default, `cascadeLayers.mode` is `ordered`. The compiler registers layers at their first declaration and emits rules in layer order even if their blocks appear in a different order.
+Keep `polyfill: false` in Panda configuration so the adapter receives original layers. By default, `cascadeLayers.mode` is `ordered`, using `@weapp-tailwindcss/css-compat@0.1.1` through a compatibility adapter. Public configuration and class naming do not change. The compiler registers layers at their first declaration and emits rules in layer order even if their blocks appear in a different order.
 
 ~~~css
 .probe { color: green; }
@@ -71,6 +71,7 @@ Prefer comparable class-selector specificity across layers. Refactor the high-sp
 // postcss.config.cjs
 module.exports = {
   plugins: {
+    'postcss-import': {},
     '@pandacss/dev/postcss': {},
     'weapp-pandacss/postcss': {
       cascadeLayers: { mode: 'ordered', onConflict: 'error' },
@@ -80,6 +81,37 @@ module.exports = {
 ~~~
 
 The default `onConflict: 'warning'` reports risks through PostCSS warnings with layer, selector, property and source location. A warning is conservative; it does not prove both selectors match the same element. Shorthand, logical properties and unknown selector functions need conservative analysis.
+
+## Imports are supported in source CSS
+
+Expand the **complete import graph** before Panda generation and ordered compilation. The adapter consumes one CSS AST and does not load imported files. Ordinary imports matter too: imported unlayered styles can override every normal layered rule, and layer-qualified imports register their place in the layer order.
+
+~~~css
+/* src/app.css */
+@import "./base.css";
+@layer utilities { .probe { color: blue; } }
+~~~
+
+~~~css
+/* src/base.css */
+.probe { color: red; }
+~~~
+
+Native CSS selects red because it is unlayered. Simply retaining the import and removing the local layer can incorrectly select blue. With [the complete PostCSS pipeline](/postcss/), the importer merges both files first, then ordered compilation emits blue before red so red still wins. The same rule applies when an imported file imports another file.
+
+| Import scenario | Required handling |
+| --- | --- |
+| Local plain, named/anonymous layer, media or supports imports | Expand first; preserve layer and condition metadata for ordered compilation |
+| Multiple files contributing to one layer | Combine their graph into one root before adaptation; same-layer fallback order remains source order |
+| Duplicate or cyclic local imports | Follow the importer's deduplication semantics; do not depend on repeating a file to create a new cascade |
+| File missing, malformed or misplaced import | Fix the importer/parser error at its source; do not drop the rule |
+| Remote import left by `postcss-import` | Vendor locally or fully resolve upstream; a residual remote import fails with `LAYER_IMPORT` |
+| Imported file changes during watch | Reprocess its entry; custom/virtual loaders must forward dependency messages and watch the imported files |
+| Independently compiled component or subpackage CSS | Each root has its own layer order; share application CSS only where component isolation permits it |
+
+This check concerns **source imports entering ordered compilation**. A framework can later generate valid WXSS `@import` rules to load independently compiled assets, such as Uni-app's separate Tailwind stylesheet; those output dependencies do not enter the Panda layer root.
+
+Pass the real entry filename as PostCSS `from`, especially when a build starts from another working directory. If you call Panda on a virtual entry, expand imports from the real entry first; resolving `./base.css` from a virtual URL or the process directory can select the wrong file. Do not delete imports, fetch files inside the layer core or copy already-flattened CSS back into the source graph to bypass the check.
 
 ## Conditional layers and one-root ordering
 
@@ -122,10 +154,14 @@ Use native tags and selectors that your renderer supports. A retained pseudo-cla
 | `WP_LAYER_CONDITIONAL_ORDER` | Declare named layer order before conditions; avoid relying on condition-dependent registration |
 | `WP_LAYER_SELECTOR_UNKNOWN` | Replace the unknown function with supported selectors or explicitly inspect the affected cascade |
 | Generated `:not(#\#)` placeholders | Disable Panda polyfill and regenerate from original layers |
-| `@import ... layer(...)` | Inline the import before ordered compilation |
+| `LAYER_IMPORT`: any residual `@import`, plain, layer-qualified or remote | Expand the full graph before ordered compilation; remote imports need a separate upstream resolver or local source |
 | CSS nesting / `&` selectors | Expand nesting in an earlier stage |
 | `revert-layer` | Rewrite the rule explicitly; layer rollback cannot be reproduced after flattening |
-| Invalid/unsupported layer structure | Correct the reported source location instead of suppressing the error |
+| `LAYER_NAME`: invalid layer names or unsupported declarations | Correct the layer declaration at the reported source position |
+| `LAYER_PREPROCESSOR`: remaining conditional-compilation control comments | Consume `#if` / `#else` / `#endif` directives before the adapter |
+| `LAYER_DESCRIPTOR_ORDER` / `LAYER_WRAPPER_SEMANTICS` | Review descriptor order or wrapper semantics; strict mode promotes these compatibility warnings to errors |
+
+The three `WP_LAYER_*` names above remain text prefixes for compatibility. Machine-readable warnings use `LAYER_SPECIFICITY`, `LAYER_CONDITIONAL_ORDER` and `LAYER_SELECTOR_UNKNOWN`; all core warnings include `diagnostic` and source positions. `onConflict` affects compatibility warnings, not invalid input: residual imports, nesting and `revert-layer` fail even in warning mode. See [the full diagnostic reference](/api/postcss-plugin/#layer-order-and-diagnostics).
 
 Malformed selectors and invalid mini-program variable names also throw errors. Variable declarations, `var()` references and `@property` names must use ASCII identifiers or generated Panda tokens.
 

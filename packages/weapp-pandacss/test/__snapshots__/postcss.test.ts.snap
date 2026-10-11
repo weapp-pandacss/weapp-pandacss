@@ -1126,7 +1126,7 @@ exports[`postcss > default removeNegationPseudoClass true 1`] = `
   .bg_amber_wp_2e_800 {
     background: var(--colors-amber-800);
   }
-  /*! weapp-pandacss:portable-v1 */
+/*! weapp-pandacss:portable-v1 */
 "
 `;
 

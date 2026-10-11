@@ -5,14 +5,14 @@ sidebar:
   order: 7
 ---
 
-2.0 改变 class 编码与默认变量命名，旧 runtime、页面产物不能与新生成 CSS 混用。迁移将生成文件补丁替换为 Panda 插件，不只是修改一个导入。
+本页包含原 2.0 迁移和下方共享 ordered 内核更新。2.0 改变 class 编码与默认变量命名，旧 runtime、页面产物不能与新生成 CSS 混用。迁移将生成文件补丁替换为 Panda 插件，不只是修改一个导入。
 
 ## 升级顺序
 
 1. 停止项目中写入生成目录的 build/watch 进程，删除旧 `styled-system` 产物，包括 helper 备份与 weapp-panda 补丁文件。
 2. 固定 `@pandacss/dev`、`@pandacss/preset-base`、`@pandacss/preset-panda` 为 **2.1.2**。注册 `weappPanda()`，设置 `polyfill: false`，使用支持的 `.js` 或 `.mjs` runtime 输出。
 3. 将 `panda codegen && weapp-panda codegen` 改为 `panda codegen`，移除 adapter 子进程、`codegen:done` 补丁 hook 和跨平台 rollback 脚本。
-4. 按 Panda → PostCSS adapter → 按需 rem/rpx 转换注册插件，将旧 adapter 配置文件的 CSS 选项移到 PostCSS 参数。
+4. 按 import 展开 → Panda → PostCSS adapter → 按需 rem/rpx 转换注册插件，独立/Taro 配置使用 `postcss-import@17.0.0`，或由框架提供前置 importer，将旧 adapter 配置文件的 CSS 选项移到 PostCSS 参数。
 5. 手写 class helper 改用 `@weapp-pandacss/runtime`，只编码原始手写名称一次，保留 `css()`、recipe、pattern 与 `cx()` 结果。
 6. 对齐平台环境、生成/输出目录和 alias，再同步生成 runtime 与 CSS。仅清理受影响框架目标的旧缓存，重新构建。
 7. 对实际支持的目标检查最终 class、selector、token 引用与真实交互。
@@ -81,6 +81,18 @@ const labels = encodeClassList('a.b 中文')
 显式 `removeNegationPseudoClass`、`selectorReplacement.cascadeLayers`、`cascadeLayersPluginOptions` 会选择 legacy 模式。接入 ordered 时移除旧选项，使用 `cascadeLayers: { mode: 'ordered' }`，两者混用会报配置错误。
 
 Layer 转换提供顺序兼容，不是完整原生 cascade 等价。权重告警与单 root 边界详见 [CSS 兼容](/zh/guides/css-compatibility/)，layer 模式选择不会引入另一套 class 编码格式。
+
+## 共享 ordered 内核更新
+
+源码更新将本地 ordered 内核替换为固定的 `@weapp-tailwindcss/css-compat@0.1.1`，记录 **minor 发布意图**，尚不指定或发布新 adapter 版本，实际安装版本以包与 release 为准。已发布指南原本就要求在适配前展开 import 和 nesting；共享内核现在校验**每个残留 import**，包括普通与远程导入，而非只校验带 layer 的导入。
+
+1. 保留源码 `@import`，按 [PostCSS 流水线](/zh/postcss/)或框架 importer 在 Panda、adapter 前合并完整导入图，不删除 import 绕过校验。
+2. Taro React/Vue 显式在 Panda 前添加 `postcss-import`。React Vite/Weapp Vite 保留框架前置导入处理。Uni-app Panda 虚拟入口从真实 `pandaEntry` 文件名解析导入，并向 watch 透传导入文件依赖。
+3. 远程样式放到本地或使用前序解析器，`postcss-import` 会保留远程 import。适配前展开 nesting 与预处理语法，`revert-layer` 改为明确规则。
+4. 保留公开参数与 legacy 选择。原三个 `WP_LAYER_*` 文本前缀不变，程序诊断提供 `LAYER_*` code、源码位置及上下文；新增 descriptor/wrapper 兼容警告可能让 `onConflict: 'error'` 拒绝更多高风险输入。
+5. 为全部支持目标重新生成、构建，检查导入特殊 class 的编码、普通未分层优先级、important 逆序及导入文件修改后的更新。H5 保留原生 layer；小程序 ordered 编译前应已展开源码导入图，编译器移除该 root 的 layer。框架后续可生成合法 WXSS import 来加载独立编译资源，这些产物导入不属于输入校验。
+
+无需 runtime 迁移、命名 rollback 或业务直接安装 CSS compat。严格/input 失败由 PostCSS `CssSyntaxError` 携带结构化诊断；原子校验仅保证独立 layer 阶段，不包含 adapter 前面的全部变更。症状与检查详见[排错指南](/zh/troubleshooting/#普通-import-现在构建失败)。
 
 ## Web/H5 与构建隔离
 

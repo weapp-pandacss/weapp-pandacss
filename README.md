@@ -21,6 +21,8 @@ This repository is a pnpm/Turborepo monorepo managed by [repoctl](https://github
 
 The site documents every public adapter function and PostCSS option, with separate guides for Panda's generated styling APIs. Compatibility tables distinguish build-artifact checks, browser interactions and mini-program runtime checks. Every page also has Markdown/MDX exports; AI tools can use [llms.txt](https://panda.weapp.dev/llms.txt) or the [Chinese index](https://panda.weapp.dev/zh/llms.txt).
 
+Source `@import` remains supported: expand the entire graph before Panda and mini-program ordered compilation. The ordered core uses pinned `@weapp-tailwindcss/css-compat@0.1.1`; unresolved plain, layer-qualified or remote imports fail rather than silently changing precedence. Public adapter options and legacy behavior stay compatible. See [CSS compatibility](https://panda.weapp.dev/guides/css-compatibility/) / [CSS 兼容](https://panda.weapp.dev/zh/guides/css-compatibility/) for the pipeline, diagnostic mapping and source-input boundary.
+
 ## Brand assets
 
 The selected logo is the Panda CSS P mark with a mini-program badge. All six designs, SVG sources, transparent PNGs and the comparison preview are available in [assets/brand](./assets/brand/README.md).

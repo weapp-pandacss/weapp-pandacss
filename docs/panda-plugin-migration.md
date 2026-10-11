@@ -13,7 +13,8 @@
    `outExtension: 'mjs'` 和 `forceImportExtension: true`。
 3. 把 `panda codegen && weapp-panda codegen` 改为 `panda codegen`。移除
    `execFileSync`、`codegen:done` 适配 hook 和跨平台 rollback。
-4. 小程序 PostCSS 注册 Panda → adapter（`target: 'weapp'`）→ rem/rpx；H5
+4. 小程序 PostCSS 注册 import 展开 → Panda → adapter（`target: 'weapp'`）→ rem/rpx；
+   独立与 Taro 流水线在 Panda 前安装并注册 `postcss-import@17.0.0`，Vite 使用框架前置导入处理。H5
    同样保留 adapter，使用 `target: 'web'`。把旧 adapter 配置文件里的 CSS
    选项直接移到 PostCSS 插件参数；PostCSS 不再读取该配置或修改 JS 文件。
 5. 将 `styled-system/weapp-panda/index.mjs` 的手写 class 转义导入改为
@@ -78,8 +79,16 @@ Uni-app 示例保留 Tailwind 对比功能。`tailwind.css` 由 weapp-tailwindcs
 其依赖链使用 `@weapp-tailwindcss/escape`。Panda 与手写 CSS 走 portable adapter；
 两个入口分开，各自使用匹配的 runtime/selector 编码。
 Tailwind generator 的 `cssEntries` 显式指向 `tailwind.css`，不再重复注册官方
-Tailwind PostCSS generator。`panda.css` 通过 Vite 虚拟入口先执行 Panda PostCSS，
-保留 Panda 的 layer 声明生成结果，再进入 adapter → rem/rpx。这样避免 Tailwind
-loader 提前移除仅含 layer 顺序声明的输入；生成依赖加入 Vite watch。
+Tailwind PostCSS generator。`panda.css` 通过 Vite 虚拟入口先基于真实 `pandaEntry` 路径执行 `postcss-import`，再执行 Panda PostCSS，
+微信在虚拟入口内提前执行 Panda adapter 完成 ordered 编译，防止 Tailwind loader 移除或重写 layer；
+后续框架 adapter 识别 portable 标记，不重复编码。H5 虚拟入口只做 import 展开与 Panda 生成，
+保留原生 layer 和 selector，在后续框架 PostCSS 才执行 Web adapter；过早的 portable 标记会让
+Tailwind 展平 H5 layer。单位转换始终最后执行，导入与生成依赖加入 Vite watch。
+
+默认 ordered 内核现由 `@weapp-tailwindcss/css-compat@0.1.1` 承担，并记录 minor 发布意图，
+不改变公开配置、命名或原 csstools legacy 路径。源码仍可使用普通 `@import`，
+但进入 ordered 前必须完整展开导入图；所有残留 import（包括普通、带 layer、远程）都会失败。
+不能删掉 import 来绕过检查。三个 `WP_LAYER_*` 文本前缀继续兼容，结构化诊断使用 `LAYER_*`，
+新增 descriptor/wrapper 警告在严格模式可阻止构建。详见[双语 CSS 兼容指南](https://panda.weapp.dev/zh/guides/css-compatibility/)。
 
 五个活跃示例统一使用生成期插件，H5 与小程序使用相同的 runtime 编码。

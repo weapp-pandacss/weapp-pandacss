@@ -38,12 +38,14 @@ sidebar:
 
 | 范围 | 仓库提供的验证 | 边界 |
 | --- | --- | --- |
-| Taro React / Vue | 最终框架样式与 runtime class 匹配 | 产物检查不能证明全部交互或视觉布局 |
+| Taro React / Vue | 微信/H5 样式、导入 CSS 与 runtime class 匹配 | 产物检查不能证明全部交互或视觉布局 |
 | Uni-app | 小程序与 H5 CSS 产物 | Tailwind 对比样式使用独立处理流程 |
 | Weapp Vite + Wevu | 通过 mpcore 检查编译后的 WXML、组件、点击和 class 更新 | headless mpcore 不模拟 CSS 布局 |
 | React Web | Chromium、Firefox、WebKit 的生产样式和交互 | 浏览器行为不能作为小程序真机证据 |
 | 真实微信开发者工具 | 四个小程序示例的可选渲染探针 | 需要实际执行、稳定版工具和授权 AppID；模拟器不能代替真机 |
 | 原生微信、Taro Vite、其他小程序目标、App/RN | 暂无专项接入验收 | 框架已有构建脚本不能证明 adapter 支持 |
+
+跨文件 import 回归覆盖八个真实构建：React Web、Weapp Vite 微信、Taro React 微信/H5、Taro Vue 微信/H5、Uni-app 微信/H5。共用样例检查导入 portable class、未分层优先级、important 逆序与条件信息；三浏览器对照编译 CSS 与原生跨文件 layer，权重反例仍是明确边界。
 
 验收命令与前置条件见[测试指南](https://github.com/weapp-pandacss/weapp-pandacss/blob/main/docs/testing-strategy.zh.md)。这些层级说明测试范围，不表示你的项目已经运行过所有测试。
 

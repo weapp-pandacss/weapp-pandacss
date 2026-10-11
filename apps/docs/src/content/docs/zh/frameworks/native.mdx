@@ -14,7 +14,7 @@ sidebar:
 adapter 声明 Node `^22.18.0 || >=24.11.0`，推荐 Node 22.18+ 或 24.11+ 的 LTS 版本，在包含 `package.json` 的项目目录执行：
 
 ~~~sh
-pnpm add -D @pandacss/dev@2.1.2 @pandacss/preset-base@2.1.2 @pandacss/preset-panda@2.1.2 weapp-pandacss@^2 postcss postcss-cli postcss-rem-to-responsive-pixel
+pnpm add -D @pandacss/dev@2.1.2 @pandacss/preset-base@2.1.2 @pandacss/preset-panda@2.1.2 weapp-pandacss@^2 postcss postcss-import@17.0.0 postcss-cli postcss-rem-to-responsive-pixel
 ~~~
 
 以下路径假设原生应用位于 `miniprogram/`。如果 `project.config.json` 的 `miniprogramRoot` 不同，应一起调整。
@@ -56,6 +56,7 @@ Panda 扫描样式编写模块，不扫描 WXML 模板或生成 class 模块。�
 // postcss.config.cjs
 module.exports = {
   plugins: {
+    'postcss-import': {},
     '@pandacss/dev/postcss': {},
     'weapp-pandacss/postcss': { target: 'weapp' },
     'postcss-rem-to-responsive-pixel': {
@@ -66,6 +67,8 @@ module.exports = {
   },
 }
 ~~~
+
+独立流水线为 `postcss-import → Panda → adapter → 单位转换`。可以在 layer 声明前写 `@import "./shared.css";`，importer 从 `styles/app.css` 展开完整导入图，让导入的分层与未分层规则参与同一顺序。残留远程导入会使 ordered 编译失败，应放到本地或在前序解析，不能删除规则绕过校验。
 
 ~~~css
 /* styles/app.css */

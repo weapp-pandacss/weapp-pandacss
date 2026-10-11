@@ -71,6 +71,8 @@ export default defineConfig({
 })
 ~~~
 
+Weapp Vite expands local CSS imports before this configured PostCSS pipeline. Keep `@import` declarations at the start of `src/app.css`; all imported rules must reach the adapter before layer flattening and class encoding. Vite forwards local imported-file dependencies for watch builds. If you replace its loader with a custom or virtual entry, resolve imports from the real source path and forward dependencies yourself. Residual remote imports fail ordered compilation; use local source or an earlier resolver.
+
 Panda's explicit `cwd` keeps configuration discovery correct when API-driven tests run from the monorepo root. `rootValue: 32` means `1rem = 32rpx`; choose it for your design, or omit the converter when authoring the desired units directly. Preserve existing routing, subpackage and chunk settings when integrating into a larger application.
 
 Create `src/app.css`:

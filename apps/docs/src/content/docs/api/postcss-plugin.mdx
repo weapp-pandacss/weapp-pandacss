@@ -25,7 +25,7 @@ const postcssPlugin = require('weapp-pandacss/postcss')
 const plugin = postcssPlugin({ target: 'weapp' })
 ```
 
-In a PostCSS configuration, put Panda before the adapter and unit conversion after it. Inline imports and expand CSS nesting before the adapter when using ordered layers. See the [configuration guide](/postcss/) for the pipeline.
+In a standalone PostCSS configuration, use `postcss-import → Panda → adapter → optional unit conversion`. Expand the complete import graph and CSS nesting before ordered compilation. The adapter does not read imported files; residual plain, layer-qualified and remote imports all fail. See the [configuration guide](/postcss/) for the pipeline.
 
 ## Complete options
 
@@ -101,7 +101,7 @@ When `disabled: true`, the CSS is left untouched. Encoded runtime names can then
 
 ## Ordered and legacy selection
 
-Ordered is the default. It compiles layer source order without creating specificity placeholders. Explicitly supplying any of these fields selects legacy when no mode is specified:
+Ordered is the default and delegates layer compilation to the pinned `@weapp-tailwindcss/css-compat@0.1.1` core. The compatibility adapter preserves the existing options and diagnostic text prefixes. It compiles layer source order without creating specificity placeholders. Explicitly supplying any of these fields selects legacy when no mode is specified:
 
 - `removeNegationPseudoClass`, including `true`.
 - `selectorReplacement.cascadeLayers`, including `'n'`.
@@ -117,7 +117,7 @@ postcssPlugin({
 })
 ```
 
-In legacy mode, `removeNegationPseudoClass: true` deletes generated `:not(#\#)` placeholders; false replaces their inner selector with the configured tag, yielding `:not(n)` by default. Ordinary authored `:not(...)` is preserved.
+Legacy continues to use `@csstools/postcss-cascade-layers`; it does not delegate to the shared package's `/legacy` entry. In legacy mode, `removeNegationPseudoClass: true` deletes generated `:not(#\#)` placeholders; false replaces their inner selector with the configured tag, yielding `:not(n)` by default. Ordinary authored `:not(...)` is preserved.
 
 Explicit `mode: 'ordered'` combined with any legacy field is a configuration error. This check runs when the factory resolves options, before `disabled` or Web processing can skip transformations. Remove the old fields or select legacy. `cascadeLayers.onConflict` applies to ordered mode only.
 
@@ -127,27 +127,35 @@ Ordered compilation registers layers in first-declaration order. Normal declarat
 
 WXSS selector specificity still takes precedence over this output order. The compiler reports potential differences conservatively; a warning does not prove selectors match the same element.
 
-| Code | Trigger | Handling |
+| Structured code | Compatible text prefix | Trigger and handling |
 | --- | --- | --- |
-| `WP_LAYER_SPECIFICITY` | A lower-priority layer has a more specific selector for potentially overlapping properties | Simplify or align specificity, then inspect the matching rules |
-| `WP_LAYER_CONDITIONAL_ORDER` | A layer is first registered inside a condition | Declare the full named layer order outside conditions first |
-| `WP_LAYER_SELECTOR_UNKNOWN` | A functional selector cannot be reliably analyzed | Review the selector and target support; use analyzable selectors where possible |
+| `LAYER_SPECIFICITY` | `WP_LAYER_SPECIFICITY` | A lower-priority layer has a more specific selector for potentially overlapping properties; align specificity and inspect matching rules |
+| `LAYER_CONDITIONAL_ORDER` | `WP_LAYER_CONDITIONAL_ORDER` | A layer is first registered inside a condition; declare the complete named order outside conditions |
+| `LAYER_SELECTOR_UNKNOWN` | `WP_LAYER_SELECTOR_UNKNOWN` | A functional selector cannot be reliably analyzed; review target support and affected rules |
+| `LAYER_DESCRIPTOR_ORDER` | No old prefix | Cross-layer descriptor definitions have duplicate or uncertain identities; review their registration semantics |
+| `LAYER_WRAPPER_SEMANTICS` | No old prefix | A wrapper has semantics the compiler cannot establish; review the wrapper instead of assuming flattening preserves it |
 
-Set `onConflict: 'error'` to fail on these diagnostics. With the default warning mode, programmatic consumers can inspect source positions and messages:
+`onConflict: 'error'` promotes these compatibility warnings to build failures. Invalid input still fails in warning mode. The three existing `WP_LAYER_*` prefixes remain in human-readable warning/error text; programmatic `warning.code` uses the shared `LAYER_*` identifier.
 
-```ts
+Core warnings include a `diagnostic` object with `code`, `severity`, `message`, `suggestion` and `source` (`file`, `line`, `column` when available). `related`, `layer`, `selector` and `property` add context when applicable. These are structured fields on emitted messages, not new `IPostcssPluginOptions` fields or newly exported adapter types. Programmatic consumers can inspect both the PostCSS text and the original diagnostic. The following example is JavaScript: the base PostCSS `Warning` type does not declare these extra fields, so TypeScript callers must narrow or locally assert them before access:
+
+```js
 import postcss from 'postcss'
+import postcssImport from 'postcss-import'
 import postcssPlugin from 'weapp-pandacss/postcss'
 
-const result = await postcss([postcssPlugin()]).process(sourceCss, {
+// sourceCss is the original entry text; from must identify its real location.
+const result = await postcss([postcssImport(), postcssPlugin()]).process(sourceCss, {
   from: 'src/app.css',
   to: 'dist/app.wxss',
 })
 
 for (const warning of result.warnings()) {
-  console.warn(warning.toString())
+  console.warn(warning.toString(), warning.code, warning.diagnostic)
 }
 ```
+
+Failures reported by the shared core, including strict diagnostics and invalid input, throw a PostCSS `CssSyntaxError` with `code`, the first error-severity `diagnostic`, the full `diagnostics` array and the original compiler error in `cause`. The adapter's configuration, variable and Panda-polyfill guards retain their own existing errors; do not assume every adapter error has core diagnostic fields. Existing conflict text remains compatible and source positions are preserved when provided. The standalone layer stage validates before committing AST changes, including strict diagnostic failures. This atomicity applies to **that layer stage only**: earlier adapter selector/naming stages may already have modified the root. Do not catch an error and publish a partially processed adapter root.
 
 ## Inputs that fail ordered compilation
 
@@ -155,14 +163,17 @@ These errors fail even when `onConflict` is `'warning'`.
 
 | Input | Required action |
 | --- | --- |
-| Unresolved `@import ... layer(...)` or `@import ... layer` | Inline the import before the adapter |
-| Nested style rules, `&`, or layer blocks inside style rules | Expand nesting before the adapter |
-| `revert-layer` values | Replace with an explicit value; use native layers on Web where appropriate |
+| `LAYER_IMPORT`: any residual `@import`, including plain/layer/remote imports | Expand the complete graph before the adapter; vendor remote CSS or resolve it upstream |
+| `LAYER_NESTING`: nested style rules, `&`, or layer blocks inside style rules | Expand nesting before the adapter |
+| `LAYER_REVERT`: `revert-layer` values | Replace with an explicit value; use native layers on Web where appropriate |
 | Already polyfilled `:not(#\#)` selectors | Keep Panda `polyfill: false` and regenerate original layers, or explicitly select legacy |
-| Invalid layer names, anonymous layer statements without a block, or multiple names on a layer block | Correct the layer declaration |
+| `LAYER_NAME`: invalid layer names, anonymous statements without a block, or multiple names on a block | Correct the layer declaration |
+| `LAYER_PREPROCESSOR`: remaining conditional-compilation control comments | Consume `#if` / `#else` / `#endif` directives in the preprocessor before adaptation |
 | Layer blocks inside descriptor at-rules, stray declarations, or import/namespace inside layers or conditions | Correct the CSS structure |
 
-Some validation, including nesting and `revert-layer`, runs even if the input has no `@layer` block. Quoted text such as `content: "revert-layer"` is not treated as the keyword.
+The shared core also reserves `LAYER_OPTIONS` and `LAYER_INPUT_STAGE` for invalid compiler options or input explicitly declared already polyfilled; these are not extra public adapter settings. Keep the documented import/nesting/Panda sequence and inspect the original diagnostic if either occurs.
+
+Some validation, including imports, nesting and `revert-layer`, runs even if the input has no `@layer` block. Quoted text such as `content: "revert-layer"` is not treated as the keyword.
 
 ## Naming, variables and repeated processing
 

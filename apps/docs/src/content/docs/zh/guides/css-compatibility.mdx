@@ -13,7 +13,7 @@ sidebar:
 
 ## 普通声明的 layer 顺序
 
-Panda 配置保持 `polyfill: false`，让 adapter 读到原始 layer。默认 `cascadeLayers.mode` 为 `ordered`，编译器在 layer 首次声明时登记顺序，即使样式块出现顺序不同，也按登记顺序输出。
+Panda 配置保持 `polyfill: false`，让 adapter 读到原始 layer。默认 `cascadeLayers.mode` 为 `ordered`，通过兼容适配层调用 `@weapp-tailwindcss/css-compat@0.1.1`，公开配置和 class 命名不变。编译器在 layer 首次声明时登记顺序，即使样式块出现顺序不同，也按登记顺序输出。
 
 ~~~css
 .probe { color: green; }
@@ -71,6 +71,7 @@ Ordered 编译提供**顺序兼容**，不是完整的原生 layer polyfill。�
 // postcss.config.cjs
 module.exports = {
   plugins: {
+    'postcss-import': {},
     '@pandacss/dev/postcss': {},
     'weapp-pandacss/postcss': {
       cascadeLayers: { mode: 'ordered', onConflict: 'error' },
@@ -80,6 +81,37 @@ module.exports = {
 ~~~
 
 默认 `onConflict: 'warning'` 通过 PostCSS warnings 报告风险，包含 layer、selector、属性与源码位置。诊断采用保守分析，不能证明两个 selector 一定命中同一元素；简写、逻辑属性与未知选择器函数尤其需要保守检查。
+
+## 源码可以正常使用 import
+
+Panda 生成和 ordered 编译前，先展开**完整 import 图**。Adapter 只处理一个 CSS AST，不读取导入文件。普通 import 也会影响结果：导入的未分层样式可覆盖所有分层普通规则，带 layer 的导入则会登记层顺序。
+
+~~~css
+/* src/app.css */
+@import "./base.css";
+@layer utilities { .probe { color: blue; } }
+~~~
+
+~~~css
+/* src/base.css */
+.probe { color: red; }
+~~~
+
+原生 CSS 因 red 未分层而选择红色。若只保留 import、移除当前文件的 layer，可能错误地选择蓝色。[完整 PostCSS 流水线](/zh/postcss/)先合并两个文件，再按 ordered 顺序输出 blue、red，保留红色胜出的结果。被导入文件继续 import 其他文件时，同样需要完整展开。
+
+| 导入场景 | 处理要求 |
+| --- | --- |
+| 本地普通、命名/匿名 layer、media 或 supports 导入 | 先展开，保留 layer 与条件信息供 ordered 编译 |
+| 多个文件贡献同一个 layer | 将导入图合并到单 root 后适配，同层 fallback 保留源码顺序 |
+| 重复或循环本地导入 | 遵循 importer 去重语义，不依赖重复加载文件制造新的 cascade |
+| 文件缺失、语法错误或 import 位置非法 | 修复 importer/parser 指向的源码，不丢弃规则 |
+| `postcss-import` 保留的远程导入 | 放到本地或由前序阶段完整解析，残留远程导入会报 `LAYER_IMPORT` |
+| watch 中导入文件变化 | 重新处理入口，自定义/虚拟 loader 必须透传 dependency 消息并 watch 导入文件 |
+| 独立编译的组件或分包 CSS | 每个 root 各有层顺序，组件隔离允许时才共享应用 CSS |
+
+校验针对**进入 ordered 编译的源码导入**。框架后续可以生成合法 WXSS `@import` 来加载独立编译资源，例如 Uni-app 的独立 Tailwind 样式；这类产物依赖不进入 Panda layer root。
+
+PostCSS `from` 使用真实入口文件名，尤其是从不同工作目录启动构建时。虚拟入口调用 Panda 前，先基于真实入口展开 import；从虚拟 URL 或进程工作目录解析 `./base.css` 可能读错文件。不要删除 import、让 layer 内核读取文件，或把已经展平的产物复制回源码来绕过校验。
 
 ## 条件 layer 与单 root 边界
 
@@ -122,10 +154,14 @@ module.exports = {
 | `WP_LAYER_CONDITIONAL_ORDER` | 在条件外提前声明命名 layer 顺序，避免依赖条件登记 |
 | `WP_LAYER_SELECTOR_UNKNOWN` | 改用受支持的 selector，或明确检查受影响的 cascade |
 | 生成的 `:not(#\#)` 占位 | 关闭 Panda polyfill，从原始 layer 重新生成 |
-| `@import ... layer(...)` | 在 ordered 编译之前内联 import |
+| `LAYER_IMPORT`：任何残留 `@import`，包括普通、带 layer 或远程导入 | Ordered 前完整展开导入图；远程导入使用独立前序解析器或本地源码 |
 | CSS nesting / `&` selector | 在前序阶段展开 nesting |
 | `revert-layer` | 用明确规则改写，展开后无法还原 layer 回退 |
-| 无效或不支持的 layer 结构 | 修复诊断指向的源码位置，不要压掉错误 |
+| `LAYER_NAME`：无效层名或不支持的声明 | 修复诊断位置的 layer 声明 |
+| `LAYER_PREPROCESSOR`：残留的条件编译控制注释 | Adapter 前消化 `#if` / `#else` / `#endif` 指令 |
+| `LAYER_DESCRIPTOR_ORDER` / `LAYER_WRAPPER_SEMANTICS` | 检查 descriptor 顺序或 wrapper 语义，严格模式会将这些兼容警告提升为错误 |
+
+上述三个 `WP_LAYER_*` 名称继续作为兼容文本前缀。程序读取 warning 时，code 分别为 `LAYER_SPECIFICITY`、`LAYER_CONDITIONAL_ORDER`、`LAYER_SELECTOR_UNKNOWN`，并附 `diagnostic` 与源码位置。`onConflict` 只控制兼容警告，不放过非法输入：残留 import、nesting 与 `revert-layer` 在 warning 模式也会失败。详见[完整诊断参考](/zh/api/postcss-plugin/#layer-顺序与诊断)。
 
 无效 selector、小程序不支持的变量名也会报错。变量声明、`var()` 引用与 `@property` 名称需使用 ASCII 标识符或 Panda 生成 token。
 

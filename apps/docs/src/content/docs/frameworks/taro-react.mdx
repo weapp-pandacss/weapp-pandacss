@@ -12,7 +12,7 @@ The reference [Taro React example](https://github.com/weapp-pandacss/weapp-panda
 Keep the Taro package family on matching versions. The adapter engine is `^22.18.0 || >=24.11.0`; use a recommended Node 22.18+ or 24.11+ LTS release and run in the application directory:
 
 ~~~sh
-pnpm add -D @pandacss/dev@2.1.2 @pandacss/preset-base@2.1.2 @pandacss/preset-panda@2.1.2 weapp-pandacss@^2 postcss postcss-rem-to-responsive-pixel
+pnpm add -D @pandacss/dev@2.1.2 @pandacss/preset-base@2.1.2 @pandacss/preset-panda@2.1.2 weapp-pandacss@^2 postcss postcss-import@17.0.0 postcss-rem-to-responsive-pixel
 ~~~
 
 Hand-written special class names additionally need `pnpm add @weapp-pandacss/runtime`. Keep Panda and PostCSS in build dependencies and the standalone encoder in application dependencies.
@@ -86,6 +86,7 @@ const process = require('node:process')
 
 module.exports = {
   plugins: {
+    'postcss-import': {},
     '@pandacss/dev/postcss': {},
     'weapp-pandacss/postcss': {
       target: process.env.TARO_ENV === 'h5' ? 'web' : 'weapp',
@@ -100,6 +101,12 @@ module.exports = {
 ~~~
 
 Create `src/app.css` with `@layer reset, base, tokens, recipes, utilities;`, then import `./app.css` from `src/app.ts`. The converter is optional; `rootValue: 32` is the example's design choice. Coordinate it with Taro's `designWidth` and `pxtransform` so a size is not converted twice.
+
+## Import authored styles before generation
+
+The explicit order is `postcss-import → Panda → adapter → unit conversion` on both WeChat and H5. Put `@import "./styles/shared.css";` at the start of `src/app.css`, before style rules. The importer resolves it relative to the real app stylesheet and expands transitive imports; the adapter then sees both imported and generated rules.
+
+Imported special class selectors must enter the adapter too. For example, author `.custom\/active` in the imported CSS and bind `encodeClassName('custom/active')` from `@weapp-pandacss/runtime` in application code. Do not import separately flattened CSS or run another class encoder on Panda output. Inspect the final target CSS/WXSS for the matching encoded selector and correct cross-file layer order. A residual remote import needs local vendoring or an upstream resolver; warning mode does not bypass `LAYER_IMPORT`.
 
 ## Generate for the selected target
 
@@ -141,4 +148,4 @@ pnpm --filter @weapp-pandacss/taro-app build:h5
 pnpm --filter @weapp-pandacss/taro-app typecheck
 ~~~
 
-Run these from the repository root. Import the WeChat project using its checked-in project configuration, which selects `dist/weapp`. Inspect final class names and WXSS selectors when diagnosing missing styles. Artifact checks and optional IDE rendering probes cover selected styles; they do not promise browser hover/focus behavior or every NutUI interaction on a phone. Ignore generated directories and private IDE settings.
+Run these from the repository root. Import the WeChat project using its checked-in project configuration, which selects `dist/weapp`. Inspect final class names and WXSS selectors when diagnosing missing styles. WeChat/H5 artifact checks cover generated and imported styles; optional IDE rendering probes cover selected mini-program styles; they do not promise browser hover/focus behavior or every NutUI interaction on a phone. Ignore generated directories and private IDE settings.

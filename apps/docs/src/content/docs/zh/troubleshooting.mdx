@@ -99,15 +99,35 @@ sidebar:
 
 **验证：** 声明与引用使用同一受支持名称；token 读取实际返回的变量引用，不要自行重建 hash。
 
+## 普通 import 现在构建失败
+
+**症状：** 之前可接受的 `@import "./base.css";` 现在报 `LAYER_IMPORT`，包括入口本身没有 `@layer` 的情况。Importer 保留的远程 import 也会失败。
+
+**根因：** Ordered 内核看不到未解析文件中的规则，普通 import 也可能引入 layer 或优先级更高的未分层普通规则。共享内核校验了指南原本就要求的适配前导入展开。
+
+**修复：** 独立/Taro 流程安装 `postcss-import@17.0.0`，按 import 展开 → Panda → adapter → 单位转换注册，见 [PostCSS 配置](/zh/postcss/)。框架提供 Vite 前置 importer 时保留它。虚拟 Panda 入口应先以真实入口路径作为 `from` 展开导入图，再执行 Panda 生成。远程 CSS 放到本地或由前序阶段完整解析，不删除 import 来通过校验。
+
+**验证：** Adapter 输入含所有导入规则且无未展开源码 import。检查最终编码 class/selector、普通未分层优先级与 important 逆序，再修改导入文件后重新构建。框架在适配之后生成、用于加载独立编译资源的 WXSS import 不属于这项源码输入检查。
+
+## 导入 CSS 未更新或从错误目录解析
+
+**症状：** 构建找不到相对导入文件，或 watch 中修改导入文件后产物仍保留旧样式。
+
+**根因：** 自定义 loader 从虚拟模块 ID/进程目录处理 CSS，丢弃依赖消息或复用旧输出。Layer 内核不解析文件，也不管理 watch 缓存。
+
+**修复：** PostCSS `from` 使用真实入口绝对路径，Panda `cwd` 使用实际项目目录。跟踪入口与导入的文件/目录依赖，依赖变化时使虚拟样式失效并重新处理。复制完整 [Uni-app 接入](/zh/frameworks/uni-app/#与-tailwind-v4-共存)，不要只复制 adapter 调用。
+
+**验证：** 分别从业务与仓库目录构建，watch 时修改多级导入文件，不重启即可看到新声明。Portable 名称不变并继续匹配编码 selector。用同一 processor 重复处理，确认没有沿用旧 layer 注册表。
+
 ## Layer、权重或 polyfill 错误
 
-**症状：** 出现 `WP_LAYER_SPECIFICITY`、`WP_LAYER_CONDITIONAL_ORDER`、`WP_LAYER_SELECTOR_UNKNOWN`、Panda polyfill 错误，或 nesting/import/`revert-layer` 被拒绝。
+**症状：** 出现已有 `WP_LAYER_SPECIFICITY`、`WP_LAYER_CONDITIONAL_ORDER`、`WP_LAYER_SELECTOR_UNKNOWN` 文本、新增 `LAYER_DESCRIPTOR_ORDER` / `LAYER_WRAPPER_SEMANTICS` 诊断、Panda polyfill 错误，或 nesting/import/`revert-layer`/预处理输入被拒绝。
 
 **根因：** Ordered 转换需要原始 layer 信息，且不能重现每种原生 cascade 关系。
 
 **修复：** 设置 Panda `polyfill: false` 后重新生成，条件块前声明 layer 顺序，在前序阶段展开 import/nesting，跨层保持接近的权重。不要把显式 ordered 与旧选项混用。[CSS 兼容指南](/zh/guides/css-compatibility/#诊断修复)列出各项诊断的对应修复。
 
-**验证：** 查看 PostCSS warnings 与实际胜出的声明。希望保守风险直接阻止构建时，使用 `onConflict: 'error'`。Layer 排序只覆盖单个 PostCSS root，不包含独立编译文件或隔离组件。
+**验证：** 查看结构化 warning `code`/`diagnostic` 与实际胜出的声明，三个旧 `WP_LAYER_*` 文本前缀对应共享内核 `LAYER_*` code。严格/input 失败在 PostCSS `CssSyntaxError` 上附 `diagnostics` 和 `cause`，按源码位置及 suggestion 修复原始输入。希望保守风险直接阻止构建时，使用 `onConflict: 'error'`。Layer 排序只覆盖单个 PostCSS root，不包含独立编译文件或隔离组件。
 
 ## Web 与小程序构建相互覆盖
 

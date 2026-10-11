@@ -71,6 +71,8 @@ export default defineConfig({
 })
 ~~~
 
+Weapp Vite 在这份 PostCSS 流水线之前展开本地 CSS import。`@import` 放在 `src/app.css` 顶部，导入规则须在 layer 展平和 class 编码前进入 adapter。Vite 为 watch 转发本地导入文件依赖；改用自定义或虚拟入口时，应从真实源码路径解析导入并自行透传依赖。残留远程导入会使 ordered 编译失败，使用本地源码或前序解析器。
+
 显式 Panda `cwd` 保证从 monorepo 根目录运行 API 测试时仍能找到正确配置。`rootValue: 32` 表示 `1rem = 32rpx`，应按设计选择；直接使用目标单位时可以移除转换插件。在已有项目中保留合适的路由、分包与 chunk 设置。
 
 创建 `src/app.css`：

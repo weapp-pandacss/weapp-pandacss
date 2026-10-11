@@ -1,44 +1,18 @@
-import type { Plugin } from 'vite'
-import fs from 'node:fs/promises'
 import path from 'node:path'
 import process from 'node:process'
 import uni from '@dcloudio/vite-plugin-uni'
-import panda from '@pandacss/dev/postcss'
-import postcss from 'postcss'
 import remToResponsivePixel from 'postcss-rem-to-responsive-pixel'
 import { defineConfig } from 'vite'
 import { WeappTailwindcss } from 'weapp-tailwindcss/vite'
 import pandaAdapter from './panda-postcss.cjs'
-// Tailwind's Vite generator removes layer-order-only inputs before framework
-// PostCSS runs. Expand Panda's independent entry first so its CSS is retained.
-const pandaEntry = path.resolve(__dirname, 'src/panda.css')
-const pandaProcessor = postcss([panda({ cwd: __dirname })])
-const pandaStyles: Plugin = {
-  name: 'example-panda-styles',
-  enforce: 'pre',
-  resolveId(id) {
-    if (id === 'virtual:panda-styles.css') {
-      return '\0virtual:panda-styles.css'
-    }
-  },
-  async load(id) {
-    if (id !== '\0virtual:panda-styles.css') {
-      return
-    }
-    this.addWatchFile(pandaEntry)
-    const code = await fs.readFile(pandaEntry, 'utf8')
-    const result = await pandaProcessor.process(code, { from: pandaEntry, map: { inline: false, annotation: false } })
-    for (const message of result.messages) {
-      if (message.type === 'dependency') {
-        this.addWatchFile(message.file)
-      }
-      else if (message.type === 'dir-dependency') {
-        this.addWatchFile(message.dir)
-      }
-    }
-    return { code: result.css, map: result.map?.toJSON() ?? null }
-  },
-}
+import { createPandaStyles } from './panda-styles'
+// Expand imports against the physical Panda entry before creating a virtual CSS module.
+const pandaTarget = process.env.UNI_PLATFORM === 'h5' ? 'web' : 'weapp'
+const pandaStyles = createPandaStyles({
+  cwd: __dirname,
+  entry: path.resolve(__dirname, 'src/panda.css'),
+  target: pandaTarget,
+})
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [uni(), pandaStyles, WeappTailwindcss({ cssEntries: [path.resolve(__dirname, 'src/tailwind.css')] })],
@@ -53,7 +27,7 @@ export default defineConfig({
   css: {
     postcss: {
       plugins: [
-        pandaAdapter({ target: process.env.UNI_PLATFORM === 'h5' ? 'web' : 'weapp' }),
+        pandaAdapter({ target: pandaTarget }),
         remToResponsivePixel({
           // 32 意味着 1rem = 32rpx
           rootValue: 32,

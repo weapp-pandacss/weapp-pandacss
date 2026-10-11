@@ -99,15 +99,35 @@ Follow the chain: source style → Panda extraction → generated runtime → Po
 
 **Verify:** Both declarations and references contain the same supported name. For tokens, read the returned variable reference rather than reconstructing the hash.
 
+## Ordinary import now fails
+
+**Symptom:** A previously accepted `@import "./base.css";` now produces `LAYER_IMPORT`, including when the entry itself contains no `@layer`. A remote import left by the importer also fails.
+
+**Cause:** The ordered core cannot see rules in an unresolved imported file. Even plain imports may add layers or unlayered rules with higher normal precedence. The shared core validates the already-documented requirement to expand imports before adaptation.
+
+**Fix:** Install `postcss-import@17.0.0` for standalone/Taro processing and register import expansion → Panda → adapter → units, as shown in [PostCSS configuration](/postcss/). Retain Vite's preceding importer where the framework provides it. For a virtual Panda entry, expand the graph with `from` set to the real entry path before Panda generation. Vendor remote CSS locally or fully resolve it upstream; do not remove import rules to pass validation.
+
+**Verify:** Confirm the adapter's input contains all imported rules and no unresolved source import. Compare the final encoded classes/selectors, normal unlayered precedence and important inversion, then modify an imported file and rebuild. Framework-generated WXSS imports that load separately compiled assets after adaptation are outside this source-input check.
+
+## Imported CSS stays stale or resolves from the wrong directory
+
+**Symptom:** The build cannot find a relative imported file, or editing that file during watch leaves old styles in the output.
+
+**Cause:** A custom loader processed CSS from a virtual module ID/process directory, dropped dependency messages, or reused stale output. The layer core does not resolve files or manage watch caches.
+
+**Fix:** Pass the real absolute entry as PostCSS `from` and Panda's actual project directory as `cwd`. Track both entry and imported file/directory dependencies, and invalidate/reprocess a virtual stylesheet when its dependencies change. Copy the complete [Uni-app integration](/frameworks/uni-app/#coexist-with-tailwind-v4) rather than just its adapter call.
+
+**Verify:** Build from the application and repository directories, then edit a transitive import while watch is active. Its updated declaration must appear without restarting; unchanged portable names must continue matching the encoded selectors. Repeat processing with the same processor to check it does not retain an old layer registry.
+
 ## Layers, specificity or polyfill errors
 
-**Symptom:** `WP_LAYER_SPECIFICITY`, `WP_LAYER_CONDITIONAL_ORDER`, `WP_LAYER_SELECTOR_UNKNOWN`, a Panda polyfill error, or rejected nesting/import/`revert-layer` input.
+**Symptom:** Existing `WP_LAYER_SPECIFICITY`, `WP_LAYER_CONDITIONAL_ORDER`, `WP_LAYER_SELECTOR_UNKNOWN` text, new `LAYER_DESCRIPTOR_ORDER` / `LAYER_WRAPPER_SEMANTICS` diagnostics, a Panda polyfill error, or rejected nesting/import/`revert-layer`/preprocessor input.
 
 **Cause:** Ordered conversion needs original layer information and cannot reproduce every native cascade relationship.
 
 **Fix:** Set Panda `polyfill: false` and regenerate. Declare layer order before conditional blocks. Expand imports/nesting earlier and use comparable cross-layer specificity. Do not mix explicit ordered mode with legacy options. The [CSS compatibility guide](/guides/css-compatibility/#diagnostic-fixes) maps each diagnostic to its fix.
 
-**Verify:** Inspect PostCSS warnings and the actual winning declaration. Use `onConflict: 'error'` when a conservative risk should fail the build. Layer sorting covers one PostCSS root, not independently compiled files or isolated component styles.
+**Verify:** Inspect structured warning `code`/`diagnostic` and the actual winning declaration. The three old `WP_LAYER_*` text prefixes map to shared `LAYER_*` codes. Strict/input failures carry `diagnostics` and `cause` on a PostCSS `CssSyntaxError`; use source positions and suggestions to fix the original input. Use `onConflict: 'error'` when a conservative risk should fail the build. Layer sorting covers one PostCSS root, not independently compiled files or isolated component styles.
 
 ## Web and mini-program builds interfere
 

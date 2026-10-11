@@ -25,7 +25,7 @@ const postcssPlugin = require('weapp-pandacss/postcss')
 const plugin = postcssPlugin({ target: 'weapp' })
 ```
 
-PostCSS 配置中，Panda 放在 adapter 前面，单位转换放在后面。使用 ordered layer 时，导入展开和 CSS nesting 转换必须在 adapter 前完成。流水线见[配置指南](/zh/postcss/)。
+独立 PostCSS 配置采用 `postcss-import → Panda → adapter → 按需单位转换`。Ordered 编译前必须完整展开导入图和 CSS nesting。Adapter 不读取导入文件，残留普通、带 layer 或远程 import 都会失败。流水线见[配置指南](/zh/postcss/)。
 
 ## 完整参数
 
@@ -101,7 +101,7 @@ Legacy layer 开关使用 `'warn'`，`:is()` 开关使用 `'warning'`。这些�
 
 ## Ordered 与 legacy 选择
 
-默认 ordered，按层顺序编译且不制造 specificity 占位。未指定模式时，显式传入任意下列字段会选择 legacy：
+默认 ordered，通过固定的 `@weapp-tailwindcss/css-compat@0.1.1` 内核编译 layer，兼容适配层保留既有选项和诊断文本前缀。按层顺序编译且不制造 specificity 占位。未指定模式时，显式传入任意下列字段会选择 legacy：
 
 - `removeNegationPseudoClass`，包括 `true`。
 - `selectorReplacement.cascadeLayers`，包括 `'n'`。
@@ -117,7 +117,7 @@ postcssPlugin({
 })
 ```
 
-Legacy 中，`removeNegationPseudoClass: true` 删除生成的 `:not(#\#)`；false 时将其内部 selector 替换为配置标签，默认得到 `:not(n)`。业务手写的 `:not(...)` 保留。
+Legacy 继续使用 `@csstools/postcss-cascade-layers`，不调用共享包的 `/legacy` 入口。Legacy 中，`removeNegationPseudoClass: true` 删除生成的 `:not(#\#)`；false 时将其内部 selector 替换为配置标签，默认得到 `:not(n)`。业务手写的 `:not(...)` 保留。
 
 显式 `mode: 'ordered'` 与任意旧字段混用会报配置错误。工厂解析参数时就执行此检查，发生在 `disabled` 或 Web 跳过转换之前。删除旧字段或选择 legacy。`cascadeLayers.onConflict` 仅用于 ordered 模式。
 
@@ -127,27 +127,35 @@ Ordered 按首次声明注册 layer。普通声明按层顺序输出，未分层
 
 WXSS selector 权重仍优先于输出顺序。编译器保守地报告潜在差异，警告不代表 selector 一定命中同一元素。
 
-| 代码 | 触发情况 | 处理 |
+| 结构化 code | 兼容文本前缀 | 触发与处理 |
 | --- | --- | --- |
-| `WP_LAYER_SPECIFICITY` | 低优先层有更高权重的 selector，属性可能重叠 | 简化或统一权重，检查实际匹配规则 |
-| `WP_LAYER_CONDITIONAL_ORDER` | 在条件内首次注册 layer | 先在条件外声明完整的命名 layer 顺序 |
-| `WP_LAYER_SELECTOR_UNKNOWN` | 函数 selector 无法可靠分析 | 检查 selector 与平台支持，尽量使用可分析写法 |
+| `LAYER_SPECIFICITY` | `WP_LAYER_SPECIFICITY` | 低优先层有更高权重的 selector，属性可能重叠；调整权重并检查实际匹配规则 |
+| `LAYER_CONDITIONAL_ORDER` | `WP_LAYER_CONDITIONAL_ORDER` | 条件内首次注册 layer；先在条件外声明完整命名层顺序 |
+| `LAYER_SELECTOR_UNKNOWN` | `WP_LAYER_SELECTOR_UNKNOWN` | 函数 selector 无法可靠分析；检查目标支持和受影响规则 |
+| `LAYER_DESCRIPTOR_ORDER` | 无旧前缀 | 跨层 descriptor 定义同名或身份不明确；检查其注册语义 |
+| `LAYER_WRAPPER_SEMANTICS` | 无旧前缀 | 编译器无法确认 wrapper 语义；检查包装规则，不能假定展平后语义不变 |
 
-设置 `onConflict: 'error'` 可在这些诊断上阻止构建。默认 warning 模式下，可通过程序读取源码位置与消息：
+`onConflict: 'error'` 将这些兼容警告提升为构建错误，非法输入在 warning 模式也会失败。三个已有 `WP_LAYER_*` 前缀继续出现在 warning/error 文本中，程序读取的 `warning.code` 使用共享内核 `LAYER_*` 标识符。
 
-```ts
+内核 warning 附 `diagnostic` 对象，包含 `code`、`severity`、`message`、`suggestion`、`source`（可用时提供 `file`、`line`、`column`）。`related`、`layer`、`selector`、`property` 在适用时补充上下文。这些是发出消息的结构化字段，不是新增的 `IPostcssPluginOptions` 参数或适配器导出类型。可以同时读取 PostCSS 文本和原始诊断。下例使用 JavaScript：PostCSS 基础 `Warning` 类型未声明这些额外字段，TypeScript 调用方需先做类型收窄或局部断言再访问：
+
+```js
 import postcss from 'postcss'
+import postcssImport from 'postcss-import'
 import postcssPlugin from 'weapp-pandacss/postcss'
 
-const result = await postcss([postcssPlugin()]).process(sourceCss, {
+// sourceCss 为原入口文本，from 必须指向它的真实位置。
+const result = await postcss([postcssImport(), postcssPlugin()]).process(sourceCss, {
   from: 'src/app.css',
   to: 'dist/app.wxss',
 })
 
 for (const warning of result.warnings()) {
-  console.warn(warning.toString())
+  console.warn(warning.toString(), warning.code, warning.diagnostic)
 }
 ```
+
+共享内核报告的失败，包括严格诊断和非法输入，抛出 PostCSS `CssSyntaxError`，附 `code`、首个 error 级 `diagnostic`、完整 `diagnostics` 数组和 `cause` 原始编译错误。Adapter 配置、变量与 Panda polyfill 校验保留自己的既有错误，不要假定每个 adapter 错误都有内核诊断字段。共享内核错误兼容原冲突文本，并保留可用的源码位置。独立 layer 阶段先校验再提交 AST 变更，包括严格诊断失败；原子性仅针对**这个 layer 阶段**，前面的 adapter selector/命名转换可能已经改变 root。不要捕获错误后发布部分处理的 adapter root。
 
 ## Ordered 拒绝的输入
 
@@ -155,14 +163,17 @@ for (const warning of result.warnings()) {
 
 | 输入 | 处理方式 |
 | --- | --- |
-| 未展开的 `@import ... layer(...)` 或 `@import ... layer` | 在 adapter 前内联导入 |
-| 嵌套样式规则、`&` 或样式规则内的 layer | 在 adapter 前展开 nesting |
-| `revert-layer` 值 | 换成明确值；适合 Web 时使用原生 layer |
+| `LAYER_IMPORT`：所有残留 `@import`，包括普通/带 layer/远程导入 | Adapter 前完整展开导入图，远程 CSS 放到本地或由前序阶段解析 |
+| `LAYER_NESTING`：嵌套样式规则、`&` 或样式规则内的 layer | 在 adapter 前展开 nesting |
+| `LAYER_REVERT`：`revert-layer` 值 | 换成明确值；适合 Web 时使用原生 layer |
 | 已 polyfill 的 `:not(#\#)` selector | 保持 Panda `polyfill: false` 并重新生成原始 layer，或显式选择 legacy |
-| 非法层名、无 block 的匿名 layer 声明、block 上多个层名 | 修正 layer 声明 |
+| `LAYER_NAME`：非法层名、无 block 的匿名 layer 声明、block 上多个层名 | 修正 layer 声明 |
+| `LAYER_PREPROCESSOR`：残留的条件编译控制注释 | 适配前由预处理器消化 `#if` / `#else` / `#endif` 指令 |
 | Descriptor at-rule 内的 layer、游离声明，或 layer/条件内的 import、namespace | 修正 CSS 结构 |
 
-部分校验会在没有 `@layer` block 时执行，包括 nesting 和 `revert-layer`。`content: "revert-layer"` 这样的引号文本不会被视为关键字。
+共享内核还使用 `LAYER_OPTIONS` 和 `LAYER_INPUT_STAGE` 表示编译器选项非法或输入被显式声明为已 polyfill，它们不是额外的适配器公开参数。保持文档中的 import/nesting/Panda 顺序，发生时检查原始诊断。
+
+部分校验会在没有 `@layer` block 时执行，包括 import、nesting 和 `revert-layer`。`content: "revert-layer"` 这样的引号文本不会被视为关键字。
 
 ## 命名、变量与重复处理
 

@@ -1,6 +1,7 @@
 const process = require('node:process')
 
 const plugins = {
+  'postcss-import': {},
   '@pandacss/dev/postcss': {},
 }
 plugins['weapp-pandacss/postcss'] = {
