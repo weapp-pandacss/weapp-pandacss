@@ -23,7 +23,7 @@ pnpm --filter @weapp-pandacss/weapp-vite-app dev
 构建和开发脚本先运行 `wv prepare`，生成 TypeScript 支持文件，再执行 Panda
 codegen。`weappPanda()` 在同步 `codegen:prepare` hook 转换 artifacts，
 由 Panda 一次写入 runtime；无需适配 CLI、备份或 rollback。
-Weapp Vite 先展开本地 CSS import，再按 Panda → weapp 适配器 → rem/rpx 转换执行，`1rem = 32rpx`。
+Weapp Vite 先解析本地 CSS import，单个 `adapter()` 默认完成剩余 import 展开 → Panda → 小程序适配，再执行 rem/rpx 转换，`1rem = 32rpx`。
 源码可使用普通 import，进入 ordered 编译前必须展开完整导入图；导入文件同样编码 class 并参与层顺序。
 残留远程导入应本地化或提前解析，不能删除规则绕过校验。见[CSS 兼容指南](https://panda.weapp.dev/zh/guides/css-compatibility/)。
 

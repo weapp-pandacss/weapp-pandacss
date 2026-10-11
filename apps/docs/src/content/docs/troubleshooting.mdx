@@ -105,9 +105,29 @@ Follow the chain: source style → Panda extraction → generated runtime → Po
 
 **Cause:** The ordered core cannot see rules in an unresolved imported file. Even plain imports may add layers or unlayered rules with higher normal precedence. The shared core validates the already-documented requirement to expand imports before adaptation.
 
-**Fix:** Install `postcss-import@17.0.0` for standalone/Taro processing and register import expansion → Panda → adapter → units, as shown in [PostCSS configuration](/postcss/). Retain Vite's preceding importer where the framework provides it. For a virtual Panda entry, expand the graph with `from` set to the real entry path before Panda generation. Vendor remote CSS locally or fully resolve it upstream; do not remove import rules to pass validation.
+**Fix:** Use the zero-option composed plugin shown in [PostCSS configuration](/postcss/); its built-in importer expands local CSS before official Panda and adaptation. If `imports: false` is intentional, verify the external importer runs before Panda. For a virtual entry, pass the real entry path as `from`, not a virtual ID. Vendor remote CSS locally or fully resolve it upstream; do not remove import rules to pass validation.
 
 **Verify:** Confirm the adapter's input contains all imported rules and no unresolved source import. Compare the final encoded classes/selectors, normal unlayered precedence and important inversion, then modify an imported file and rebuild. Framework-generated WXSS imports that load separately compiled assets after adaptation are outside this source-input check.
+
+## Duplicate plugins or wrong stage order
+
+**Symptom:** The composed plugin reports duplicate official Panda registration or an external import/Panda stage in the wrong order.
+
+**Cause:** An earlier configuration registered separate plugins, while the composed entry now enables those stages by default.
+
+**Fix:** Keep only `'weapp-pandacss/postcss': {}` in ordinary setups. If a custom importer or Panda integration must remain, disable the matching internal stage (`imports: false` or `panda: false`) and run its external owner before the stages that consume its output. Retain `weappPanda()` in `panda.config`; it is the generation hook, not a duplicate PostCSS registration. Taro's automatically appended importer is allowed when the built-in importer remains enabled; do not remove framework internals to silence an unrelated order error.
+
+**Verify:** List the resolved PostCSS plugins and build once from a clean target directory. Import expansion, Panda generation and adaptation each run in their intended order, and the generated class matches final CSS/WXSS.
+
+## Preprocessor import or Panda generation is skipped
+
+**Symptom:** A raw `.scss`, `.less` or `.styl` import fails in the built-in importer, or a preprocessed global entry retains the Panda layer declaration without generated styles.
+
+**Cause:** The importer reads CSS rather than compiling another language. Official Panda 2.1.2 also filters by `.css` source filenames; framework-compiled `.scss` text retains its original filename. A virtual/no-file input can likewise lack a genuine CSS generation context.
+
+**Fix:** Keep the global Panda layer entry as `.css` and compile component Sass/Less/Stylus through the framework first. Import compiled CSS, use framework import processing, or provide a compiler-backed `imports.load` with dependencies. Custom virtual loaders pass the real `.css` entry as `from`; pure string adaptation may intentionally skip generation. Explicit Panda config errors should be fixed at that path rather than hidden by fallback.
+
+**Verify:** Check the source filename and actual PostCSS input, then confirm variables/mixins/nesting have compiled and a known Panda rule appears. Edit a transitive source and verify watch updates it. See [preprocessor boundaries](/postcss/#sass-less-and-stylus).
 
 ## Imported CSS stays stale or resolves from the wrong directory
 
@@ -115,7 +135,7 @@ Follow the chain: source style → Panda extraction → generated runtime → Po
 
 **Cause:** A custom loader processed CSS from a virtual module ID/process directory, dropped dependency messages, or reused stale output. The layer core does not resolve files or manage watch caches.
 
-**Fix:** Pass the real absolute entry as PostCSS `from` and Panda's actual project directory as `cwd`. Track both entry and imported file/directory dependencies, and invalidate/reprocess a virtual stylesheet when its dependencies change. Copy the complete [Uni-app integration](/frameworks/uni-app/#coexist-with-tailwind-v4) rather than just its adapter call.
+**Fix:** Pass the real absolute entry as PostCSS `from`; default discovery finds its nearest Panda config. If overriding discovery, use `panda: { cwd: actualProjectDirectory }`. Track both entry and imported file/directory dependencies, and invalidate/reprocess a virtual stylesheet when its dependencies change. Copy the complete [Uni-app integration](/frameworks/uni-app/#coexist-with-tailwind-v4) rather than just its adapter call.
 
 **Verify:** Build from the application and repository directories, then edit a transitive import while watch is active. Its updated declaration must appear without restarting; unchanged portable names must continue matching the encoded selectors. Repeat processing with the same processor to check it does not retain an old layer registry.
 

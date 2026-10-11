@@ -4,12 +4,14 @@ Documentation: [English](https://panda.weapp.dev/) · [简体中文](https://pan
 
 Use [Panda CSS 2.1.2](https://panda-css.com/) in mini-programs and Web with matching, portable class names. The Panda plugin transforms generated runtime artifacts through ASTs before Panda writes them. The PostCSS plugin converts the CSS using the same naming contract.
 
+> **Release availability:** Zero-option composition is the repository implementation for the upcoming minor release. The currently published npm package retains its previous defaults; keep its separate import/Panda/adapter configuration until upgrading, then use the setup below. Release automation determines the version number.
+
 ## Install and configure
 
 Use Node.js 22.18+ or 24.11+.
 
 ```bash
-pnpm add -D @pandacss/dev@2.1.2 @pandacss/preset-base@2.1.2 @pandacss/preset-panda@2.1.2 weapp-pandacss postcss postcss-import@17.0.0
+pnpm add -D @pandacss/dev@2.1.2 @pandacss/preset-base@2.1.2 @pandacss/preset-panda@2.1.2 weapp-pandacss postcss
 ```
 
 ```ts
@@ -32,17 +34,23 @@ export default defineConfig({
 // postcss.config.cjs
 module.exports = {
   plugins: {
-    'postcss-import': {},
-    '@pandacss/dev/postcss': {},
-    'weapp-pandacss/postcss': { target: 'weapp' },
+    'weapp-pandacss/postcss': {},
     // Put any rem/rpx conversion after the adapter.
   },
 }
 ```
 
-The standalone order is `postcss-import → Panda → adapter → optional unit conversion`. Bundlers such as Vite may already expand imports before configured PostCSS plugins; follow the corresponding framework guide. Add `@layer reset, base, tokens, recipes, utilities;` to your global CSS. Generate the runtime with `panda codegen` before building or starting development. Panda's PostCSS integration also runs the plugin when regenerating artifacts. Ignore `styled-system` in Git.
+Empty options enable import expansion → official Panda generation → mini-program adaptation. Do not separately install/register `postcss-import` or `@pandacss/dev/postcss`; the importer is built in. Optional unit conversion follows this plugin and does not use an inferred ratio. Add `@layer reset, base, tokens, recipes, utilities;` to your global CSS. Generate the runtime with `panda codegen` before building or starting development. Panda's PostCSS integration also runs the plugin when regenerating artifacts. Ignore `styled-system` in Git.
 
-For Web/H5, register both plugins and use `target: 'web'`. Web keeps layers and pseudo-selector semantics; both targets use the same class names. Use separate generated directories and matching bundler aliases when building targets in parallel (see the Taro and Uni-app examples).
+For Web/H5, keep `weappPanda()` and use `target: 'web'`. Web keeps layers and pseudo-selector semantics; both targets use the same class names. Use separate generated directories and matching bundler aliases when building targets in parallel (see the Taro and Uni-app examples).
+
+## Stage options and preprocessors
+
+`imports`, `panda` and `adapter` default to `true`. The first two also accept upstream option objects. Existing adaptation options remain at the top level. Use `{ imports: false, panda: false }` for pure adaptation, `{ adapter: false }` for import/Panda generation only, or `{ disabled: true }` to bypass everything. An external Panda/importer stage must replace its internal counterpart and run before stages consuming its output.
+
+Panda discovers explicit `panda.cwd/configPath`, then the nearest config above the real CSS file, then process cwd. A discovered config's directory is the project root; invalid explicit configuration fails directly. Custom loaders pass the real PostCSS `from` and forward file/directory dependencies and source maps. A string without file context can be adapted, but Panda generation skips it; relative imports need a real filename or `imports.root`.
+
+Keep the global Panda layer entry as `.css`. Sass/Less/Stylus variables, mixins and nesting are compiled by the framework first. The built-in importer expands CSS and rejects raw `.scss/.sass/.less/.styl/.stylus` imports unless a custom loader supplies compiled CSS. Unit conversion stays separate. The [PostCSS reference](https://panda.weapp.dev/api/postcss-plugin/) lists every stage option, default and callback.
 
 ## Naming and public entries
 
@@ -62,7 +70,7 @@ const className = encodeClassList('custom/active 中文')
 
 Keep authored CSS selectors in their original form (with normal CSS escapes). PostCSS encodes them. Do not encode `css()`, recipe outputs, or already encoded names again. `cx()` joins classes without encoding. Generated JS and CSS carry markers so the adapter can detect already converted artifacts.
 
-The plugin enables Panda's native `hash.cssVar` and normalizes its variable prefix; it preserves your `hash.className` setting. Configured class prefixes and recipe labels with unsafe heads or reserved markers are canonicalized before Panda escapes CSS. It never renames variable declarations. In mini-program mode, unsupported hand-written variable identifiers fail with a diagnostic; use ASCII identifiers. `disabled: true` disables the entire CSS adapter.
+The plugin enables Panda's native `hash.cssVar` and normalizes its variable prefix; it preserves your `hash.className` setting. Configured class prefixes and recipe labels with unsafe heads or reserved markers are canonicalized before Panda escapes CSS. It never renames variable declarations. In mini-program mode, unsupported hand-written variable identifiers fail with a diagnostic; use ASCII identifiers. `disabled: true` bypasses the complete pipeline, including imports and Panda generation.
 
 `weapp-pandacss/panda`, `/postcss` and `/runtime` provide ESM and CJS entries with declarations. The root entry exports `weappPanda`, `postcssPlugin`, `encodeClassName` and `encodeClassList`. Version 2 removes the old file-patching/configuration APIs, both adapter CLI names and the PostCSS `naming` option. PostCSS options are passed directly to the plugin.
 
@@ -79,8 +87,6 @@ This provides **order compatibility**, not a complete native-layer polyfill. In 
 ```js
 export default {
   plugins: {
-    'postcss-import': {},
-    '@pandacss/dev/postcss': {},
     'weapp-pandacss/postcss': {
       cascadeLayers: { mode: 'ordered', onConflict: 'error' },
     },
@@ -90,7 +96,7 @@ export default {
 
 Declare the full layer order outside conditional blocks before using layers in `@media` / `@supports`. Source CSS can use ordinary `@import`, including layer-qualified imports. Expand the complete import graph and CSS nesting before the adapter. **Any remaining `@import` fails ordered compilation**, including plain and remote imports, even if the current file has no layers: unseen imported rules can change layer order or unlayered precedence. `postcss-import` leaves remote imports in place, so vendor those styles locally or use an earlier resolver that expands them. Never delete imports just to silence the check. `revert-layer`, unexpanded preprocessing syntax, invalid layer structures and already-polyfilled layer placeholders also fail. Keep Panda `polyfill: false`; regenerate CSS from its original layers. Web/H5 (`target: 'web'`) always retains native layers.
 
-The existing `WP_LAYER_SPECIFICITY`, `WP_LAYER_CONDITIONAL_ORDER` and `WP_LAYER_SELECTOR_UNKNOWN` text prefixes remain compatible. Structured PostCSS warnings use the core's `LAYER_*` codes and include the original diagnostic and source location; strict mode throws a PostCSS `CssSyntaxError` with diagnostics and its cause. Descriptor order and unfamiliar wrapper semantics can add compatibility warnings, promoted to errors by `onConflict: 'error'`. Legacy still uses the existing csstools pipeline, not the shared package's `/legacy` entry. Public options, runtime and class encoding stay unchanged. See the [PostCSS API](https://panda.weapp.dev/api/postcss-plugin/) for diagnostic handling.
+The existing `WP_LAYER_SPECIFICITY`, `WP_LAYER_CONDITIONAL_ORDER` and `WP_LAYER_SELECTOR_UNKNOWN` text prefixes remain compatible. Structured PostCSS warnings use the core's `LAYER_*` codes and include the original diagnostic and source location; strict mode throws a PostCSS `CssSyntaxError` with diagnostics and its cause. Descriptor order and unfamiliar wrapper semantics can add compatibility warnings, promoted to errors by `onConflict: 'error'`. Legacy still uses the existing csstools pipeline, not the shared package's `/legacy` entry. Existing adapter fields and legacy selection remain supported; the new stage switches enable the composed pipeline by default. Runtime and class encoding keep their existing contract. See the [PostCSS API](https://panda.weapp.dev/api/postcss-plugin/) for diagnostic handling.
 
 Ordering is local to one PostCSS root. Combine layered inputs before adaptation if their relative layer order matters; independently compiled files and isolated component styles do not share a global layer registry. The Wevu example uses shared application WXSS and explicitly declares component `styleIsolation: 'apply-shared'`.
 

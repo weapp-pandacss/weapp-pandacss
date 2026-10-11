@@ -239,12 +239,18 @@ importers:
       postcss-import:
         specifier: 17.0.0
         version: 17.0.0(postcss@8.5.29)
+      postcss-less:
+        specifier: ^6.0.0
+        version: 6.0.0(postcss@8.5.29)
       repoctl:
         specifier: 5.9.0
         version: 5.9.0(32ab51425f5b7835488bc9ed928fe2b2)
       stylelint:
         specifier: ^17.16.0
         version: 17.16.0(supports-color@10.2.2)(typescript@6.0.3)
+      stylelint-config-standard-less:
+        specifier: ^4.1.0
+        version: 4.1.0(postcss@8.5.29)(stylelint@17.16.0(supports-color@10.2.2)(typescript@6.0.3))
       tailwindcss:
         specifier: ^4.3.3
         version: 4.3.3
@@ -331,9 +337,18 @@ importers:
       '@vitejs/plugin-react':
         specifier: ^6.1.2
         version: 6.1.2(vite@8.3.4(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(less@4.9.1(supports-color@10.2.2))(sass@1.105.1)(stylus@0.55.0(supports-color@10.2.2))(terser@5.51.2)(yaml@2.9.1))
+      less:
+        specifier: ^4.9.1
+        version: 4.9.1(supports-color@10.2.2)
       postcss:
         specifier: 'catalog:'
         version: 8.5.29
+      sass:
+        specifier: ^1.105.1
+        version: 1.105.1
+      stylus:
+        specifier: ^0.55.0
+        version: 0.55.0(supports-color@10.2.2)
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
@@ -436,7 +451,7 @@ importers:
         version: 4.3.0(@swc/helpers@0.5.23)(supports-color@10.2.2)(webpack@5.111.1(@swc/core@1.3.96(@swc/helpers@0.5.23))(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.29))(csso@5.0.5)(esbuild@0.21.5)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.29)(sharp@0.35.5(@types/node@26.6.4))(svgo@3.3.5)(uglify-js@3.19.3))
       '@tarojs/webpack5-runner':
         specifier: 4.3.0
-        version: 4.3.0(@babel/core@7.29.7(supports-color@10.2.2))(@parcel/css@1.14.0)(@swc/core@1.3.96(@swc/helpers@0.5.23))(@swc/helpers@0.5.23)(@tarojs/runtime@4.3.0)(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.29))(csso@5.0.5)(debug@4.4.3(supports-color@10.2.2))(html-minifier-terser@6.1.0)(less@3.13.1)(postcss@8.5.29)(sass@1.105.1)(stylus@0.55.0(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3)(uglify-js@3.19.3)(webpack@5.111.1(@swc/core@1.3.96(@swc/helpers@0.5.23))(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.29))(csso@5.0.5)(esbuild@0.21.5)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.29)(sharp@0.35.5(@types/node@26.6.4))(svgo@3.3.5)(uglify-js@3.19.3))
+        version: 4.3.0(@babel/core@7.29.7(supports-color@10.2.2))(@parcel/css@1.14.0)(@swc/core@1.3.96(@swc/helpers@0.5.23))(@swc/helpers@0.5.23)(@tarojs/runtime@4.3.0)(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.29))(csso@5.0.5)(debug@4.4.3(supports-color@10.2.2))(html-minifier-terser@6.1.0)(less@4.9.1(supports-color@10.2.2))(postcss@8.5.29)(sass@1.105.1)(stylus@0.55.0(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3)(uglify-js@3.19.3)(webpack@5.111.1(@swc/core@1.3.96(@swc/helpers@0.5.23))(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.29))(csso@5.0.5)(esbuild@0.21.5)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.29)(sharp@0.35.5(@types/node@26.6.4))(svgo@3.3.5)(uglify-js@3.19.3))
       '@types/node':
         specifier: ^26.6.4
         version: 26.6.4
@@ -452,12 +467,12 @@ importers:
       babel-preset-taro:
         specifier: 4.3.0
         version: 4.3.0(@babel/core@7.29.7(supports-color@10.2.2))(@babel/plugin-transform-typescript@7.29.9(@babel/core@7.29.7(supports-color@10.2.2))(supports-color@10.2.2))(@babel/preset-react@7.29.7(@babel/core@7.29.7(supports-color@10.2.2))(supports-color@10.2.2))(@swc/helpers@0.5.23)(@vue/babel-plugin-jsx@1.5.0(@babel/core@7.29.7(supports-color@10.2.2))(supports-color@10.2.2))(metro-react-native-babel-preset@0.72.4(@babel/core@7.29.7(supports-color@10.2.2))(supports-color@10.2.2))(react-refresh@0.14.2)(supports-color@10.2.2)
+      less:
+        specifier: ^4.9.1
+        version: 4.9.1(supports-color@10.2.2)
       postcss:
         specifier: 'catalog:'
         version: 8.5.29
-      postcss-import:
-        specifier: 17.0.0
-        version: 17.0.0(postcss@8.5.29)
       postcss-rem-to-responsive-pixel:
         specifier: ^7.0.7
         version: 7.0.7(postcss@8.5.29)
@@ -467,6 +482,9 @@ importers:
       sass:
         specifier: ^1.105.1
         version: 1.105.1
+      stylus:
+        specifier: ^0.55.0
+        version: 0.55.0(supports-color@10.2.2)
       tsconfig-paths-webpack-plugin:
         specifier: ^4.2.0
         version: 4.2.0
@@ -533,6 +551,9 @@ importers:
       '@tarojs/taro':
         specifier: 4.3.0
         version: 4.3.0(cb891fb30bc7c47480a2ed40d3a87446)
+      '@weapp-pandacss/runtime':
+        specifier: workspace:*
+        version: link:../../packages/runtime
       vue:
         specifier: ^3.5.43
         version: 3.5.43(typescript@6.0.3)
@@ -557,7 +578,7 @@ importers:
         version: 4.3.0(@swc/helpers@0.5.23)(supports-color@10.2.2)(webpack@5.111.1(@swc/core@1.3.96(@swc/helpers@0.5.23))(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.29))(csso@5.0.5)(esbuild@0.28.2)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.29)(sharp@0.35.5(@types/node@26.6.4))(svgo@3.3.5)(uglify-js@3.19.3))
       '@tarojs/webpack5-runner':
         specifier: 4.3.0
-        version: 4.3.0(@babel/core@7.29.7(supports-color@10.2.2))(@parcel/css@1.14.0)(@swc/core@1.3.96(@swc/helpers@0.5.23))(@swc/helpers@0.5.23)(@tarojs/runtime@4.3.0)(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.29))(csso@5.0.5)(debug@4.4.3(supports-color@10.2.2))(html-minifier-terser@6.1.0)(less@3.13.1)(postcss@8.5.29)(sass@1.105.1)(stylus@0.55.0(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3)(uglify-js@3.19.3)(webpack@5.111.1(@swc/core@1.3.96(@swc/helpers@0.5.23))(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.29))(csso@5.0.5)(esbuild@0.28.2)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.29)(sharp@0.35.5(@types/node@26.6.4))(svgo@3.3.5)(uglify-js@3.19.3))
+        version: 4.3.0(@babel/core@7.29.7(supports-color@10.2.2))(@parcel/css@1.14.0)(@swc/core@1.3.96(@swc/helpers@0.5.23))(@swc/helpers@0.5.23)(@tarojs/runtime@4.3.0)(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.29))(csso@5.0.5)(debug@4.4.3(supports-color@10.2.2))(html-minifier-terser@6.1.0)(less@4.9.1(supports-color@10.2.2))(postcss@8.5.29)(sass@1.105.1)(stylus@0.55.0(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3)(uglify-js@3.19.3)(webpack@5.111.1(@swc/core@1.3.96(@swc/helpers@0.5.23))(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.29))(csso@5.0.5)(esbuild@0.28.2)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.29)(sharp@0.35.5(@types/node@26.6.4))(svgo@3.3.5)(uglify-js@3.19.3))
       '@types/node':
         specifier: ^26.6.4
         version: 26.6.4
@@ -579,18 +600,24 @@ importers:
       css-loader:
         specifier: ^7.1.5
         version: 7.1.5(webpack@5.111.1(@swc/core@1.3.96(@swc/helpers@0.5.23))(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.29))(csso@5.0.5)(esbuild@0.28.2)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.29)(sharp@0.35.5(@types/node@26.6.4))(svgo@3.3.5)(uglify-js@3.19.3))
+      less:
+        specifier: ^4.9.1
+        version: 4.9.1(supports-color@10.2.2)
       postcss:
         specifier: 'catalog:'
         version: 8.5.29
-      postcss-import:
-        specifier: 17.0.0
-        version: 17.0.0(postcss@8.5.29)
       postcss-rem-to-responsive-pixel:
         specifier: ^7.0.7
         version: 7.0.7(postcss@8.5.29)
+      sass:
+        specifier: ^1.105.1
+        version: 1.105.1
       style-loader:
         specifier: 4.0.0
         version: 4.0.0(webpack@5.111.1(@swc/core@1.3.96(@swc/helpers@0.5.23))(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.29))(csso@5.0.5)(esbuild@0.28.2)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.29)(sharp@0.35.5(@types/node@26.6.4))(svgo@3.3.5)(uglify-js@3.19.3))
+      stylus:
+        specifier: ^0.55.0
+        version: 0.55.0(supports-color@10.2.2)
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
@@ -657,6 +684,9 @@ importers:
       '@dcloudio/uni-quickapp-webview':
         specifier: 3.0.0-5020620260917001
         version: 3.0.0-5020620260917001(postcss@8.5.29)(rollup@4.64.2)(supports-color@10.2.2)(ts-node@10.9.2(@swc/core@1.3.96(@swc/helpers@0.5.23))(@types/node@26.6.4)(typescript@6.0.3))(vue@3.4.21(typescript@6.0.3))
+      '@weapp-pandacss/runtime':
+        specifier: workspace:*
+        version: link:../../packages/runtime
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -691,9 +721,6 @@ importers:
       '@pandacss/preset-panda':
         specifier: 2.1.2
         version: 2.1.2
-      '@types/postcss-import':
-        specifier: 14.0.3
-        version: 14.0.3
       '@vue/compiler-sfc':
         specifier: 3.4.21
         version: 3.4.21
@@ -703,15 +730,21 @@ importers:
       '@vue/tsconfig':
         specifier: ^0.9.1
         version: 0.9.1(typescript@6.0.3)(vue@3.4.21(typescript@6.0.3))
+      less:
+        specifier: ^4.9.1
+        version: 4.9.1(supports-color@10.2.2)
       postcss:
         specifier: 'catalog:'
         version: 8.5.29
-      postcss-import:
-        specifier: 17.0.0
-        version: 17.0.0(postcss@8.5.29)
       postcss-rem-to-responsive-pixel:
         specifier: ^7.0.7
         version: 7.0.7(postcss@8.5.29)
+      sass:
+        specifier: ^1.105.1
+        version: 1.105.1
+      stylus:
+        specifier: ^0.55.0
+        version: 0.55.0(supports-color@10.2.2)
       tailwindcss:
         specifier: ^4.3.3
         version: 4.3.3
@@ -767,6 +800,9 @@ importers:
       '@types/node':
         specifier: ^26.6.4
         version: 26.6.4
+      less:
+        specifier: ^4.9.1
+        version: 4.9.1(supports-color@10.2.2)
       miniprogram-api-typings:
         specifier: ^5.2.3
         version: 5.2.3
@@ -776,6 +812,12 @@ importers:
       postcss-rem-to-responsive-pixel:
         specifier: ^7.0.7
         version: 7.0.7(postcss@8.5.29)
+      sass:
+        specifier: ^1.105.1
+        version: 1.105.1
+      stylus:
+        specifier: ^0.55.0
+        version: 0.55.0(supports-color@10.2.2)
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
@@ -827,6 +869,9 @@ importers:
       '@pandacss/types':
         specifier: 2.1.2
         version: 2.1.2
+      '@types/postcss-import':
+        specifier: 14.0.3
+        version: 14.0.3
       '@weapp-pandacss/runtime':
         specifier: workspace:*
         version: link:../runtime
@@ -842,6 +887,9 @@ importers:
       postcss:
         specifier: 'catalog:'
         version: 8.5.29
+      postcss-import:
+        specifier: 17.0.0
+        version: 17.0.0(postcss@8.5.29)
       postcss-selector-parser:
         specifier: 7.1.6
         version: 7.1.6
@@ -858,12 +906,6 @@ importers:
       '@pandacss/preset-panda':
         specifier: 2.1.2
         version: 2.1.2
-      '@types/postcss-import':
-        specifier: 14.0.3
-        version: 14.0.3
-      postcss-import:
-        specifier: 17.0.0
-        version: 17.0.0(postcss@8.5.29)
       tsdown:
         specifier: 0.23.0
         version: 0.23.0(@arethetypeswrong/core@0.18.5)(@volar/typescript@2.4.28(typescript@6.0.3))(@vue/language-core@3.3.12)(publint@0.3.25)(typescript@6.0.3)(vue-tsc@3.3.12(typescript@6.0.3))
@@ -7130,6 +7172,9 @@ packages:
 
   '@types/connect@3.4.38':
     resolution: {integrity: sha512-K6uROf1LD88uDQqJCktA4yzL1YYAK6NgfsI0v/mTgyPKWsX1CnJ0XPSDhViejru1GcRkLWb8RlzFYJRqGUbaug==}
+
+  '@types/css-tree@3.2.0':
+    resolution: {integrity: sha512-J5KXmk6BFIepOT7280FdFyNs4c5fh0Uee0otjKEvzchrRs38Ii9qminqc4ds0L19X8Zd/rT+brR9jkBthygjWw==}
 
   '@types/debug@4.1.13':
     resolution: {integrity: sha512-KSVgmQmzMwPlmtljOomayoR89W4FynCAi3E8PPs7vmDVPe84hT+vGPKkJfThkmXs0x0jAaa9U8uW8bbfyS2fWw==}
@@ -13451,6 +13496,12 @@ packages:
     peerDependencies:
       postcss: ^8.5.29
 
+  postcss-less@6.0.0:
+    resolution: {integrity: sha512-FPX16mQLyEjLzEuuJtxA8X3ejDLNGGEG503d2YGZR5Ask1SpDN8KmZUMpzCvyalWRywAn1n1VOA5dcqfCLo5rg==}
+    engines: {node: '>=12'}
+    peerDependencies:
+      postcss: ^8.5.29
+
   postcss-load-config@3.1.4:
     resolution: {integrity: sha512-6DiM4E7v4coTE4uzA8U//WhtPwyhiim3eyjEMFCnUpzbrkK9wJHgKDT2mR+HbtSrd/NubVaYTOpSpjUl8NQeRg==}
     engines: {node: '>= 10'}
@@ -14896,6 +14947,15 @@ packages:
       stylelint: ^16.18.0 || ^17.0.0
       stylelint-order: ^7.0.0 || ^8.0.0
 
+  stylelint-config-recommended-less@4.2.1:
+    resolution: {integrity: sha512-OYq8xWTMoXFyZ91vzYDGpkgWafSkSXxXV0b1tVZRGwOpbfb+6SeN+KnFa/LivoRBzfAGMmr3OVQX2h/ArG8WNg==}
+    peerDependencies:
+      postcss: '*'
+      stylelint: ^17
+    peerDependenciesMeta:
+      postcss:
+        optional: true
+
   stylelint-config-recommended-scss@17.0.1:
     resolution: {integrity: sha512-x5DVehzJudcwF0od3sGpgkln2PLLranFE7twwbp7dqDINCyZvwzFkMc6TLhNOvazRiVBJYATQLouJY0xPGB8WA==}
     engines: {node: '>=20'}
@@ -14925,6 +14985,15 @@ packages:
     peerDependencies:
       stylelint: ^17.0.0
 
+  stylelint-config-standard-less@4.1.0:
+    resolution: {integrity: sha512-20Ol4m1rTescEkkoNO9+AyAF/P0LsFfZ+B2pkHlL/efEBfr1FAOGuOlZO8no32KE/63S915O1W5kQoA9S9kZCg==}
+    peerDependencies:
+      postcss: ^8.5.29
+      stylelint: ^17
+    peerDependenciesMeta:
+      postcss:
+        optional: true
+
   stylelint-config-standard-scss@17.0.0:
     resolution: {integrity: sha512-uLJS6xgOCBw5EMsDW7Ukji8l28qRoMnkRch15s0qwZpskXvWt9oPzMmcYM307m9GN4MxuWLsQh4I6hU9yI53cQ==}
     engines: {node: '>=20'}
@@ -14940,6 +15009,12 @@ packages:
     engines: {node: '>=20.19.0'}
     peerDependencies:
       stylelint: ^17.0.0
+
+  stylelint-less@4.2.2:
+    resolution: {integrity: sha512-UmuA5cLcMAi3BZ0kd8VrbOUov6QFyHe8Y9i+sA7uiqvOEioD5KVfQT1AafJ2TjA0r2wocScbtTBbDDYUAxaQxg==}
+    peerDependencies:
+      postcss: ^8.5.29
+      stylelint: ^17
 
   stylelint-order@8.1.1:
     resolution: {integrity: sha512-LqsEB6VggJuu5v10RtkrQsBObcdwBE7GuAOlwfc/LR3VL/w8UqKX2BOLIjhyGt0Gne/njo7gRNGiJAKhfmPMNw==}
@@ -23752,7 +23827,7 @@ snapshots:
       - '@swc/helpers'
       - supports-color
 
-  '@tarojs/webpack5-runner@4.3.0(@babel/core@7.29.7(supports-color@10.2.2))(@parcel/css@1.14.0)(@swc/core@1.3.96(@swc/helpers@0.5.23))(@swc/helpers@0.5.23)(@tarojs/runtime@4.3.0)(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.29))(csso@5.0.5)(debug@4.4.3(supports-color@10.2.2))(html-minifier-terser@6.1.0)(less@3.13.1)(postcss@8.5.29)(sass@1.105.1)(stylus@0.55.0(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3)(uglify-js@3.19.3)(webpack@5.111.1(@swc/core@1.3.96(@swc/helpers@0.5.23))(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.29))(csso@5.0.5)(esbuild@0.21.5)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.29)(sharp@0.35.5(@types/node@26.6.4))(svgo@3.3.5)(uglify-js@3.19.3))':
+  '@tarojs/webpack5-runner@4.3.0(@babel/core@7.29.7(supports-color@10.2.2))(@parcel/css@1.14.0)(@swc/core@1.3.96(@swc/helpers@0.5.23))(@swc/helpers@0.5.23)(@tarojs/runtime@4.3.0)(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.29))(csso@5.0.5)(debug@4.4.3(supports-color@10.2.2))(html-minifier-terser@6.1.0)(less@4.9.1(supports-color@10.2.2))(postcss@8.5.29)(sass@1.105.1)(stylus@0.55.0(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3)(uglify-js@3.19.3)(webpack@5.111.1(@swc/core@1.3.96(@swc/helpers@0.5.23))(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.29))(csso@5.0.5)(esbuild@0.21.5)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.29)(sharp@0.35.5(@types/node@26.6.4))(svgo@3.3.5)(uglify-js@3.19.3))':
     dependencies:
       '@babel/core': 7.29.7(supports-color@10.2.2)
       '@tarojs/helper': 4.3.0(@swc/helpers@0.5.23)(supports-color@10.2.2)
@@ -23774,7 +23849,7 @@ snapshots:
       html-minifier: 4.0.0
       html-webpack-plugin: 5.6.8(webpack@5.111.1(@swc/core@1.3.96(@swc/helpers@0.5.23))(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.29))(csso@5.0.5)(esbuild@0.21.5)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.29)(sharp@0.35.5(@types/node@26.6.4))(svgo@3.3.5)(uglify-js@3.19.3))
       jsdom: 24.1.3(supports-color@10.2.2)
-      less-loader: 12.3.3(less@3.13.1)(webpack@5.111.1(@swc/core@1.3.96(@swc/helpers@0.5.23))(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.29))(csso@5.0.5)(esbuild@0.21.5)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.29)(sharp@0.35.5(@types/node@26.6.4))(svgo@3.3.5)(uglify-js@3.19.3))
+      less-loader: 12.3.3(less@4.9.1(supports-color@10.2.2))(webpack@5.111.1(@swc/core@1.3.96(@swc/helpers@0.5.23))(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.29))(csso@5.0.5)(esbuild@0.21.5)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.29)(sharp@0.35.5(@types/node@26.6.4))(svgo@3.3.5)(uglify-js@3.19.3))
       lightningcss: 1.33.0
       loader-utils: 3.3.1
       lodash: 4.18.1
@@ -23806,7 +23881,7 @@ snapshots:
       webpack-virtual-modules: 0.6.2
       webpackbar: 5.0.2(webpack@5.111.1(@swc/core@1.3.96(@swc/helpers@0.5.23))(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.29))(csso@5.0.5)(esbuild@0.21.5)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.29)(sharp@0.35.5(@types/node@26.6.4))(svgo@3.3.5)(uglify-js@3.19.3))
     optionalDependencies:
-      less: 3.13.1
+      less: 4.9.1(supports-color@10.2.2)
       sass: 1.105.1
       stylus: 0.55.0(supports-color@10.2.2)
     transitivePeerDependencies:
@@ -23832,7 +23907,7 @@ snapshots:
       - utf-8-validate
       - webpack-cli
 
-  '@tarojs/webpack5-runner@4.3.0(@babel/core@7.29.7(supports-color@10.2.2))(@parcel/css@1.14.0)(@swc/core@1.3.96(@swc/helpers@0.5.23))(@swc/helpers@0.5.23)(@tarojs/runtime@4.3.0)(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.29))(csso@5.0.5)(debug@4.4.3(supports-color@10.2.2))(html-minifier-terser@6.1.0)(less@3.13.1)(postcss@8.5.29)(sass@1.105.1)(stylus@0.55.0(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3)(uglify-js@3.19.3)(webpack@5.111.1(@swc/core@1.3.96(@swc/helpers@0.5.23))(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.29))(csso@5.0.5)(esbuild@0.28.2)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.29)(sharp@0.35.5(@types/node@26.6.4))(svgo@3.3.5)(uglify-js@3.19.3))':
+  '@tarojs/webpack5-runner@4.3.0(@babel/core@7.29.7(supports-color@10.2.2))(@parcel/css@1.14.0)(@swc/core@1.3.96(@swc/helpers@0.5.23))(@swc/helpers@0.5.23)(@tarojs/runtime@4.3.0)(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.29))(csso@5.0.5)(debug@4.4.3(supports-color@10.2.2))(html-minifier-terser@6.1.0)(less@4.9.1(supports-color@10.2.2))(postcss@8.5.29)(sass@1.105.1)(stylus@0.55.0(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3)(uglify-js@3.19.3)(webpack@5.111.1(@swc/core@1.3.96(@swc/helpers@0.5.23))(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.29))(csso@5.0.5)(esbuild@0.28.2)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.29)(sharp@0.35.5(@types/node@26.6.4))(svgo@3.3.5)(uglify-js@3.19.3))':
     dependencies:
       '@babel/core': 7.29.7(supports-color@10.2.2)
       '@tarojs/helper': 4.3.0(@swc/helpers@0.5.23)(supports-color@10.2.2)
@@ -23854,7 +23929,7 @@ snapshots:
       html-minifier: 4.0.0
       html-webpack-plugin: 5.6.8(webpack@5.111.1(@swc/core@1.3.96(@swc/helpers@0.5.23))(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.29))(csso@5.0.5)(esbuild@0.28.2)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.29)(sharp@0.35.5(@types/node@26.6.4))(svgo@3.3.5)(uglify-js@3.19.3))
       jsdom: 24.1.3(supports-color@10.2.2)
-      less-loader: 12.3.3(less@3.13.1)(webpack@5.111.1(@swc/core@1.3.96(@swc/helpers@0.5.23))(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.29))(csso@5.0.5)(esbuild@0.28.2)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.29)(sharp@0.35.5(@types/node@26.6.4))(svgo@3.3.5)(uglify-js@3.19.3))
+      less-loader: 12.3.3(less@4.9.1(supports-color@10.2.2))(webpack@5.111.1(@swc/core@1.3.96(@swc/helpers@0.5.23))(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.29))(csso@5.0.5)(esbuild@0.28.2)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.29)(sharp@0.35.5(@types/node@26.6.4))(svgo@3.3.5)(uglify-js@3.19.3))
       lightningcss: 1.33.0
       loader-utils: 3.3.1
       lodash: 4.18.1
@@ -23886,7 +23961,7 @@ snapshots:
       webpack-virtual-modules: 0.6.2
       webpackbar: 5.0.2(webpack@5.111.1(@swc/core@1.3.96(@swc/helpers@0.5.23))(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.29))(csso@5.0.5)(esbuild@0.28.2)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.29)(sharp@0.35.5(@types/node@26.6.4))(svgo@3.3.5)(uglify-js@3.19.3))
     optionalDependencies:
-      less: 3.13.1
+      less: 4.9.1(supports-color@10.2.2)
       sass: 1.105.1
       stylus: 0.55.0(supports-color@10.2.2)
     transitivePeerDependencies:
@@ -24006,6 +24081,8 @@ snapshots:
   '@types/connect@3.4.38':
     dependencies:
       '@types/node': 26.6.4
+
+  '@types/css-tree@3.2.0': {}
 
   '@types/debug@4.1.13':
     dependencies:
@@ -26238,7 +26315,6 @@ snapshots:
   copy-anything@3.0.5:
     dependencies:
       is-what: 4.1.16
-    optional: true
 
   copy-webpack-plugin@12.0.2(webpack@5.111.1(@swc/core@1.3.96(@swc/helpers@0.5.23))(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.29))(csso@5.0.5)(esbuild@0.21.5)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.29)(sharp@0.35.5(@types/node@26.6.4))(svgo@3.3.5)(uglify-js@3.19.3)):
     dependencies:
@@ -28919,8 +28995,7 @@ snapshots:
 
   is-what@3.14.1: {}
 
-  is-what@4.1.16:
-    optional: true
+  is-what@4.1.16: {}
 
   is-windows@1.0.2: {}
 
@@ -29598,15 +29673,15 @@ snapshots:
     dependencies:
       invert-kv: 3.0.1
 
-  less-loader@12.3.3(less@3.13.1)(webpack@5.111.1(@swc/core@1.3.96(@swc/helpers@0.5.23))(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.29))(csso@5.0.5)(esbuild@0.21.5)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.29)(sharp@0.35.5(@types/node@26.6.4))(svgo@3.3.5)(uglify-js@3.19.3)):
+  less-loader@12.3.3(less@4.9.1(supports-color@10.2.2))(webpack@5.111.1(@swc/core@1.3.96(@swc/helpers@0.5.23))(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.29))(csso@5.0.5)(esbuild@0.21.5)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.29)(sharp@0.35.5(@types/node@26.6.4))(svgo@3.3.5)(uglify-js@3.19.3)):
     dependencies:
-      less: 3.13.1
+      less: 4.9.1(supports-color@10.2.2)
     optionalDependencies:
       webpack: 5.111.1(@swc/core@1.3.96(@swc/helpers@0.5.23))(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.29))(csso@5.0.5)(esbuild@0.21.5)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.29)(sharp@0.35.5(@types/node@26.6.4))(svgo@3.3.5)(uglify-js@3.19.3)
 
-  less-loader@12.3.3(less@3.13.1)(webpack@5.111.1(@swc/core@1.3.96(@swc/helpers@0.5.23))(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.29))(csso@5.0.5)(esbuild@0.28.2)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.29)(sharp@0.35.5(@types/node@26.6.4))(svgo@3.3.5)(uglify-js@3.19.3)):
+  less-loader@12.3.3(less@4.9.1(supports-color@10.2.2))(webpack@5.111.1(@swc/core@1.3.96(@swc/helpers@0.5.23))(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.29))(csso@5.0.5)(esbuild@0.28.2)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.29)(sharp@0.35.5(@types/node@26.6.4))(svgo@3.3.5)(uglify-js@3.19.3)):
     dependencies:
-      less: 3.13.1
+      less: 4.9.1(supports-color@10.2.2)
     optionalDependencies:
       webpack: 5.111.1(@swc/core@1.3.96(@swc/helpers@0.5.23))(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.29))(csso@5.0.5)(esbuild@0.28.2)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.29)(sharp@0.35.5(@types/node@26.6.4))(svgo@3.3.5)(uglify-js@3.19.3)
 
@@ -29637,7 +29712,6 @@ snapshots:
       source-map: 0.6.1
     transitivePeerDependencies:
       - supports-color
-    optional: true
 
   leven@3.1.0: {}
 
@@ -31394,8 +31468,7 @@ snapshots:
 
   parse-ms@4.0.0: {}
 
-  parse-node-version@1.0.1:
-    optional: true
+  parse-node-version@1.0.1: {}
 
   parse-path@7.1.0:
     dependencies:
@@ -31731,6 +31804,10 @@ snapshots:
       '@csstools/css-tokenizer': 4.0.2
       '@csstools/postcss-progressive-custom-properties': 5.1.4(postcss@8.5.29)
       '@csstools/utilities': 3.0.0(postcss@8.5.29)
+      postcss: 8.5.29
+
+  postcss-less@6.0.0(postcss@8.5.29):
+    dependencies:
       postcss: 8.5.29
 
   postcss-load-config@3.1.4(postcss@8.5.29)(ts-node@10.9.2(@swc/core@1.3.96(@swc/helpers@0.5.23))(@types/node@26.6.4)(typescript@6.0.3)):
@@ -33552,6 +33629,15 @@ snapshots:
       stylelint: 17.16.0(supports-color@10.2.2)(typescript@6.0.3)
       stylelint-order: 8.1.1(stylelint@17.16.0(supports-color@10.2.2)(typescript@6.0.3))
 
+  stylelint-config-recommended-less@4.2.1(postcss@8.5.29)(stylelint@17.16.0(supports-color@10.2.2)(typescript@6.0.3)):
+    dependencies:
+      postcss-less: 6.0.0(postcss@8.5.29)
+      stylelint: 17.16.0(supports-color@10.2.2)(typescript@6.0.3)
+      stylelint-config-recommended: 18.0.0(stylelint@17.16.0(supports-color@10.2.2)(typescript@6.0.3))
+      stylelint-less: 4.2.2(postcss@8.5.29)(stylelint@17.16.0(supports-color@10.2.2)(typescript@6.0.3))
+    optionalDependencies:
+      postcss: 8.5.29
+
   stylelint-config-recommended-scss@17.0.1(postcss@8.5.29)(stylelint@17.16.0(supports-color@10.2.2)(typescript@6.0.3)):
     dependencies:
       postcss-scss: 4.0.9(postcss@8.5.29)
@@ -33575,6 +33661,14 @@ snapshots:
     dependencies:
       stylelint: 17.16.0(supports-color@10.2.2)(typescript@6.0.3)
 
+  stylelint-config-standard-less@4.1.0(postcss@8.5.29)(stylelint@17.16.0(supports-color@10.2.2)(typescript@6.0.3)):
+    dependencies:
+      stylelint: 17.16.0(supports-color@10.2.2)(typescript@6.0.3)
+      stylelint-config-recommended-less: 4.2.1(postcss@8.5.29)(stylelint@17.16.0(supports-color@10.2.2)(typescript@6.0.3))
+      stylelint-config-standard: 40.0.0(stylelint@17.16.0(supports-color@10.2.2)(typescript@6.0.3))
+    optionalDependencies:
+      postcss: 8.5.29
+
   stylelint-config-standard-scss@17.0.0(postcss@8.5.29)(stylelint@17.16.0(supports-color@10.2.2)(typescript@6.0.3)):
     dependencies:
       stylelint: 17.16.0(supports-color@10.2.2)(typescript@6.0.3)
@@ -33587,6 +33681,14 @@ snapshots:
     dependencies:
       stylelint: 17.16.0(supports-color@10.2.2)(typescript@6.0.3)
       stylelint-config-recommended: 18.0.0(stylelint@17.16.0(supports-color@10.2.2)(typescript@6.0.3))
+
+  stylelint-less@4.2.2(postcss@8.5.29)(stylelint@17.16.0(supports-color@10.2.2)(typescript@6.0.3)):
+    dependencies:
+      '@types/css-tree': 3.2.0
+      css-tree: 3.2.1
+      postcss: 8.5.29
+      postcss-value-parser: 4.2.0
+      stylelint: 17.16.0(supports-color@10.2.2)(typescript@6.0.3)
 
   stylelint-order@8.1.1(stylelint@17.16.0(supports-color@10.2.2)(typescript@6.0.3)):
     dependencies:

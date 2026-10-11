@@ -12,7 +12,7 @@ The reference [Taro React example](https://github.com/weapp-pandacss/weapp-panda
 Keep the Taro package family on matching versions. The adapter engine is `^22.18.0 || >=24.11.0`; use a recommended Node 22.18+ or 24.11+ LTS release and run in the application directory:
 
 ~~~sh
-pnpm add -D @pandacss/dev@2.1.2 @pandacss/preset-base@2.1.2 @pandacss/preset-panda@2.1.2 weapp-pandacss@^2 postcss postcss-import@17.0.0 postcss-rem-to-responsive-pixel
+pnpm add -D @pandacss/dev@2.1.2 @pandacss/preset-base@2.1.2 @pandacss/preset-panda@2.1.2 weapp-pandacss@^2 postcss postcss-rem-to-responsive-pixel
 ~~~
 
 Hand-written special class names additionally need `pnpm add @weapp-pandacss/runtime`. Keep Panda and PostCSS in build dependencies and the standalone encoder in application dependencies.
@@ -86,8 +86,6 @@ const process = require('node:process')
 
 module.exports = {
   plugins: {
-    'postcss-import': {},
-    '@pandacss/dev/postcss': {},
     'weapp-pandacss/postcss': {
       target: process.env.TARO_ENV === 'h5' ? 'web' : 'weapp',
     },
@@ -104,9 +102,13 @@ Create `src/app.css` with `@layer reset, base, tokens, recipes, utilities;`, the
 
 ## Import authored styles before generation
 
-The explicit order is `postcss-import → Panda → adapter → unit conversion` on both WeChat and H5. Put `@import "./styles/shared.css";` at the start of `src/app.css`, before style rules. The importer resolves it relative to the real app stylesheet and expands transitive imports; the adapter then sees both imported and generated rules.
+One `weapp-pandacss/postcss` registration performs **import expansion → Panda → adaptation** on both WeChat and H5; optional unit conversion follows it. Do not register a second official Panda or importer plugin. Put `@import "./styles/shared.css";` at the start of `src/app.css`, before style rules. The importer resolves it relative to the real app stylesheet and expands transitive imports; the adapter then sees both imported and generated rules.
 
 Imported special class selectors must enter the adapter too. For example, author `.custom\/active` in the imported CSS and bind `encodeClassName('custom/active')` from `@weapp-pandacss/runtime` in application code. Do not import separately flattened CSS or run another class encoder on Panda output. Inspect the final target CSS/WXSS for the matching encoded selector and correct cross-file layer order. A residual remote import needs local vendoring or an upstream resolver; warning mode does not bypass `LAYER_IMPORT`.
+
+## Mix preprocessed styles
+
+Taro's Sass/Less/Stylus loaders compile component styles before project PostCSS. Keep the shared Panda generation entry as `src/app.css`, and import separately compiled component styles through the framework. Variables, mixins and nesting must already be ordinary CSS when adaptation begins. CSS imports preserved by the preprocessor can then be expanded by the internal importer; direct raw preprocessor imports in that importer fail with an actionable error. Configure the compiler and any extra watch dependencies through Taro. See [preprocessor boundaries](/postcss/#sass-less-and-stylus).
 
 ## Generate for the selected target
 

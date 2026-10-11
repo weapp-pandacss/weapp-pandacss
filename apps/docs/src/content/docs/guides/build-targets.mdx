@@ -79,15 +79,15 @@ Independent targets may build in parallel only when their generated and final ou
 
 ## Working directory and watch
 
-Panda resolves files relative to its working directory. The Wevu Vite configuration sets the Panda PostCSS cwd explicitly because API-driven mpcore/Vitest builds keep the workspace root as the process cwd:
+With default options, the composed plugin first finds Panda's config above the actual source CSS file, then falls back to process-cwd discovery. Its containing directory becomes the project root, so API-driven builds from the monorepo root still use the application's `include` and `outdir`. Explicit overrides are available:
 
 ~~~ts
-import panda from '@pandacss/dev/postcss'
+import adapter from 'weapp-pandacss/postcss'
 
-const pandaPlugin = panda({ cwd: import.meta.dirname })
+const plugin = adapter({ panda: { cwd: import.meta.dirname } })
 ~~~
 
-Use the actual application's directory, not an arbitrary root shared by unrelated Panda configurations. Import expansion separately needs PostCSS `from` to identify the real source stylesheet; virtual IDs are not file-resolution bases. Keep the full import graph in one root before ordered compilation.
+Use the actual application directory for an explicit override. Invalid explicit `cwd`/`configPath` fails rather than silently selecting another project. Import expansion also needs PostCSS `from` to identify the real source stylesheet; virtual IDs are not file-resolution bases. Keep the full import graph in one root before ordered compilation. A CSS string without a real file can still be adapted, but Panda generation skips it; use an explicit importer root when relative imports need resolution.
 
 The standard example flow runs initial codegen and then starts the framework's dev/watch process. Panda's PostCSS integration records extraction dependencies so the bundler can rebuild styles. If a standalone workflow needs runtime-generation watch, Panda 2.1.2 also offers `panda codegen --watch`; CSS still needs the PostCSS pipeline. Assign one owner to each generated directory.
 
@@ -104,8 +104,8 @@ To recover, stop the processes writing the affected target, remove that target's
 The Uni-app comparison example uses separate entries:
 
 ~~~text
-Panda WeChat → virtual entry (postcss-import → Panda → adapter) → idempotent framework adapter → units
-Panda H5 → virtual entry (postcss-import → Panda, native layers) → framework Web adapter → units
+Panda WeChat → virtual entry (default composed plugin) → idempotent framework adapter → units
+Panda H5 → virtual entry (adapter: false, native layers) → framework Web adapter → units
 tailwind.css → weapp-tailwindcss's dedicated pipeline → its matching class runtime
 ~~~
 

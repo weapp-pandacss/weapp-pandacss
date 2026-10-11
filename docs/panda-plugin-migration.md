@@ -13,9 +13,9 @@
    `outExtension: 'mjs'` 和 `forceImportExtension: true`。
 3. 把 `panda codegen && weapp-panda codegen` 改为 `panda codegen`。移除
    `execFileSync`、`codegen:done` 适配 hook 和跨平台 rollback。
-4. 小程序 PostCSS 注册 import 展开 → Panda → adapter（`target: 'weapp'`）→ rem/rpx；
-   独立与 Taro 流水线在 Panda 前安装并注册 `postcss-import@17.0.0`，Vite 使用框架前置导入处理。H5
-   同样保留 adapter，使用 `target: 'web'`。把旧 adapter 配置文件里的 CSS
+4. PostCSS 仅注册 `'weapp-pandacss/postcss': {}`，默认执行 import 展开 → 官方 Panda → 小程序适配；
+   不再额外安装或注册 importer / 官方 Panda PostCSS 插件。按需 rem/rpx 转换放在其后。H5
+   使用 `{ target: 'web' }`。Panda 配置保留 `weappPanda()` 与 `polyfill: false`，全局入口保持 `.css`。把旧 adapter 配置文件里的 CSS
    选项直接移到 PostCSS 插件参数；PostCSS 不再读取该配置或修改 JS 文件。
 5. 将 `styled-system/weapp-panda/index.mjs` 的手写 class 转义导入改为
    `weapp-pandacss/runtime` 的 `encodeClassName` / `encodeClassList`。仅对原始
@@ -27,6 +27,20 @@ Taro 默认小程序输出位于 `dist/weapp`，开发者工具使用更新后�
 `project.config.json`。生成目录按平台命名：Taro 默认 `styled-system/weapp`，Uni-app 默认
 `styled-system/mp-weixin`，H5 均使用 `styled-system/h5`。平台缓存仅保存当前
 目标目录，避免恢复缓存时覆盖另一目标。
+
+## 零选项 PostCSS minor 更新
+
+现有 `weapp-pandacss/postcss` 入口默认启用 `imports`、`panda`、`adapter` 三个阶段，无需新入口。
+前两项可透传上游配置对象；`{ imports: false, panda: false }` 保留纯适配能力，
+`{ adapter: false }` 只导入与生成，`disabled: true` 跳过整个流水线。已有适配参数仍位于顶层。
+
+Panda 优先使用显式 `panda.cwd/configPath`，其次从实际 CSS 源文件上方发现最近配置，再从进程 cwd 查找；
+配置所在目录成为项目根。显式配置错误直接报告。自定义/虚拟 loader 传真实 `from` 并转发依赖与 sourcemap。
+无真实文件的字符串仍支持纯 CSS 适配，Panda 跳过生成；相对 import 需要真实文件路径或 `imports.root`。
+
+Sass/Less/Stylus 由框架预编译；默认 importer 不编译原始预处理文件，直接导入时明确报错。
+保持全局 Panda 入口为 `.css`，不要用 `.scss` 文件名代替官方 Panda 的 CSS 入口。
+单位换算保持项目配置，不隐含设计比例。完整参数见[双语 PostCSS 参考](https://panda.weapp.dev/zh/api/postcss-plugin/)。
 
 ## 命名契约
 
@@ -56,8 +70,8 @@ prefix 的普通 class 前缀保留，变量前缀规范化；对象 prefix 的�
 | Panda 0.x 或其他 2.x                                    | 不在本版验收范围                            |
 | 包入口 ESM / CJS                                        | 支持，包括 `/panda`、`/runtime`、`/postcss` |
 
-插件仍使用受控 AST 改写生成内容，依赖已验证的 Panda 2.1.2 结构。它不执行
-适配子进程、不重新加载 Panda 配置、不自行覆盖 helper、不创建 backup。
+`weappPanda()` 生成 hook 仍使用受控 AST 改写生成内容，依赖已验证的 Panda 2.1.2 结构。它不执行
+适配子进程、不自行重复加载 Panda 配置、不自行覆盖 helper、不创建 backup。组合 PostCSS 阶段交给官方 Panda 读取配置并生成 CSS。
 
 ## 删除的 v1 接口
 
@@ -73,15 +87,15 @@ v2 是 breaking change，直接删除旧实现，不提供 deprecated 兼容入�
 | 内部文件的 wildcard 子路径导入                                              | 使用根入口或 `/panda`、`/postcss`、`/runtime`                    |
 
 根入口导出 `weappPanda`、`postcssPlugin`、`encodeClassName`、`encodeClassList`
-及 `IPostcssPluginOptions` 类型。旧 runtime、CSS 和配置不能与 v2 产物混用。
+及 `IPostcssPluginOptions`、`PostcssImportOptions`、`PandaPostcssOptions` 类型。旧 runtime、CSS 和配置不能与 v2 产物混用。
 
 Uni-app 示例保留 Tailwind 对比功能。`tailwind.css` 由 weapp-tailwindcss 处理，
 其依赖链使用 `@weapp-tailwindcss/escape`。Panda 与手写 CSS 走 portable adapter；
 两个入口分开，各自使用匹配的 runtime/selector 编码。
 Tailwind generator 的 `cssEntries` 显式指向 `tailwind.css`，不再重复注册官方
-Tailwind PostCSS generator。`panda.css` 通过 Vite 虚拟入口先基于真实 `pandaEntry` 路径执行 `postcss-import`，再执行 Panda PostCSS，
+Tailwind PostCSS generator。`panda.css` 通过 Vite 虚拟入口把真实 `pandaEntry` 作为 PostCSS `from`，由默认三合一执行 import 展开、官方 Panda 与适配；
 微信在虚拟入口内提前执行 Panda adapter 完成 ordered 编译，防止 Tailwind loader 移除或重写 layer；
-后续框架 adapter 识别 portable 标记，不重复编码。H5 虚拟入口只做 import 展开与 Panda 生成，
+后续框架使用 `{ imports: false, panda: false }` 仅适配，识别 portable 标记而不重复编码。H5 虚拟入口设置 `adapter: false`，只做 import 展开与 Panda 生成，
 保留原生 layer 和 selector，在后续框架 PostCSS 才执行 Web adapter；过早的 portable 标记会让
 Tailwind 展平 H5 layer。单位转换始终最后执行，导入与生成依赖加入 Vite watch。
 

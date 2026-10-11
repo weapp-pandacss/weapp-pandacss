@@ -14,7 +14,7 @@ Choose the API by where it runs: configure the adapter at build time, use Panda'
     `weappPanda()` and generation lifecycle. Runs in Panda configuration.
   </LinkCard>
   <LinkCard icon="file-cog" title="PostCSS plugin" href="/api/postcss-plugin/">
-    `postcssPlugin()` and every `IPostcssPluginOptions` field. Runs in the CSS build.
+    `postcssPlugin()` defaults to import expansion → Panda → adaptation. Every stage and adapter option runs in the CSS build.
   </LinkCard>
   <LinkCard icon="code" title="Runtime encoders" href="/api/runtime/">
     `encodeClassName()`, `encodeClassList()` and `createPortableRuntime()`. Runs in application or generated runtime.
@@ -39,11 +39,11 @@ These functions belong to **Panda CSS 2.1.2** and are imported from your generat
 
 ## Package entries
 
-Every JavaScript entry supports ESM, CommonJS and corresponding TypeScript declarations. `IPostcssPluginOptions` is a type export.
+Every JavaScript entry supports ESM, CommonJS and corresponding TypeScript declarations. `IPostcssPluginOptions`, `PostcssImportOptions` and `PandaPostcssOptions` are type exports.
 
 | Entry | Exports |
 | --- | --- |
-| `weapp-pandacss` | `weappPanda`, `postcssPlugin`, `encodeClassName`, `encodeClassList`, `IPostcssPluginOptions` |
+| `weapp-pandacss` | `weappPanda`, `postcssPlugin`, `encodeClassName`, `encodeClassList`, `IPostcssPluginOptions`, `PostcssImportOptions`, `PandaPostcssOptions` |
 | `weapp-pandacss/panda` | `weappPanda` |
 | `weapp-pandacss/postcss` | Default `postcssPlugin` factory |
 | `@weapp-pandacss/runtime` | `encodeClassName`, `encodeClassList`, `createPortableRuntime` |
@@ -59,7 +59,7 @@ import type { IPostcssPluginOptions } from 'weapp-pandacss'
 import { encodeClassName } from '@weapp-pandacss/runtime'
 
 const panda = weappPanda()
-const options: IPostcssPluginOptions = { target: 'weapp' }
+const options: IPostcssPluginOptions = {}
 const postcss = postcssPlugin(options)
 const authored = encodeClassName('custom/active')
 ```

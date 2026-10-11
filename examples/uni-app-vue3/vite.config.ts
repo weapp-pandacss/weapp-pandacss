@@ -27,7 +27,7 @@ export default defineConfig({
   css: {
     postcss: {
       plugins: [
-        pandaAdapter({ target: pandaTarget }),
+        pandaAdapter({ imports: false, panda: false, target: pandaTarget }),
         remToResponsivePixel({
           // 32 意味着 1rem = 32rpx
           rootValue: 32,

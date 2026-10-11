@@ -1,16 +1,18 @@
 ---
 title: Installation
-description: Install both plugins, generate matching runtime and CSS, and render your first style.
+description: Configure one PostCSS plugin, generate matching runtime and CSS, and render your first style.
 sidebar:
   order: 1
 ---
+
+> **Release availability:** This page documents the upcoming minor release and the repository implementation. The currently published npm package still uses its previous PostCSS defaults. Keep its separate import/Panda/adapter chain until upgrading to the new minor, then follow the [migration steps](/migration/#upgrade-to-the-zero-option-postcss-pipeline).
 
 ## Requirements
 
 The adapter declares Node.js `^22.18.0 || >=24.11.0`. The repository CI checks Node 22 and 24; use a supported release satisfying that range. Panda and both presets must use the verified **2.1.2** version. The adapter checks Panda's installed version and rejects other versions.
 
 ~~~sh
-pnpm add -D @pandacss/dev@2.1.2 @pandacss/preset-base@2.1.2 @pandacss/preset-panda@2.1.2 weapp-pandacss@^2 postcss postcss-import@17.0.0
+pnpm add -D @pandacss/dev@2.1.2 @pandacss/preset-base@2.1.2 @pandacss/preset-panda@2.1.2 weapp-pandacss@^2 postcss
 ~~~
 
 Panda 2 requires explicit preset installation and registration. Add the separate runtime only when application code needs to encode authored class names:
@@ -51,14 +53,14 @@ The plugin adapts runtime artifacts in `codegen:prepare`, before Panda writes th
 // postcss.config.cjs
 module.exports = {
   plugins: {
-    'postcss-import': {},
-    '@pandacss/dev/postcss': {},
-    'weapp-pandacss/postcss': { target: 'weapp' },
+    'weapp-pandacss/postcss': {},
   },
 }
 ~~~
 
-This standalone configuration expands imports with `postcss-import` before Panda and the adapter. Vite-based frameworks can provide their own preceding importer; use the framework guide rather than installing two competing import stages. Source CSS can use ordinary `@import`, but all imports must be expanded before mini-program ordered compilation. For Web/H5 change the adapter target to `web`; retain both plugins so runtime and selectors share the same class encoding. Optional rem/rpx conversion runs after the adapter and requires a separate dependency. See [units and component styles](/guides/component-styles/).
+Empty options enable the complete pipeline: **import expansion → official Panda generation → mini-program adaptation**. You do not install or register a separate `postcss-import` or `@pandacss/dev/postcss`. Keep `weappPanda()` in Panda's configuration: it encodes generated JavaScript, while this PostCSS entry generates and adapts CSS. For Web/H5 use `{ target: 'web' }`. Optional rem/rpx conversion runs after this plugin and requires a separate dependency; no unit ratio is inferred. See [units and component styles](/guides/component-styles/).
+
+Keep the global Panda entry as a `.css` file. Sass/Less/Stylus component styles can use the framework's preprocessor, but the built-in importer does not compile raw preprocessor imports. Stage switches, project discovery and custom loaders are documented in [PostCSS configuration](/postcss/).
 
 ## 3. Load the application stylesheet
 

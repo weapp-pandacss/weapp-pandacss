@@ -51,7 +51,6 @@ import path from 'node:path'
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 import uni from '@dcloudio/vite-plugin-uni'
-import panda from '@pandacss/dev/postcss'
 import remToResponsivePixel from 'postcss-rem-to-responsive-pixel'
 import { defineConfig } from 'vite'
 import adapter from 'weapp-pandacss/postcss'
@@ -70,7 +69,6 @@ export default defineConfig({
   css: {
     postcss: {
       plugins: [
-        panda({ cwd: root }),
         adapter({ target: web ? 'web' : 'weapp' }),
         remToResponsivePixel({
           rootValue: 32,
@@ -83,7 +81,7 @@ export default defineConfig({
 })
 ~~~
 
-这份 Panda-only 配置由 Vite 在已配置的 PostCSS 插件之前展开 CSS import，再由 Panda 生成 CSS、adapter 转换合并后的 root，可选单位转换最后执行。本地 import 放在源码入口顶部；残留远程导入会使小程序 ordered 编译失败。`rootValue: 32` 是示例设计选择，不是平台要求。Vite 使用内联 PostCSS 插件时，将完整流程放在这里，避免必需阶段分散在互相竞争的配置中。
+这份 Panda-only 配置只注册一个适配器，由它展开 import、执行官方 Panda 并转换合并后的 root。不要额外注册官方 Panda PostCSS 插件。Vite 也可在此前解析本地 CSS import，可选单位转换最后执行。本地 import 放在源码入口顶部；残留远程导入会使小程序 ordered 编译失败。`rootValue: 32` 是示例设计选择，不是平台要求。Vite 使用内联 PostCSS 插件时，将完整流程放在这里，避免必需阶段分散在互相竞争的配置中。
 
 在原 tsconfig 添加默认微信路径，不替换其他设置：
 
@@ -128,6 +126,10 @@ const panelClass = css({ padding: '4', bg: 'blue.800', color: 'white' })
 
 `cva()` 与 `sva()` 使用相同生成命名规则。响应式变体用 Vue `computed` 更新；全局样式无法进入原生组件时检查样式隔离。
 
+## 预处理 SFC 样式
+
+Uni/Vite 在 PostCSS 前编译 Sass/Less/Stylus SFC 样式。共享生成入口保持 `src/panda.css`，变量、mixin 与 nesting 放在框架编译的组件文件中。预处理后保留的普通 CSS import 可由内置 importer 展开；进入其默认 loader 的原始预处理文件会报错，应通过框架或自定义 importer loader 配置编译与 watch。详见[预处理器边界](/zh/postcss/#sassless-与-stylus)。
+
 ## 在 codegen 前选择目标
 
 将[公共构建脚本](/zh/frameworks/#在-codegen-前选择目标)保存为 `scripts/run-platform.mjs`，再添加：
@@ -150,9 +152,9 @@ const panelClass = css({ padding: '4', bg: 'blue.800', color: 'white' })
 仓库的对比示例需要额外处理样式入口。应同时复制[完整 Vite 配置](https://github.com/weapp-pandacss/weapp-pandacss/blob/main/examples/uni-app-vue3/vite.config.ts)、[panda-styles.ts](https://github.com/weapp-pandacss/weapp-pandacss/blob/main/examples/uni-app-vue3/panda-styles.ts)、[panda-postcss.cjs](https://github.com/weapp-pandacss/weapp-pandacss/blob/main/examples/uni-app-vue3/panda-postcss.cjs)和[应用入口](https://github.com/weapp-pandacss/weapp-pandacss/blob/main/examples/uni-app-vue3/src/main.ts)：
 
 - `src/tailwind.css` 归 Tailwind 生成器和命名 runtime 管理。
-- 微信中，`src/panda.css` 在 `virtual:panda-styles.css` 内执行 `postcss-import → Panda → Panda adapter`，在 Tailwind Vite 插件接触前完成处理，避免原生 layer 被丢弃或重写。后续框架 adapter 识别 portable 标记，不重复编码这些 class。
-- H5 虚拟入口只执行 `postcss-import → Panda`，保留原生 layer 与原始 selector；后续框架 PostCSS adapter 通过 `target: 'web'` 编码 class。不要提前执行 Web adapter：过早产生 portable 标记会让 Tailwind generator 展平 H5 layer。
-- 虚拟入口流水线安装 `postcss-import@17.0.0`。Loader 以真实 `src/panda.css` 绝对路径作为 `from: entry`，不能使用虚拟模块 ID。它将文件与目录依赖交给 Vite watcher，并返回 sourcemap；导入文件修改后重新处理时不得使用旧 CSS。Adapter 包装器跳过 Tailwind 入口，并转发 Panda/手写样式诊断；单位转换保留在最终框架流水线。
+- 微信中，`src/panda.css` 在 `virtual:panda-styles.css` 内使用默认三合一 `adapter()`（imports → Panda → 适配），在 Tailwind Vite 插件接触前完成处理，避免原生 layer 被丢弃或重写。后续框架 adapter 识别 portable 标记，不重复编码这些 class。
+- H5 虚拟入口使用 `adapter({ adapter: false })`，只执行 imports → Panda，保留原生 layer 与原始 selector；后续框架 PostCSS adapter 通过 `target: 'web'` 编码 class。不要提前执行 Web adapter：过早产生 portable 标记会让 Tailwind generator 展平 H5 layer。
+- importer 已内置，后续仅适配阶段设置 `{ imports: false, panda: false }`。Loader 以真实 `src/panda.css` 绝对路径作为 `from: entry`，不能使用虚拟模块 ID。它将文件与目录依赖交给 Vite watcher，并返回 sourcemap；导入文件修改后重新处理时不得使用旧 CSS。Adapter 包装器跳过 Tailwind 入口，并转发 Panda/手写样式诊断；单位转换保留在最终框架流水线。
 - `main.ts` 同时导入 Tailwind 入口与 Panda 虚拟入口；直接换成上面的简化配置会改变流程。
 
 对 Tailwind 产物使用 Panda 编码会破坏它与 runtime 的匹配。独立入口也不共享跨文件 cascade-layer 注册表；需要相对层顺序时，应先合并 layer 输入，再执行适配。

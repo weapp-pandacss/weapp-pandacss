@@ -4,7 +4,6 @@ import os from 'node:os'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { promisify } from 'node:util'
-import pandaPostcss from '@pandacss/dev/postcss'
 import postcss from 'postcss'
 import selectorParser from 'postcss-selector-parser'
 import { transformArtifacts } from '@/panda/transform'
@@ -181,7 +180,7 @@ describe('Panda generation plugin', () => {
   it('handles PostCSS codegen and configuration reload without writing backups', async () => {
     const root = await fixture('mjs')
     try {
-      const plugins = [pandaPostcss({ cwd: root }), plugin()]
+      const plugins = [plugin({ panda: { cwd: root } })]
       const from = path.join(root, 'src/app.css')
       const input = '@layer reset, base, tokens, recipes, utilities;'
       await postcss(plugins).process(input, { from })

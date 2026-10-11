@@ -79,15 +79,15 @@ Taro/Uni 示例的 TypeScript paths 指向默认小程序目录，bundler alias 
 
 ## 工作目录与 watch
 
-Panda 按自己的工作目录解析文件。Wevu Vite 配置显式设置 Panda PostCSS cwd，因为 mpcore/Vitest 等 API 构建会保留工作区根目录作为进程 cwd：
+默认配置下，三合一插件先从实际 CSS 源文件上方查找最近的 Panda 配置，再从进程 cwd 查找。配置所在目录成为项目根，因此从 monorepo 根目录调用构建 API 仍使用应用自身的 `include` 与 `outdir`。需要显式覆盖时：
 
 ~~~ts
-import panda from '@pandacss/dev/postcss'
+import adapter from 'weapp-pandacss/postcss'
 
-const pandaPlugin = panda({ cwd: import.meta.dirname })
+const plugin = adapter({ panda: { cwd: import.meta.dirname } })
 ~~~
 
-应传入实际应用目录，不要让无关的 Panda 配置共用一个不明确的根目录。导入展开还需要 PostCSS `from` 指向真实源码样式文件，虚拟 ID 不能作为文件解析基准；ordered 编译前，将完整 import 图合并到单 root。
+显式覆盖使用真实应用目录；无效 `cwd`/`configPath` 直接报错，不会静默选中其他项目。Import 展开还需要 PostCSS `from` 指向真实源码样式文件，虚拟 ID 不能作为解析基准。Ordered 编译前完整 import 图应合并到单 root。没有真实文件的 CSS 字符串仍可适配，但 Panda 生成会跳过；需要解析相对 import 时显式设置 importer root。
 
 示例流程先执行初始 codegen，再启动框架 dev/watch。Panda PostCSS 会记录提取依赖，让 bundler 能重建样式。独立流程需要监视 runtime 生成时，Panda 2.1.2 也提供 `panda codegen --watch`，CSS 仍需要经过 PostCSS。每个生成目录指定一个写入负责人。
 
@@ -104,8 +104,8 @@ const pandaPlugin = panda({ cwd: import.meta.dirname })
 Uni-app 对比示例分别维护入口：
 
 ~~~text
-Panda 微信 → 虚拟入口（postcss-import → Panda → adapter）→ 幂等框架 adapter → 单位转换
-Panda H5 → 虚拟入口（postcss-import → Panda，原生 layer）→ 框架 Web adapter → 单位转换
+Panda 微信 → 虚拟入口（默认三合一）→ 幂等框架 adapter → 单位转换
+Panda H5 → 虚拟入口（adapter: false，原生 layer）→ 框架 Web adapter → 单位转换
 tailwind.css → weapp-tailwindcss 专用流程 → 与它配套的 class runtime
 ~~~
 

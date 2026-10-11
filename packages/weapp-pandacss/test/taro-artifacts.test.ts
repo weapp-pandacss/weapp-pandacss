@@ -6,7 +6,7 @@ import { pathToFileURL } from 'node:url'
 import { promisify } from 'node:util'
 import postcss from 'postcss'
 import selectorParser from 'postcss-selector-parser'
-import { expectImportedArtifacts } from './import-artifact-assertions'
+import { expectImportedArtifacts, expectPreprocessedArtifacts } from './import-artifact-assertions'
 
 const run = promisify(execFile)
 
@@ -43,6 +43,7 @@ it.each(examples.flatMap(([example, styles]) => ['weapp', 'h5'].map(target => ({
     pixelUnit: target === 'weapp' ? 'rpx' : 'rem',
     pixelScale: target === 'weapp' ? 1 : 1 / 40,
   })
+  expectPreprocessedArtifacts(stylesheet, { remUnit: target === 'weapp' ? 'rpx' : 'rem', remScale: target === 'weapp' ? 32 : 32 / 40 })
   const classes = new Set<string>()
   postcss.parse(stylesheet).walkRules((rule) => {
     selectorParser(selectors => selectors.walkClasses((node) => {

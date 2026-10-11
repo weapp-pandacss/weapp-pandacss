@@ -107,10 +107,12 @@
     "@csstools/postcss-cascade-layers": "^6.0.2",
     "@csstools/postcss-is-pseudo-class": "^6.0.3",
     "@pandacss/types": "2.1.2",
+    "@types/postcss-import": "14.0.3",
     "@weapp-pandacss/runtime": "workspace:*",
     "@weapp-tailwindcss/css-compat": "0.1.1",
     "local-pkg": "^1.2.1",
     "merge": "^2.1.1",
+    "postcss-import": "17.0.0",
     "postcss-selector-parser": "^7.1.6",
     "postcss-value-parser": "^4.2.0"
   },
@@ -118,8 +120,6 @@
     "@pandacss/dev": "2.1.2",
     "@pandacss/preset-base": "2.1.2",
     "@pandacss/preset-panda": "2.1.2",
-    "@types/postcss-import": "14.0.3",
-    "postcss-import": "17.0.0",
     "tsdown": "0.23.0"
   },
   "publishConfig": {

@@ -42,7 +42,6 @@ Keep `.vue` in the scan. The repository example enables preflight to exercise re
 
 ~~~ts
 // vite.config.ts
-import panda from '@pandacss/dev/postcss'
 import remToResponsivePixel from 'postcss-rem-to-responsive-pixel'
 import adapter from 'weapp-pandacss/postcss'
 import { defineConfig } from 'weapp-vite/config'
@@ -58,8 +57,7 @@ export default defineConfig({
   css: {
     postcss: {
       plugins: [
-        panda({ cwd: import.meta.dirname }),
-        adapter({ target: 'weapp' }),
+        adapter(),
         remToResponsivePixel({
           rootValue: 32,
           propList: ['*'],
@@ -71,9 +69,9 @@ export default defineConfig({
 })
 ~~~
 
-Weapp Vite expands local CSS imports before this configured PostCSS pipeline. Keep `@import` declarations at the start of `src/app.css`; all imported rules must reach the adapter before layer flattening and class encoding. Vite forwards local imported-file dependencies for watch builds. If you replace its loader with a custom or virtual entry, resolve imports from the real source path and forward dependencies yourself. Residual remote imports fail ordered compilation; use local source or an earlier resolver.
+`adapter()` performs import expansion, official Panda generation and mini-program adaptation with default options. Weapp Vite also resolves local CSS imports before configured PostCSS; the built-in importer handles any remaining local CSS graph. Keep imports at the start of `src/app.css`. The real source filename lets Panda find this application's nearest config even when tests/build APIs run from the monorepo root. Imported-file and Panda dependencies remain available to watch. A custom virtual loader must pass the real source `from` and forward dependencies; residual remote imports need local source or an earlier resolver.
 
-Panda's explicit `cwd` keeps configuration discovery correct when API-driven tests run from the monorepo root. `rootValue: 32` means `1rem = 32rpx`; choose it for your design, or omit the converter when authoring the desired units directly. Preserve existing routing, subpackage and chunk settings when integrating into a larger application.
+Sass/Less/Stylus SFC styles use Weapp Vite's preprocessor support. Keep the Panda layer entry as `.css`; do not import raw preprocessor files through the built-in importer. See [mixed preprocessors](/postcss/#sass-less-and-stylus). `rootValue: 32` means `1rem = 32rpx`; choose it for your design, or omit the converter when authoring the desired units directly. Preserve existing routing, subpackage and chunk settings when integrating into a larger application.
 
 Create `src/app.css`:
 

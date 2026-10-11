@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { encodeClassName } from '@weapp-pandacss/runtime'
+import { encodeClassList, encodeClassName } from '@weapp-pandacss/runtime'
 import { computed, ref } from 'wevu'
 import { css, cva, cx, sva } from '../../../styled-system/css/index.mjs'
 import { box } from '../../../styled-system/patterns/index.mjs'
@@ -8,6 +8,7 @@ import { token } from '../../../styled-system/tokens/index.mjs'
 
 definePageJson({ navigationBarTitleText: 'Panda runtime acceptance' })
 
+const preprocessors = ['sass', 'less', 'stylus'].map(language => ({ language, className: encodeClassList(`preprocess/${language}-中文 active preprocess/import-${language}`) }))
 const active = ref(false)
 const atomic = css({ color: '#dc2626', fontSize: '1.5rem', padding: '0.5rem', width: '50%' })
 const variableToken = css({ padding: token.var('spacing.0.5') })
@@ -39,6 +40,9 @@ const marked = encodeClassName('-leading_wp_')
 
 <template>
   <view :class="css({ padding: '0.5rem' })">
+    <view v-for="item in preprocessors" :id="`preprocess-${item.language}`" :key="item.language" :class="item.className">
+      {{ item.language }} variables, mixins, nesting and CSS imports
+    </view>
     <view id="atomic" :class="atomic">
       Decimal / percentage
     </view>

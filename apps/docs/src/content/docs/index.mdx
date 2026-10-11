@@ -8,11 +8,21 @@ sidebar:
 
 **weapp-pandacss** connects Panda CSS **2.1.2** to mini-program builds. Use Panda's styles, recipes and tokens in Taro, Uni-app or Weapp Vite; keep the same class naming on Web/H5.
 
+Register one PostCSS plugin with empty options; it expands imports, generates Panda CSS and adapts the result:
+
+~~~js
+module.exports = {
+  plugins: { 'weapp-pandacss/postcss': {} },
+}
+~~~
+
+Keep Panda's `weappPanda()` generation hook and a global `.css` layer entry. H5 uses `{ target: 'web' }`; framework preprocessing and unit conversion remain explicit.
+
 ## Start with your project
 
 <LinkGrid>
   <LinkCard icon="rocket" title="Get started" href="/get-started/">
-    Install the two build-time plugins.
+    Configure the Panda hook and one PostCSS plugin.
   </LinkCard>
   <LinkCard icon="blocks" title="Framework guides" href="/frameworks/">
     Set up your framework's build pipeline.

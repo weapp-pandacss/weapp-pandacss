@@ -2,10 +2,24 @@
 type CascadeLayersPluginOptions = import('@csstools/postcss-cascade-layers', { with: { 'resolution-mode': 'import' } }).pluginOptions
 type IsPseudoClassPluginOptions = import('@csstools/postcss-is-pseudo-class', { with: { 'resolution-mode': 'import' } }).pluginOptions
 
+/** Options forwarded to postcss-import, including its v17 empty-file switch. */
+export type PostcssImportOptions = import('postcss-import').AtImportOptions & {
+  warnOnEmpty?: boolean
+}
+
+/** Options accepted by the supported official Panda PostCSS plugin. */
+export type PandaPostcssOptions = NonNullable<Parameters<typeof import('@pandacss/dev/postcss', { with: { 'resolution-mode': 'import' } }).default>[0]>
+
 /**
  * @description 核心插件 `weapp-pandacss/postcss` 的配置项
  */
 export interface IPostcssPluginOptions {
+  /** Expand CSS imports before Panda generation. Defaults to true. */
+  imports?: boolean | PostcssImportOptions
+  /** Generate styles using the official Panda plugin. Defaults to true. */
+  panda?: boolean | PandaPostcssOptions
+  /** Encode class names and adapt selectors/layers. Defaults to true. */
+  adapter?: boolean
   /** CSS target; both targets use the same portable class names. */
   target?: 'weapp' | 'web'
   /** Ordered layer compatibility for WXSS; Web always retains native layers. */

@@ -14,7 +14,7 @@ sidebar:
     `weappPanda()` 与生成生命周期，在 Panda 配置中执行。
   </LinkCard>
   <LinkCard icon="file-cog" title="PostCSS 插件" href="/zh/api/postcss-plugin/">
-    `postcssPlugin()` 与全部 `IPostcssPluginOptions` 字段，在 CSS 构建中执行。
+    `postcssPlugin()` 默认执行 import 展开 → Panda → 适配，全部阶段和适配参数在 CSS 构建中执行。
   </LinkCard>
   <LinkCard icon="code" title="Runtime 编码" href="/zh/api/runtime/">
     `encodeClassName()`、`encodeClassList()` 与 `createPortableRuntime()`，用于页面或生成的 runtime。
@@ -39,11 +39,11 @@ sidebar:
 
 ## 包入口
 
-所有 JavaScript 入口都提供 ESM、CommonJS 和对应 TypeScript 声明。`IPostcssPluginOptions` 是类型导出。
+所有 JavaScript 入口都提供 ESM、CommonJS 和对应 TypeScript 声明。`IPostcssPluginOptions`、`PostcssImportOptions`、`PandaPostcssOptions` 是类型导出。
 
 | 入口 | 导出 |
 | --- | --- |
-| `weapp-pandacss` | `weappPanda`、`postcssPlugin`、`encodeClassName`、`encodeClassList`、`IPostcssPluginOptions` |
+| `weapp-pandacss` | `weappPanda`、`postcssPlugin`、`encodeClassName`、`encodeClassList`、`IPostcssPluginOptions`、`PostcssImportOptions`、`PandaPostcssOptions` |
 | `weapp-pandacss/panda` | `weappPanda` |
 | `weapp-pandacss/postcss` | 默认导出的 `postcssPlugin` 工厂 |
 | `@weapp-pandacss/runtime` | `encodeClassName`、`encodeClassList`、`createPortableRuntime` |
@@ -59,7 +59,7 @@ import type { IPostcssPluginOptions } from 'weapp-pandacss'
 import { encodeClassName } from '@weapp-pandacss/runtime'
 
 const panda = weappPanda()
-const options: IPostcssPluginOptions = { target: 'weapp' }
+const options: IPostcssPluginOptions = {}
 const postcss = postcssPlugin(options)
 const authored = encodeClassName('custom/active')
 ```

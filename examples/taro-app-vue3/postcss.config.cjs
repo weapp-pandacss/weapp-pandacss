@@ -2,9 +2,7 @@ const process = require('node:process')
 
 module.exports = {
   plugins: {
-    'postcss-import': {},
-    '@pandacss/dev/postcss': {},
-    'weapp-pandacss/postcss': { target: process.env.TARO_ENV === 'h5' ? 'web' : 'weapp' },
+    'weapp-pandacss/postcss': process.env.TARO_ENV === 'h5' ? { target: 'web' } : {},
     'postcss-rem-to-responsive-pixel': {
       rootValue: 32,
       propList: ['*'],

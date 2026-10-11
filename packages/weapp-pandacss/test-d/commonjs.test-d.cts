@@ -17,3 +17,7 @@ expectAssignable<string>(runtime.encodeClassName('a.b'))
 expectError(postcssPlugin({ naming: 'legacy' }))
 expectError(api.createContext())
 expectError(api.defineConfig({}))
+
+postcssPlugin({ imports: { root: '/project', skipDuplicates: true }, panda: { cwd: '/project', configPath: 'panda.config.ts', allow: [/css/] }, adapter: true })
+postcssPlugin({ imports: false, panda: false })
+expectError(postcssPlugin({ adapter: 'false' }))

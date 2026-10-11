@@ -5,7 +5,7 @@ sidebar:
   order: 5
 ---
 
-The [React Web example](https://github.com/weapp-pandacss/weapp-pandacss/tree/main/examples/react-app) uses **React 19**, **Vite 8** and Panda CSS **2.1.2**. Web keeps native cascade layers and selector semantics; it still needs both adapter plugins to match portable runtime classes.
+The [React Web example](https://github.com/weapp-pandacss/weapp-pandacss/tree/main/examples/react-app) uses **React 19**, **Vite 8** and Panda CSS **2.1.2**. Web keeps native cascade layers and selector semantics; retain `weappPanda()` and the single composed PostCSS plugin to match portable runtime classes.
 
 ## Install
 
@@ -44,13 +44,12 @@ Add other actual source directories, such as `pages/`, to the scan when used. Ke
 // postcss.config.cjs
 module.exports = {
   plugins: {
-    '@pandacss/dev/postcss': {},
     'weapp-pandacss/postcss': { target: 'web' },
   },
 }
 ~~~
 
-Vite expands local CSS imports before configured PostCSS plugins, so imported authored selectors are encoded together with the entry. Keep imports before style rules. The Web target preserves residual native imports; the mini-program ordered compiler requires every import to be expanded. See [CSS import handling](/guides/css-compatibility/#imports-are-supported-in-source-css) before sharing one source graph across targets.
+The single configured plugin expands CSS imports, generates Panda styles and encodes portable classes with the Web target. Keep `weappPanda()` in Panda config and do not also register the official Panda PostCSS plugin. Vite expands local CSS imports before configured PostCSS plugins too, so imported authored selectors are encoded together with the entry. Keep imports before style rules. The Web target preserves residual native imports; the mini-program ordered compiler requires every import to be expanded. See [CSS import handling](/guides/css-compatibility/#imports-are-supported-in-source-css) before sharing one source graph across targets.
 
 `target: 'web'` keeps `:root`, universal selectors, native layers and Web pseudo-selector semantics. The shared class encoding stage remains active. Setting `disabled: true` is different: it disables class encoding too and can make CSS disagree with generated JavaScript.
 
@@ -124,6 +123,10 @@ const aliasOptions = {
 ~~~
 
 Use `cx()` to join generated classes and authored encoded classes; do not encode Panda outputs again. Browser hover/focus and media queries retain Web semantics, but cannot be used as evidence that the same conditions work in a mini-program.
+
+## Preprocessed component styles
+
+Vite compiles Sass/Less/Stylus before PostCSS. Install the compiler through Vite and keep the Panda generation entry as `src/index.css`; use separate preprocessed component files for variables, mixins and nesting. Vite may preprocess imported files itself; the built-in importer only accepts CSS and rejects raw preprocessor imports that reach its default loader. See [mixed preprocessors](/postcss/#sass-less-and-stylus).
 
 ## H5 alongside mini-programs
 

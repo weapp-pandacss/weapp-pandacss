@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import autoRoutes from 'weapp-vite/auto-routes'
 import './app.css'
+import './preprocessors/sass.scss'
+import './preprocessors/less.less'
+import './preprocessors/stylus.styl'
 
 defineAppJson({
   pages: autoRoutes.pages,

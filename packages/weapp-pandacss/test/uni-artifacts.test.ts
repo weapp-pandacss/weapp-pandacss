@@ -6,7 +6,7 @@ import { pathToFileURL } from 'node:url'
 import { promisify } from 'node:util'
 import postcss from 'postcss'
 import selectorParser from 'postcss-selector-parser'
-import { expectImportedArtifacts } from './import-artifact-assertions'
+import { expectImportedArtifacts, expectPreprocessedArtifacts } from './import-artifact-assertions'
 
 const run = promisify(execFile)
 const root = path.resolve(import.meta.dirname, '../../../examples/uni-app-vue3')
@@ -37,6 +37,7 @@ it.each(['mp-weixin', 'h5'])('builds matching Panda, imported and Tailwind style
   expectImportedArtifacts(css, target === 'h5' ? 'web' : 'weapp', {
     finalImports: target === 'h5' ? [] : ['"./tailwind.wxss"'],
   })
+  expectPreprocessedArtifacts(css, { remUnit: target === 'h5' ? 'px' : 'rpx', remScale: 32 })
   const classes = new Set<string>()
   postcss.parse(css).walkRules((rule) => {
     selectorParser(selectors => selectors.walkClasses((node) => {

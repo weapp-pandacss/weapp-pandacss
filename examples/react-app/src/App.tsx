@@ -1,4 +1,4 @@
-import { encodeClassName } from '@weapp-pandacss/runtime'
+import { encodeClassList, encodeClassName } from '@weapp-pandacss/runtime'
 import { useState } from 'react'
 import { css, cva, cx, sva } from '../styled-system/css/index.mjs'
 import { token } from '../styled-system/tokens/index.mjs'
@@ -22,6 +22,13 @@ function App() {
   const slots = card({ active })
   return (
     <main className={css({ p: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem' })}>
+      {['sass', 'less', 'stylus'].map(language => (
+        <p key={language} data-testid={`preprocess-${language}`} className={encodeClassList(`preprocess/${language}-中文 active preprocess/import-${language}`)}>
+          {language}
+          {' '}
+          compiled styles
+        </p>
+      ))}
       <h1 className={css({ fontSize: '2xl', fontWeight: 'bold', color: '#0284c7' })}>Panda CSS on the Web</h1>
       <section data-testid="card" className={slots.root}>
         <span data-testid="slot-label" className={slots.label}>Shared portable classes</span>

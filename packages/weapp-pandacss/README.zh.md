@@ -7,12 +7,14 @@
 由 Panda 负责写入；后者转换选择器和小程序平台 CSS。正常构建只执行 Panda
 命令，无需适配 CLI、runtime 备份或 rollback。
 
+> **发布状态：** 零选项三合一是仓库中准备随下一个 minor 发布的实现。当前 npm 已发布版本仍使用原默认值，升级前保留独立 import/Panda/adapter 配置，升级后再采用下方写法。新版本号由发布流程确定。
+
 ## 安装
 
 使用 Node.js 22.18+ 或 24.11+。
 
 ```bash
-pnpm add -D @pandacss/dev@2.1.2 @pandacss/preset-base@2.1.2 @pandacss/preset-panda@2.1.2 weapp-pandacss postcss postcss-import@17.0.0
+pnpm add -D @pandacss/dev@2.1.2 @pandacss/preset-base@2.1.2 @pandacss/preset-panda@2.1.2 weapp-pandacss postcss
 ```
 
 Panda 2 的两个 preset 需要显式安装和注册。
@@ -38,19 +40,12 @@ export default defineConfig({
 // postcss.config.cjs
 module.exports = {
   plugins: {
-    'postcss-import': {},
-    '@pandacss/dev/postcss': {},
-    'weapp-pandacss/postcss': { target: 'weapp' },
-    'postcss-rem-to-responsive-pixel': {
-      rootValue: 32,
-      propList: ['*'],
-      transformUnit: 'rpx',
-    },
+    'weapp-pandacss/postcss': {},
   },
 }
 ```
 
-rem/rpx 插件按需安装；独立流水线顺序保持 postcss-import → Panda → adapter → 单位转换。Vite 等 bundler 可已提供前置 import 展开，按对应框架指南接入。
+空配置默认执行 import 展开 → 官方 Panda 生成 → 小程序适配。无需单独安装或注册 `postcss-import`、`@pandacss/dev/postcss`，importer 已内置。rem/rpx 插件按需安装并放在此插件之后，不隐含换算比例。
 全局 CSS 注册 `@layer reset, base, tokens, recipes, utilities;`。
 构建或开发启动前执行 `panda codegen`，把生成目录加入 `.gitignore`。
 Panda 的 PostCSS 自动生成流程也会运行生成期插件。
@@ -66,6 +61,14 @@ Panda 的 PostCSS 自动生成流程也会运行生成期插件。
 从生成目录导入 `css`、`cva`、`sva`、patterns、recipes 和 styled，保持 Panda
 原有用法。别名需要同时配置 TypeScript 与框架 bundler；参考仓库五个示例。
 生成文件仍需经框架转译到目标小程序支持的 JS 语法，适配器不提供语法 polyfill。
+
+## 阶段选项与预处理器
+
+`imports`、`panda`、`adapter` 默认均为 `true`，前两项也接受上游配置对象；原有适配参数保留顶层。`{ imports: false, panda: false }` 仅适配，`{ adapter: false }` 仅导入与 Panda 生成，`{ disabled: true }` 跳过整个流水线。外置 Panda/importer 必须关闭对应内置阶段，且运行在消费其输出的阶段之前。
+
+Panda 优先使用显式 `panda.cwd/configPath`，其次发现真实 CSS 源文件上方最近配置，最后从进程 cwd 查找。配置所在目录成为项目根；无效显式配置直接报错。自定义 loader 使用真实 PostCSS `from`，转发文件/目录依赖与 sourcemap。无文件字符串仍可适配，但 Panda 跳过生成；相对 import 需要真实文件名或 `imports.root`。
+
+全局 Panda layer 入口保持 `.css`。Sass/Less/Stylus 变量、mixin 与 nesting 先由框架编译。内置 importer 展开 CSS，遇到原始 `.scss/.sass/.less/.styl/.stylus` 导入会报错，除非自定义 loader 已返回编译后的 CSS。单位转换仍单独配置。全部阶段参数与回调详见 [PostCSS 参考](https://panda.weapp.dev/zh/api/postcss-plugin/)。
 
 ## H5 与小程序
 
@@ -114,7 +117,7 @@ Panda 生成，adapter 不再替换变量名。小程序中手写变量必须使
 | 选项                                         | 默认值             | 行为                                            |
 | -------------------------------------------- | ------------------ | ----------------------------------------------- |
 | `target`                                     | `weapp`            | `weapp` 转换平台 CSS；`web` 保留 Web 选择器语义 |
-| `disabled`                                   | `false`            | 禁用所有 adapter 子插件，包括 class 编码        |
+| `disabled`                                   | `false`            | 跳过 import、Panda 生成及全部适配阶段           |
 | `cascadeLayers.mode`                         | `ordered`          | 编译层顺序；`legacy` 保留旧路径                 |
 | `cascadeLayers.onConflict`                   | `warning`          | 警告潜在语义差异；`error` 阻止构建              |
 | `removeNegationPseudoClass` (legacy)         | `true`             | 小程序移除 layer 插件生成的 `:not(#\#)`         |
@@ -159,8 +162,6 @@ v2 直接移除旧的文件补丁/配置 API、`weapp-panda` / `weapp-pandacss` 
 ```js
 export default {
   plugins: {
-    'postcss-import': {},
-    '@pandacss/dev/postcss': {},
     'weapp-pandacss/postcss': {
       cascadeLayers: { mode: 'ordered', onConflict: 'error' },
     },
@@ -170,7 +171,7 @@ export default {
 
 在 `@media` / `@supports` 等条件块使用 layer 前，先在条件外声明完整层顺序。源码可以普通 `@import`，也可带 layer；adapter 前必须完整展开导入图和 CSS nesting。**Ordered 编译拒绝所有残留 `@import`**，包括普通和远程导入，即使当前文件没有 layer：未读到的导入规则仍可能改变层顺序或未分层优先级。`postcss-import` 会保留远程导入，应将样式放到本地，或使用能提前展开它们的解析器。不要删除 import 来绕过校验。`revert-layer`、未展开的预处理语法、非法 layer 结构及已丢失层信息的 polyfill 占位也会失败。保持 Panda `polyfill: false`，从带 layer 的原始 CSS 重新生成。Web/H5（`target: 'web'`）始终保留原生 layer。
 
-现有 `WP_LAYER_SPECIFICITY`、`WP_LAYER_CONDITIONAL_ORDER`、`WP_LAYER_SELECTOR_UNKNOWN` 文本前缀继续兼容。结构化 PostCSS warning 使用内核的 `LAYER_*` code，附完整诊断及源码位置；严格模式抛出附 diagnostics 与 cause 的 PostCSS `CssSyntaxError`。Descriptor 顺序和未知 wrapper 语义可产生新增兼容警告，`onConflict: 'error'` 会将其提升为错误。Legacy 继续使用现有 csstools 流水线，不调用共享包的 `/legacy`。公开选项、runtime 与 class 编码不变，诊断处理详见 [PostCSS API](https://panda.weapp.dev/zh/api/postcss-plugin/)。
+现有 `WP_LAYER_SPECIFICITY`、`WP_LAYER_CONDITIONAL_ORDER`、`WP_LAYER_SELECTOR_UNKNOWN` 文本前缀继续兼容。结构化 PostCSS warning 使用内核的 `LAYER_*` code，附完整诊断及源码位置；严格模式抛出附 diagnostics 与 cause 的 PostCSS `CssSyntaxError`。Descriptor 顺序和未知 wrapper 语义可产生新增兼容警告，`onConflict: 'error'` 会将其提升为错误。Legacy 继续使用现有 csstools 流水线，不调用共享包的 `/legacy`。原有适配字段与 legacy 选择继续支持；新增阶段开关默认启用组合流水线，runtime 与 class 编码沿用原有契约，诊断处理详见 [PostCSS API](https://panda.weapp.dev/zh/api/postcss-plugin/)。
 
 排序只覆盖单个 PostCSS root。需要跨文件层顺序时，先合并输入，再执行适配；分别编译的文件及隔离组件样式不共享全局层注册表。Wevu 示例使用应用级 WXSS，并显式将组件 `styleIsolation` 设置为 `apply-shared`。
 

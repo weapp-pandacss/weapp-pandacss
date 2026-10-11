@@ -9,9 +9,9 @@ sidebar:
 
 ```ts
 import postcssPlugin from 'weapp-pandacss/postcss'
-import type { IPostcssPluginOptions } from 'weapp-pandacss'
+import type { IPostcssPluginOptions, PandaPostcssOptions, PostcssImportOptions } from 'weapp-pandacss'
 
-const plugin = postcssPlugin({ target: 'weapp' })
+const plugin = postcssPlugin()
 ```
 
 工厂接受可选的 `IPostcssPluginOptions` 对象，返回 PostCSS 插件。主包根入口以 `postcssPlugin` 导出相同工厂。`postcssPlugin()` 与 `postcssPlugin({})` 都使用下列默认值。
@@ -22,10 +22,10 @@ declare function postcssPlugin(options?: IPostcssPluginOptions): import('postcss
 
 ```js
 const postcssPlugin = require('weapp-pandacss/postcss')
-const plugin = postcssPlugin({ target: 'weapp' })
+const plugin = postcssPlugin()
 ```
 
-独立 PostCSS 配置采用 `postcss-import → Panda → adapter → 按需单位转换`。Ordered 编译前必须完整展开导入图和 CSS nesting。Adapter 不读取导入文件，残留普通、带 layer 或远程 import 都会失败。流水线见[配置指南](/zh/postcss/)。
+无参数时，工厂组合 **CSS import 展开 → 官方 Panda 生成 → 小程序适配**。PostCSS 仅注册 `weapp-pandacss/postcss: {}`，Panda 配置保留 `weappPanda()`，应用加载全局 `.css` layer 入口；单位转换仍单独配置。项目定位和框架预处理器见[配置指南](/zh/postcss/)。独立 ordered layer 内核保持纯 AST 边界，组合插件的 importer 在此前负责文件读取。
 
 ## 完整参数
 
@@ -33,8 +33,11 @@ const plugin = postcssPlugin({ target: 'weapp' })
 
 | 字段 | 类型 | 默认值 | 作用 |
 | --- | --- | --- | --- |
+| `imports` | `boolean \| PostcssImportOptions` | `true` | 在 Panda 前展开导入，上游字段见下文 |
+| `panda` | `boolean \| PandaPostcssOptions` | `true` | 执行官方 Panda，上游字段见下文 |
+| `adapter` | `boolean` | `true` | 执行命名、标记和目标 CSS 适配 |
 | `target` | `'weapp' \| 'web'` | `'weapp'` | 选择平台 CSS 行为，两种目标的 class 名称一致 |
-| `disabled` | `boolean` | `false` | 跳过全部转换，包括命名与标记 |
+| `disabled` | `boolean` | `false` | 跳过 import 展开、Panda 生成与全部适配转换 |
 | `cascadeLayers.mode` | `'ordered' \| 'legacy'` | `'ordered'`，传入旧参数时可变为 legacy | 选择小程序 layer 编译方式 |
 | `cascadeLayers.onConflict` | `'warning' \| 'error'` | `'warning'` | ordered layer 兼容诊断的严重级别 |
 | `selectorReplacement.root` | `string \| string[]` | `'page'` | 替换小程序 CSS 的 `:root` 与 `:host` |
@@ -56,6 +59,42 @@ const options: IPostcssPluginOptions = {
 ```
 
 按目标平台实际使用的组件选择替换标签。这只转换 selector 语法，不会设置原生组件的样式权限或 style isolation。
+
+## Import 与 Panda 参数
+
+`imports: true` 使用 `postcss-import@17.0.0` 默认值，并为默认 loader 增加原始预处理文件保护。`false` 关闭此阶段；对象参数透传给 importer。上游行为与回调详见 [postcss-import](https://github.com/postcss/postcss-import#options)。
+
+| `imports` 字段 | 类型 | 默认值 | 含义 |
+| --- | --- | --- | --- |
+| `root` | `string` | `process.cwd()` | Importer 查找根目录，相对 import 的基准来自真实源文件；字符串或虚拟输入时可显式提供 |
+| `path` | `string \| string[]` | `[]` | 额外查找路径 |
+| `filter` | `(id: string) => boolean` | 全部接受 | 未接受的 import 保留，小程序 ordered 模式仍会拒绝残留导入 |
+| `resolve` | `(id, basedir, options) => string \| string[] \| Promise` | 上游解析器 | 解析导入，包括包中的 CSS |
+| `load` | `(filename, options) => string \| Promise<string>` | 读取 UTF-8 CSS 并检查预处理扩展名 | 返回已编译 CSS，自定义 loader 负责额外依赖 |
+| `plugins` | `AcceptedPlugin[]` | `[]` | 合并前处理每个导入的 CSS 文件 |
+| `skipDuplicates` | `boolean` | `true` | 同一导入作用域内对相同内容或文件去重 |
+| `addModulesDirectories` | `string[]` | `[]` | 在 `node_modules`、`web_modules` 之外增加解析目录 |
+| `warnOnEmpty` | `boolean` | `true` | 导入空文件时警告 |
+
+`panda: true` 按需加载官方 Panda 2.1.2 PostCSS 插件，`false` 关闭生成。其完整参数如下：
+
+| `panda` 字段 | 类型 | 默认值 | 含义 |
+| --- | --- | --- | --- |
+| `cwd` | `string` | 已发现配置所在目录，其次进程 cwd | Panda 项目根目录 |
+| `configPath` | `string` | 实际源文件上方最近配置，其次 cwd 查找 | 显式配置路径，相对路径基于 `cwd` |
+| `outdir` | `string` | Panda 配置的 `outdir` | 覆盖生成目录 |
+| `allow` | `RegExp[]` | 未设置 | 允许指定 `node_modules` CSS 通过官方处理保护 |
+
+精确回调类型可用 `Exclude<IPostcssPluginOptions['imports'], boolean | undefined>` 和 `Exclude<IPostcssPluginOptions['panda'], boolean | undefined>` 获取；消费者不必额外安装类型包即可解析发布声明。显式 `cwd` 或 `configPath` 优先，无效的显式配置直接报错。无文件上下文的 CSS 字符串仍可适配，官方 Panda 阶段跳过生成；相对 import 需要真实 `from` 或显式 importer root。配置发现不会为虚拟或远程输入伪造物理文件名。
+
+```ts
+postcssPlugin({ imports: false, panda: false }) // 仅适配
+postcssPlugin({ adapter: false }) // 仅 import + Panda
+postcssPlugin({ panda: { cwd: '/workspace/app' } })
+postcssPlugin({ imports: { skipDuplicates: false } })
+```
+
+生成前会检查重复官方 Panda、外部 Panda 位于适配之后，以及仅依靠外部 importer 却将其置于生成/适配之后的情况。内置 importer 已展开完整图时，允许框架追加后置 importer。删除重复实例，或关闭内置阶段并把外部负责者放在剩余阶段之前。`disabled: true` 跳过整个流水线；`adapter: false` 仅跳过适配，仍展开 import 并生成 Panda CSS。`target: 'web'` 保留默认阶段，编码类名并保留原生 layer。
 
 ## csstools 参数
 
@@ -141,11 +180,10 @@ WXSS selector 权重仍优先于输出顺序。编译器保守地报告潜在差
 
 ```js
 import postcss from 'postcss'
-import postcssImport from 'postcss-import'
 import postcssPlugin from 'weapp-pandacss/postcss'
 
 // sourceCss 为原入口文本，from 必须指向它的真实位置。
-const result = await postcss([postcssImport(), postcssPlugin()]).process(sourceCss, {
+const result = await postcss([postcssPlugin()]).process(sourceCss, {
   from: 'src/app.css',
   to: 'dist/app.wxss',
 })
@@ -155,7 +193,7 @@ for (const warning of result.warnings()) {
 }
 ```
 
-共享内核报告的失败，包括严格诊断和非法输入，抛出 PostCSS `CssSyntaxError`，附 `code`、首个 error 级 `diagnostic`、完整 `diagnostics` 数组和 `cause` 原始编译错误。Adapter 配置、变量与 Panda polyfill 校验保留自己的既有错误，不要假定每个 adapter 错误都有内核诊断字段。共享内核错误兼容原冲突文本，并保留可用的源码位置。独立 layer 阶段先校验再提交 AST 变更，包括严格诊断失败；原子性仅针对**这个 layer 阶段**，前面的 adapter selector/命名转换可能已经改变 root。不要捕获错误后发布部分处理的 adapter root。
+共享内核报告的失败，包括严格诊断和非法输入，抛出 PostCSS `CssSyntaxError`，附 `code`、首个 error 级 `diagnostic`、完整 `diagnostics` 数组和 `cause` 原始编译错误。Adapter 配置、变量与 Panda polyfill 校验保留自己的既有错误，不要假定每个 adapter 错误都有内核诊断字段。共享内核错误兼容原冲突文本，并保留可用的源码位置。独立 layer 阶段先校验再提交 AST 变更，包括严格诊断失败；原子性仅针对**这个 layer 阶段**，前面的 import/Panda 或 adapter selector/命名转换可能已经改变 root。不要捕获错误后发布部分处理的 adapter root。
 
 ## Ordered 拒绝的输入
 
