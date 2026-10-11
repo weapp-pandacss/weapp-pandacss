@@ -9,7 +9,7 @@ Use [Panda CSS 2.1.2](https://panda-css.com/) in mini-programs and Web with matc
 Use Node.js 22.18+ or 24.11+.
 
 ```bash
-pnpm add -D @pandacss/dev@2.1.2 @pandacss/preset-base@2.1.2 @pandacss/preset-panda@2.1.2 weapp-pandacss postcss
+pnpm add -D @pandacss/dev@2.1.2 @pandacss/preset-base@2.1.2 @pandacss/preset-panda@2.1.2 weapp-pandacss postcss postcss-import@17.0.0
 ```
 
 ```ts
@@ -32,6 +32,7 @@ export default defineConfig({
 // postcss.config.cjs
 module.exports = {
   plugins: {
+    'postcss-import': {},
     '@pandacss/dev/postcss': {},
     'weapp-pandacss/postcss': { target: 'weapp' },
     // Put any rem/rpx conversion after the adapter.
@@ -39,7 +40,7 @@ module.exports = {
 }
 ```
 
-Add `@layer reset, base, tokens, recipes, utilities;` to your global CSS. Generate the runtime with `panda codegen` before building or starting development. Panda's PostCSS integration also runs the plugin when regenerating artifacts. Ignore `styled-system` in Git.
+The standalone order is `postcss-import → Panda → adapter → optional unit conversion`. Bundlers such as Vite may already expand imports before configured PostCSS plugins; follow the corresponding framework guide. Add `@layer reset, base, tokens, recipes, utilities;` to your global CSS. Generate the runtime with `panda codegen` before building or starting development. Panda's PostCSS integration also runs the plugin when regenerating artifacts. Ignore `styled-system` in Git.
 
 For Web/H5, register both plugins and use `target: 'web'`. Web keeps layers and pseudo-selector semantics; both targets use the same class names. Use separate generated directories and matching bundler aliases when building targets in parallel (see the Taro and Uni-app examples).
 
@@ -71,13 +72,14 @@ The repository includes [Taro React, Taro Vue, Uni-app Vue, React Web and Weapp 
 
 ## Cascade layer compatibility
 
-Mini-programs default to `cascadeLayers: { mode: 'ordered', onConflict: 'warning' }`. The compiler registers layer names in first-declaration order, flattens nested/anonymous/repeated layers, and emits ordinary selectors without generated `:not(n)` specificity placeholders. Normal declarations follow layer order, then unlayered declarations. Important declarations use the reverse order, with unlayered important declarations first. Source order inside each layer is preserved.
+Mini-programs default to `cascadeLayers: { mode: 'ordered', onConflict: 'warning' }`. Ordered compilation uses the pinned `@weapp-tailwindcss/css-compat@0.1.1` core behind the adapter; applications do not need to import that package directly. The compiler registers layer names in first-declaration order, flattens nested/anonymous/repeated layers, and emits ordinary selectors without generated `:not(n)` specificity placeholders. Normal declarations follow layer order, then unlayered declarations. Important declarations use the reverse order, with unlayered important declarations first. Source order inside each layer is preserved.
 
 This provides **order compatibility**, not a complete native-layer polyfill. In WXSS, a lower-priority layer with a more specific selector can still override a higher-priority layer. The adapter reports potential conflicts through PostCSS warnings, with layer names, selectors, properties and source positions. Shorthands, logical properties and unknown functional selectors are analyzed conservatively; a warning does not prove that both selectors match a real element. Set `onConflict: 'error'` to fail the build on these diagnostics.
 
 ```js
 export default {
   plugins: {
+    'postcss-import': {},
     '@pandacss/dev/postcss': {},
     'weapp-pandacss/postcss': {
       cascadeLayers: { mode: 'ordered', onConflict: 'error' },
@@ -86,7 +88,9 @@ export default {
 }
 ```
 
-Declare the full layer order outside conditional blocks before using layers in `@media` / `@supports`. Resolve imports and CSS nesting before the adapter. Unresolved `@import … layer(...)`, `revert-layer`, CSS nesting and already-polyfilled layer placeholders fail with actionable diagnostics. Keep Panda `polyfill: false`; regenerate CSS from its original layers. Web/H5 (`target: 'web'`) always retains native layers.
+Declare the full layer order outside conditional blocks before using layers in `@media` / `@supports`. Source CSS can use ordinary `@import`, including layer-qualified imports. Expand the complete import graph and CSS nesting before the adapter. **Any remaining `@import` fails ordered compilation**, including plain and remote imports, even if the current file has no layers: unseen imported rules can change layer order or unlayered precedence. `postcss-import` leaves remote imports in place, so vendor those styles locally or use an earlier resolver that expands them. Never delete imports just to silence the check. `revert-layer`, unexpanded preprocessing syntax, invalid layer structures and already-polyfilled layer placeholders also fail. Keep Panda `polyfill: false`; regenerate CSS from its original layers. Web/H5 (`target: 'web'`) always retains native layers.
+
+The existing `WP_LAYER_SPECIFICITY`, `WP_LAYER_CONDITIONAL_ORDER` and `WP_LAYER_SELECTOR_UNKNOWN` text prefixes remain compatible. Structured PostCSS warnings use the core's `LAYER_*` codes and include the original diagnostic and source location; strict mode throws a PostCSS `CssSyntaxError` with diagnostics and its cause. Descriptor order and unfamiliar wrapper semantics can add compatibility warnings, promoted to errors by `onConflict: 'error'`. Legacy still uses the existing csstools pipeline, not the shared package's `/legacy` entry. Public options, runtime and class encoding stay unchanged. See the [PostCSS API](https://panda.weapp.dev/api/postcss-plugin/) for diagnostic handling.
 
 Ordering is local to one PostCSS root. Combine layered inputs before adaptation if their relative layer order matters; independently compiled files and isolated component styles do not share a global layer registry. The Wevu example uses shared application WXSS and explicitly declares component `styleIsolation: 'apply-shared'`.
 

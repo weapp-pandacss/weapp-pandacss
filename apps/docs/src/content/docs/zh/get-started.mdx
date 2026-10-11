@@ -10,7 +10,7 @@ sidebar:
 适配器声明的 Node.js 范围为 `^22.18.0 || >=24.11.0`。仓库 CI 验证 Node 22 与 24，建议使用满足该范围的受支持版本。Panda 与两个 preset 必须使用已验收的 **2.1.2**；适配器会检查实际安装的 Panda 版本，其他版本会报错。
 
 ~~~sh
-pnpm add -D @pandacss/dev@2.1.2 @pandacss/preset-base@2.1.2 @pandacss/preset-panda@2.1.2 weapp-pandacss@^2 postcss
+pnpm add -D @pandacss/dev@2.1.2 @pandacss/preset-base@2.1.2 @pandacss/preset-panda@2.1.2 weapp-pandacss@^2 postcss postcss-import@17.0.0
 ~~~
 
 Panda 2 需要显式安装并注册 preset。仅当业务代码需要编码手写 class 时，再安装独立 runtime：
@@ -51,13 +51,14 @@ export default defineConfig({
 // postcss.config.cjs
 module.exports = {
   plugins: {
+    'postcss-import': {},
     '@pandacss/dev/postcss': {},
     'weapp-pandacss/postcss': { target: 'weapp' },
   },
 }
 ~~~
 
-Panda 位于适配器之前。Web/H5 把 adapter 的 target 改成 `web`，保留两个插件，让 runtime 与 selector 使用同一编码。按需使用的 rem/rpx 转换位于适配器之后，需要单独安装依赖，详见[单位与组件样式](/zh/guides/component-styles/)。
+这份独立配置通过 `postcss-import` 在 Panda 和 adapter 前展开导入。Vite 类框架可提供前置 importer，按框架指南接入，避免配置两个相互竞争的导入阶段。源码可以普通 `@import`，但小程序 ordered 编译前必须展开全部导入。Web/H5 把 adapter 的 target 改成 `web`，保留两个插件，让 runtime 与 selector 使用同一编码。按需使用的 rem/rpx 转换位于适配器之后，需要单独安装依赖，详见[单位与组件样式](/zh/guides/component-styles/)。
 
 ## 3. 加载应用样式
 
@@ -101,7 +102,7 @@ React 把 `cardClass` 绑定到 `className`，Vue/Wevu 绑定到 `:class`。原�
 | 检查项 | 预期结果 |
 | --- | --- |
 | Panda 配置 | 注册 `weappPanda()`，固定 preset，设置 `polyfill: false` |
-| CSS 处理 | Panda → adapter → 按需单位转换 |
+| CSS 处理 | Import 展开 → Panda → adapter → 按需单位转换 |
 | 应用入口 | 导入全局 layer 样式 |
 | Runtime 导入 | 指向当前目标的生成目录 |
 | 小程序产物 | class 与 WXSS selector 匹配，不残留原始 `@layer` |

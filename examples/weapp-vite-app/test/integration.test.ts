@@ -150,3 +150,33 @@ it('covers the runtime acceptance page, named compounds and slot transitions wit
     await project.close()
   }
 })
+
+it('expands a multi-file import graph before encoding selectors and compiling layers', async () => {
+  const stylesheet = await fs.readFile(path.join(artifact.miniprogramRootPath, 'app.wxss'), 'utf8')
+  expect(stylesheet).not.toContain('@import')
+  expect(stylesheet).not.toContain('@layer')
+  const declarations = new Map<string, { property: string, value: string, important: boolean }[]>()
+  postcss.parse(stylesheet).walkRules((rule) => {
+    for (const match of rule.selector.matchAll(/\.([\w-]+)/g)) {
+      const values = declarations.get(match[1]!) ?? []
+      rule.walkDecls((declaration) => {
+        values.push({ property: declaration.prop, value: declaration.value.replace(/\s+/g, ''), important: Boolean(declaration.important) })
+      })
+      declarations.set(match[1]!, values)
+    }
+  })
+  const values = (name: string, property: string, important = false) => (declarations.get(encodeClassName(name)) ?? [])
+    .filter(declaration => declaration.property === property && declaration.important === important)
+    .map(declaration => declaration.value)
+  expect(values('import-normal', 'color')).toEqual(['#dc2626', '#0284c7'])
+  expect(values('import-important', 'color', true)).toEqual(['#111827', '#0284c7', '#dc2626'])
+  expect(values('import-unlayered', 'color')).toEqual(['#dc2626', '#0284c7', '#111827'])
+  expect(values('import-same-layer', 'color')).toEqual(['#0284c7', 'var(--import-color,#16a34a)'])
+  expect(values('import-nested', 'margin-left')).toEqual(['8rpx'])
+  expect(values('import/中文', 'padding-left')).toEqual(['16rpx'])
+  expect(values('import_wp_2f_中文', 'padding-left')).toEqual(['24rpx'])
+  expect(values('import.a', 'margin-right')).toEqual(['7px'])
+  expect(values('import_wp_2e_a', 'margin-right')).toEqual(['11px'])
+  expect(encodeClassName('import/中文')).not.toBe(encodeClassName('import_wp_2f_中文'))
+  expect(encodeClassName('import.a')).not.toBe(encodeClassName('import_wp_2e_a'))
+})

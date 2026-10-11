@@ -1,0 +1,11 @@
+/* Source import order deliberately differs from the declared cascade order. */
+@import './utilities.css' layer(import-demo.utilities);
+@import './base.css' layer(import-demo.base);
+
+.import-unlayered {
+  color: #111827;
+}
+
+.import-important {
+  color: #111827 !important;
+}

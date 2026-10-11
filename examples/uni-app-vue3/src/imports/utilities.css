@@ -1,0 +1,32 @@
+/* These higher-priority normal declarations are imported before base. */
+.import-normal,
+.import-unlayered {
+  color: #0284c7;
+}
+
+.import-important {
+  color: #0284c7 !important;
+}
+
+.import-same-layer {
+  color: #0284c7;
+  color: var(--import-color, #16a34a);
+}
+
+/* stylelint-disable selector-class-pattern -- Imported Unicode and collision probes must share the portable runtime encoding contract. */
+.import\/中文 {
+  padding-left: 0.5rem;
+}
+
+.import_wp_2f_中文 {
+  padding-left: 0.75rem;
+}
+
+.import\.a {
+  margin-right: 7px;
+}
+
+.import_wp_2e_a {
+  margin-right: 11px;
+}
+/* stylelint-enable selector-class-pattern */

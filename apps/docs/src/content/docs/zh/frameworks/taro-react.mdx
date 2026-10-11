@@ -12,7 +12,7 @@ sidebar:
 Taro 依赖组保持匹配版本。adapter 声明 Node `^22.18.0 || >=24.11.0`，推荐 Node 22.18+ 或 24.11+ 的 LTS 版本，在应用目录执行：
 
 ~~~sh
-pnpm add -D @pandacss/dev@2.1.2 @pandacss/preset-base@2.1.2 @pandacss/preset-panda@2.1.2 weapp-pandacss@^2 postcss postcss-rem-to-responsive-pixel
+pnpm add -D @pandacss/dev@2.1.2 @pandacss/preset-base@2.1.2 @pandacss/preset-panda@2.1.2 weapp-pandacss@^2 postcss postcss-import@17.0.0 postcss-rem-to-responsive-pixel
 ~~~
 
 手写特殊 class 还需要 `pnpm add @weapp-pandacss/runtime`。Panda 和 PostCSS 放在构建依赖中，独立编码器放在应用依赖中。
@@ -86,6 +86,7 @@ const process = require('node:process')
 
 module.exports = {
   plugins: {
+    'postcss-import': {},
     '@pandacss/dev/postcss': {},
     'weapp-pandacss/postcss': {
       target: process.env.TARO_ENV === 'h5' ? 'web' : 'weapp',
@@ -100,6 +101,12 @@ module.exports = {
 ~~~
 
 创建 `src/app.css`，写入 `@layer reset, base, tokens, recipes, utilities;`，并在 `src/app.ts` 导入 `./app.css`。单位转换可选，`rootValue: 32` 是示例的设计选择；需要与 Taro 的 `designWidth`、`pxtransform` 协调，避免尺寸重复转换。
+
+## 在生成前导入手写样式
+
+微信与 H5 显式使用 `postcss-import → Panda → adapter → 单位转换`。在 `src/app.css` 顶部、样式规则前写入 `@import "./styles/shared.css";`。Importer 从真实入口相对解析并展开多级导入，让 adapter 同时收到被导入和生成的规则。
+
+被导入文件的特殊 class selector 也必须经过 adapter。例如在导入 CSS 中编写 `.custom\/active`，业务代码从 `@weapp-pandacss/runtime` 调用 `encodeClassName('custom/active')` 后绑定。不要导入已独立展平的 CSS，也不要再次编码 Panda 输出。检查目标 CSS/WXSS 的对应编码 selector 与跨文件层顺序。远程残留 import 需要本地化或前序解析器，warning 模式也不会跳过 `LAYER_IMPORT`。
 
 ## 按目标生成
 
@@ -141,4 +148,4 @@ pnpm --filter @weapp-pandacss/taro-app build:h5
 pnpm --filter @weapp-pandacss/taro-app typecheck
 ~~~
 
-在仓库根目录执行。微信工程使用已提交的 project 配置，其中选定 `dist/weapp`。样式缺失时检查最终 class 和 WXSS selector。产物检查与可选 IDE 渲染探针覆盖部分样式，不承诺手机具备浏览器 hover/focus 行为，也不代表验收了全部 NutUI 交互。忽略生成目录与私有 IDE 设置。
+在仓库根目录执行。微信工程使用已提交的 project 配置，其中选定 `dist/weapp`。样式缺失时检查最终 class 和 WXSS selector。微信/H5 产物检查覆盖生成与导入样式，可选 IDE 渲染探针覆盖部分小程序样式，不承诺手机具备浏览器 hover/focus 行为，也不代表验收了全部 NutUI 交互。忽略生成目录与私有 IDE 设置。

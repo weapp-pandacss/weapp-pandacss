@@ -50,6 +50,8 @@ module.exports = {
 }
 ~~~
 
+Vite expands local CSS imports before configured PostCSS plugins, so imported authored selectors are encoded together with the entry. Keep imports before style rules. The Web target preserves residual native imports; the mini-program ordered compiler requires every import to be expanded. See [CSS import handling](/guides/css-compatibility/#imports-are-supported-in-source-css) before sharing one source graph across targets.
+
 `target: 'web'` keeps `:root`, universal selectors, native layers and Web pseudo-selector semantics. The shared class encoding stage remains active. Setting `disabled: true` is different: it disables class encoding too and can make CSS disagree with generated JavaScript.
 
 Create `src/index.css`:

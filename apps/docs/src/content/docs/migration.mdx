@@ -5,14 +5,14 @@ sidebar:
   order: 7
 ---
 
-Version 2.0 changes class encoding and default variable naming. Old runtime, page artifacts and newly generated CSS must not be mixed. The migration replaces generated-file patching with a Panda plugin; it is more than changing an import.
+This page covers the original 2.0 migration and the shared ordered-compiler update below. Version 2.0 changes class encoding and default variable naming. Old runtime, page artifacts and newly generated CSS must not be mixed. The migration replaces generated-file patching with a Panda plugin; it is more than changing an import.
 
 ## Upgrade sequence
 
 1. Stop the project's build/watch processes that write the generated directory. Remove its old `styled-system` output, including helper backups and weapp-panda patch files.
 2. Pin `@pandacss/dev`, `@pandacss/preset-base` and `@pandacss/preset-panda` to **2.1.2**. Register `weappPanda()`, set `polyfill: false`, and use supported `.js` or `.mjs` runtime output.
 3. Replace `panda codegen && weapp-panda codegen` with `panda codegen`. Remove adapter subprocesses, `codegen:done` patch hooks and platform rollback scripts.
-4. Register Panda → PostCSS adapter → optional rem/rpx conversion. Move CSS options from the old adapter configuration file into the PostCSS plugin's arguments.
+4. Expand imports → Panda → PostCSS adapter → optional rem/rpx conversion. Use `postcss-import@17.0.0` in a standalone/Taro configuration, or the framework's preceding importer. Move CSS options from the old adapter configuration file into the PostCSS plugin's arguments.
 5. Update authored-class helpers to `@weapp-pandacss/runtime`. Encode raw authored names once, leaving `css()`, recipe, pattern and `cx()` results intact.
 6. Align target environment, generated/output directories and aliases, then regenerate runtime and CSS together. Clear only the affected framework target's stale cache and rebuild.
 7. Inspect final classes, selectors, token references and actual interactions on each target you support.
@@ -81,6 +81,18 @@ The default ordered path needs original `@layer` information. Keep Panda `polyfi
 Explicit `removeNegationPseudoClass`, `selectorReplacement.cascadeLayers` or `cascadeLayersPluginOptions` selects legacy mode. To adopt ordered mode, remove those legacy options and use `cascadeLayers: { mode: 'ordered' }`. Mixing them is a configuration error.
 
 Layer conversion is order compatibility, not full native cascade equivalence. Review specificity warnings and the single-root boundary in [CSS compatibility](/guides/css-compatibility/). This layer-mode choice does not introduce another class-encoding format.
+
+## Shared ordered-compiler update
+
+The source update replaces the local ordered core with pinned `@weapp-tailwindcss/css-compat@0.1.1` and records **minor release intent**. It does not assign or publish a new adapter version; consult the package/release for the installed version. The published guide already required imports and nesting to be expanded before adaptation. The shared core now validates that requirement for **every residual import**, including ordinary and remote imports, rather than only layer-qualified imports.
+
+1. Keep source `@import` declarations. Check their graph is combined before Panda and the adapter, using the [PostCSS pipeline](/postcss/) or your framework's importer. Do not remove imports to make validation pass.
+2. On Taro React/Vue, add `postcss-import` explicitly before Panda. On React Vite/Weapp Vite, retain the framework's preceding import handling. For the Uni-app Panda virtual entry, resolve from the real `pandaEntry` filename and forward imported-file dependencies to watch.
+3. Vendor remote styles locally or use an upstream resolver; `postcss-import` leaves remote imports unresolved. Expand nesting and preprocessor syntax before adaptation; replace `revert-layer` with explicit rules.
+4. Retain existing public options and legacy selection. The old three `WP_LAYER_*` text prefixes remain; programmatic diagnostics now expose `LAYER_*` codes, source positions and context. New descriptor/wrapper compatibility warnings can make `onConflict: 'error'` reject additional risky input.
+5. Regenerate and rebuild every supported target. Verify imported special-class encoding, normal unlayered precedence, important inversion and updates after editing an imported file. H5 keeps native layers; the source import graph must be fully expanded before mini-program ordered compilation. The compiler removes layers from that root. A framework can subsequently emit valid WXSS imports of independently compiled assets; those output imports are outside this input check.
+
+No runtime migration, naming rollback or new direct application dependency on CSS compat is required. Strict/input failures carry structured diagnostics in a PostCSS `CssSyntaxError`; atomic validation is guaranteed for the independent layer stage, not for all preceding adapter mutations. See [troubleshooting](/troubleshooting/#ordinary-import-now-fails) for symptoms and checks.
 
 ## Web/H5 and build isolation
 

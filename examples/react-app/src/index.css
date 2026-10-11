@@ -1,4 +1,6 @@
 @layer reset, base, tokens, recipes, utilities;
+@layer import-demo.base, import-demo.utilities;
+@import './imports/entry.css';
 
 /* stylelint-disable selector-class-pattern -- Intentional special names demonstrate portable encoding and collision avoidance. */
 .manual\/中文_wp_2e_ {

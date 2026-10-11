@@ -50,6 +50,8 @@ module.exports = {
 }
 ~~~
 
+Vite 在已配置的 PostCSS 插件之前展开本地 CSS import，被导入的手写 selector 与入口一起编码。Import 放在样式规则之前。Web 目标保留残留原生 import，小程序 ordered 编译则要求每个导入都已展开；共享源码图前先查 [CSS 导入处理](/zh/guides/css-compatibility/#源码可以正常使用-import)。
+
 `target: 'web'` 保留 `:root`、通用选择器、原生 layers 和 Web 伪类语义，但仍执行共享 class 编码。`disabled: true` 则同时关闭编码，可能造成 CSS 与生成 JavaScript 不匹配。
 
 创建 `src/index.css`：

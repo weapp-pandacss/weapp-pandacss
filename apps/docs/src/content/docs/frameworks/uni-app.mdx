@@ -83,7 +83,7 @@ export default defineConfig({
 })
 ~~~
 
-Panda generates CSS first, the adapter transforms it next, and optional unit conversion runs last. `rootValue: 32` is an example choice, not a platform requirement. When Vite supplies inline PostCSS plugins, put the complete pipeline there rather than splitting required stages between competing configurations.
+In this Panda-only setup, Vite expands CSS imports before the configured PostCSS plugins. Panda then generates CSS, the adapter transforms the combined root, and optional unit conversion runs last. Keep local imports at the start of the source entry; residual remote imports fail mini-program ordered compilation. `rootValue: 32` is an example choice, not a platform requirement. When Vite supplies inline PostCSS plugins, put the complete pipeline there rather than splitting required stages between competing configurations.
 
 Add the default WeChat TypeScript path without replacing the rest of your tsconfig:
 
@@ -147,11 +147,12 @@ The launcher sets `UNI_PLATFORM` for both codegen and Uni. WeChat runtime goes t
 
 ## Coexist with Tailwind v4
 
-The repository's comparison example needs additional entry handling. Copy its [full Vite configuration](https://github.com/weapp-pandacss/weapp-pandacss/blob/main/examples/uni-app-vue3/vite.config.ts), [panda-postcss.cjs](https://github.com/weapp-pandacss/weapp-pandacss/blob/main/examples/uni-app-vue3/panda-postcss.cjs) and [main entry](https://github.com/weapp-pandacss/weapp-pandacss/blob/main/examples/uni-app-vue3/src/main.ts) together:
+The repository's comparison example needs additional entry handling. Copy its [full Vite configuration](https://github.com/weapp-pandacss/weapp-pandacss/blob/main/examples/uni-app-vue3/vite.config.ts), [panda-styles.ts](https://github.com/weapp-pandacss/weapp-pandacss/blob/main/examples/uni-app-vue3/panda-styles.ts), [panda-postcss.cjs](https://github.com/weapp-pandacss/weapp-pandacss/blob/main/examples/uni-app-vue3/panda-postcss.cjs) and [main entry](https://github.com/weapp-pandacss/weapp-pandacss/blob/main/examples/uni-app-vue3/src/main.ts) together:
 
 - `src/tailwind.css` belongs to Tailwind's generator and naming runtime.
-- `src/panda.css` is expanded by Panda through `virtual:panda-styles.css` before Tailwind's Vite plugin can discard layer-order-only input.
-- The adapter wrapper skips the Tailwind entry and adapts Panda/authored styles, forwarding PostCSS diagnostics.
+- On WeChat, `src/panda.css` passes through `postcss-import → Panda → Panda adapter` inside `virtual:panda-styles.css` before Tailwind's Vite plugin can discard or rewrite the native layers. The framework's later adapter pass recognizes the portable marker and does not encode those classes again.
+- On H5, the virtual entry runs only `postcss-import → Panda`, preserving native layers and raw selectors. The framework's PostCSS adapter subsequently encodes classes with `target: 'web'`. Do not run the Web adapter early: the premature portable marker can cause Tailwind's generator to flatten the H5 layers.
+- Install `postcss-import@17.0.0` for the virtual-entry pipeline. The loader processes with `from: entry`, the real absolute `src/panda.css` path, not the virtual module ID. It forwards file and directory dependencies to Vite's watcher and returns the source map; reprocessing imported-file changes must not reuse stale CSS. The adapter wrapper skips the Tailwind entry and forwards Panda/authored-style diagnostics. Keep unit conversion in the final framework pipeline.
 - `main.ts` imports both the Tailwind entry and the Panda virtual entry; replacing the virtual import with the simplified setup above changes the pipeline.
 
 Applying Panda encoding to Tailwind output breaks that stylesheet's runtime contract. Separate entries also do not provide one shared cross-file cascade-layer registry; combine layered inputs before adaptation when their relative order matters.

@@ -83,7 +83,7 @@ export default defineConfig({
 })
 ~~~
 
-Panda 先生成 CSS，adapter 随后转换，可选单位转换最后执行。`rootValue: 32` 是示例设计选择，不是平台要求。Vite 使用内联 PostCSS 插件时，将完整流程放在这里，避免必需阶段分散在互相竞争的配置中。
+这份 Panda-only 配置由 Vite 在已配置的 PostCSS 插件之前展开 CSS import，再由 Panda 生成 CSS、adapter 转换合并后的 root，可选单位转换最后执行。本地 import 放在源码入口顶部；残留远程导入会使小程序 ordered 编译失败。`rootValue: 32` 是示例设计选择，不是平台要求。Vite 使用内联 PostCSS 插件时，将完整流程放在这里，避免必需阶段分散在互相竞争的配置中。
 
 在原 tsconfig 添加默认微信路径，不替换其他设置：
 
@@ -147,11 +147,12 @@ const panelClass = css({ padding: '4', bg: 'blue.800', color: 'white' })
 
 ## 与 Tailwind v4 共存
 
-仓库的对比示例需要额外处理样式入口。应同时复制[完整 Vite 配置](https://github.com/weapp-pandacss/weapp-pandacss/blob/main/examples/uni-app-vue3/vite.config.ts)、[panda-postcss.cjs](https://github.com/weapp-pandacss/weapp-pandacss/blob/main/examples/uni-app-vue3/panda-postcss.cjs)和[应用入口](https://github.com/weapp-pandacss/weapp-pandacss/blob/main/examples/uni-app-vue3/src/main.ts)：
+仓库的对比示例需要额外处理样式入口。应同时复制[完整 Vite 配置](https://github.com/weapp-pandacss/weapp-pandacss/blob/main/examples/uni-app-vue3/vite.config.ts)、[panda-styles.ts](https://github.com/weapp-pandacss/weapp-pandacss/blob/main/examples/uni-app-vue3/panda-styles.ts)、[panda-postcss.cjs](https://github.com/weapp-pandacss/weapp-pandacss/blob/main/examples/uni-app-vue3/panda-postcss.cjs)和[应用入口](https://github.com/weapp-pandacss/weapp-pandacss/blob/main/examples/uni-app-vue3/src/main.ts)：
 
 - `src/tailwind.css` 归 Tailwind 生成器和命名 runtime 管理。
-- `src/panda.css` 先通过 `virtual:panda-styles.css` 由 Panda 展开，避免 Tailwind Vite 插件丢弃只有 layer 顺序的输入。
-- adapter 包装器跳过 Tailwind 入口，适配 Panda/手写样式，并转发 PostCSS 诊断。
+- 微信中，`src/panda.css` 在 `virtual:panda-styles.css` 内执行 `postcss-import → Panda → Panda adapter`，在 Tailwind Vite 插件接触前完成处理，避免原生 layer 被丢弃或重写。后续框架 adapter 识别 portable 标记，不重复编码这些 class。
+- H5 虚拟入口只执行 `postcss-import → Panda`，保留原生 layer 与原始 selector；后续框架 PostCSS adapter 通过 `target: 'web'` 编码 class。不要提前执行 Web adapter：过早产生 portable 标记会让 Tailwind generator 展平 H5 layer。
+- 虚拟入口流水线安装 `postcss-import@17.0.0`。Loader 以真实 `src/panda.css` 绝对路径作为 `from: entry`，不能使用虚拟模块 ID。它将文件与目录依赖交给 Vite watcher，并返回 sourcemap；导入文件修改后重新处理时不得使用旧 CSS。Adapter 包装器跳过 Tailwind 入口，并转发 Panda/手写样式诊断；单位转换保留在最终框架流水线。
 - `main.ts` 同时导入 Tailwind 入口与 Panda 虚拟入口；直接换成上面的简化配置会改变流程。
 
 对 Tailwind 产物使用 Panda 编码会破坏它与 runtime 的匹配。独立入口也不共享跨文件 cascade-layer 注册表；需要相对层顺序时，应先合并 layer 输入，再执行适配。

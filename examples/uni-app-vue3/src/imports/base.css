@@ -1,0 +1,11 @@
+@import './nested.css' layer(nested);
+
+.import-normal,
+.import-unlayered {
+  color: #dc2626;
+}
+
+/* Important declarations reverse the declared cascade layer order. */
+.import-important {
+  color: #dc2626 !important;
+}

@@ -6,13 +6,15 @@ Run one example with `pnpm --filter @weapp-pandacss/taro-app build` (or `taro-ap
 
 The [Weapp Vite + Wevu example](./weapp-vite-app/README.md) includes native mini-program interaction tests, `css()` and `cva()` authoring, and the Panda generation plugin. It also ignores generated `.weapp-vite` support files. See the [bilingual framework guide](https://panda.weapp.dev/frameworks/).
 
+The Taro React/Vue pipelines explicitly use `postcss-import → Panda → adapter → unit conversion`. Vite/Weapp Vite expand local imports before configured PostCSS plugins. Uni-app's Panda virtual entry expands imports from the real entry path before Panda and tracks dependencies for watch. Only mini-programs run the adapter in that virtual stage to preserve order before Tailwind's generator; H5 keeps native layers there and encodes classes later in framework PostCSS. Running the Web adapter early can cause Tailwind to flatten H5 layers. Source imports must be fully expanded before mini-program ordered compilation; framework-generated WXSS imports of independently compiled assets can remain. See [CSS import handling](https://panda.weapp.dev/guides/css-compatibility/) / [CSS 导入处理](https://panda.weapp.dev/zh/guides/css-compatibility/).
+
 ## Pick a framework / 选择框架
 
 | Example               | Guide                                                   | 中文指南                                                  | Checked behavior                                      |
 | --------------------- | ------------------------------------------------------- | --------------------------------------------------------- | ----------------------------------------------------- |
 | Weapp Vite + Wevu     | [Setup](https://panda.weapp.dev/frameworks/weapp-vite/) | [接入](https://panda.weapp.dev/zh/frameworks/weapp-vite/) | Generated WXSS and headless mini-program state/events |
-| Taro React, Webpack 5 | [Setup](https://panda.weapp.dev/frameworks/taro-react/) | [接入](https://panda.weapp.dev/zh/frameworks/taro-react/) | WeChat build artifacts                                |
-| Taro Vue, Webpack 5   | [Setup](https://panda.weapp.dev/frameworks/taro-vue/)   | [接入](https://panda.weapp.dev/zh/frameworks/taro-vue/)   | WeChat build artifacts                                |
+| Taro React, Webpack 5 | [Setup](https://panda.weapp.dev/frameworks/taro-react/) | [接入](https://panda.weapp.dev/zh/frameworks/taro-react/) | WeChat/H5 build artifacts                             |
+| Taro Vue, Webpack 5   | [Setup](https://panda.weapp.dev/frameworks/taro-vue/)   | [接入](https://panda.weapp.dev/zh/frameworks/taro-vue/)   | WeChat/H5 build artifacts                             |
 | Uni-app Vue           | [Setup](https://panda.weapp.dev/frameworks/uni-app/)    | [接入](https://panda.weapp.dev/zh/frameworks/uni-app/)    | WeChat/H5 build artifacts, Panda/Tailwind separation  |
 | React Web             | [Setup](https://panda.weapp.dev/frameworks/web/)        | [接入](https://panda.weapp.dev/zh/frameworks/web/)        | Computed styles and interactions in three browsers    |
 

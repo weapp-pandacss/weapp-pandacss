@@ -1,0 +1,4 @@
+/* A relative, second-level import exercises dependency tracking and nesting. */
+.import-nested {
+  margin-left: 0.25rem;
+}

@@ -18,7 +18,7 @@ The adapter accepts two CSS targets: `weapp` and `web`. These are different from
 | Weapp Vite + Wevu example | `weapp.platform: 'weapp'` | `styled-system` | `weapp` |
 | React Web example | Vite Web build | `styled-system` | `web` |
 
-Taro's repository artifact tests cover WeChat; Uni-app's cover WeChat and H5. Other framework scripts and a `weapp` CSS target do not establish verification for every platform. See the [framework support matrix](/frameworks/).
+Taro React/Vue and Uni-app repository artifact tests cover WeChat and H5, including cross-file imported styles. Other framework scripts and a `weapp` CSS target do not establish verification for every platform. See the [framework support matrix](/frameworks/).
 
 ## Set the platform before codegen
 
@@ -87,7 +87,7 @@ import panda from '@pandacss/dev/postcss'
 const pandaPlugin = panda({ cwd: import.meta.dirname })
 ~~~
 
-Use the actual application's directory, not an arbitrary root shared by unrelated Panda configurations.
+Use the actual application's directory, not an arbitrary root shared by unrelated Panda configurations. Import expansion separately needs PostCSS `from` to identify the real source stylesheet; virtual IDs are not file-resolution bases. Keep the full import graph in one root before ordered compilation.
 
 The standard example flow runs initial codegen and then starts the framework's dev/watch process. Panda's PostCSS integration records extraction dependencies so the bundler can rebuild styles. If a standalone workflow needs runtime-generation watch, Panda 2.1.2 also offers `panda codegen --watch`; CSS still needs the PostCSS pipeline. Assign one owner to each generated directory.
 
@@ -104,11 +104,12 @@ To recover, stop the processes writing the affected target, remove that target's
 The Uni-app comparison example uses separate entries:
 
 ~~~text
-panda.css → Panda PostCSS in a virtual CSS entry → Panda adapter → rem/unit conversion
+Panda WeChat → virtual entry (postcss-import → Panda → adapter) → idempotent framework adapter → units
+Panda H5 → virtual entry (postcss-import → Panda, native layers) → framework Web adapter → units
 tailwind.css → weapp-tailwindcss's dedicated pipeline → its matching class runtime
 ~~~
 
-The Panda entry is expanded early because Tailwind's generator may remove an input containing only layer-order declarations before framework PostCSS sees it. The virtual entry registers Panda dependency messages with Vite watch.
+The Panda entry always expands imports from its real source path before generation. The mini-program virtual entry adapts it early because Tailwind's generator can remove or rewrite native layers; the later framework pass uses the portable marker to avoid repeated encoding. H5 instead leaves layers and selectors native in the virtual entry and runs the Web adapter only in framework PostCSS. An early Web adapter produces a marker that can make Tailwind flatten H5 layers, so preserve this target-specific boundary. The virtual entry registers both imported-file and Panda file/directory dependencies with Vite watch and forwards its source map. Imported-file changes must invalidate and regenerate that virtual entry rather than return cached CSS.
 
 The example's [panda-postcss.cjs](https://github.com/weapp-pandacss/weapp-pandacss/blob/main/examples/uni-app-vue3/panda-postcss.cjs) skips `tailwind.css` while adapting Panda and authored CSS. `WeappTailwindcss` receives an explicit Tailwind `cssEntries` path. Do not also register a second Tailwind generator or pass its already adapted CSS through Panda's codec. This is an example integration, not a new adapter option.
 

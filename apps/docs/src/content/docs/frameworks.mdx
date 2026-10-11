@@ -38,12 +38,14 @@ Register both parts of the adapter in every target: `weappPanda()` adapts genera
 
 | Area | Repository verification | Boundary |
 | --- | --- | --- |
-| Taro React / Vue | Final framework styles and runtime class matching | Artifact checks do not prove all interactions or visual layout |
+| Taro React / Vue | WeChat/H5 styles, imported CSS and runtime class matching | Artifact checks do not prove all interactions or visual layout |
 | Uni-app | Mini-program and H5 CSS artifacts | Tailwind comparison styles use a separate pipeline |
 | Weapp Vite + Wevu | Compiled WXML, components, taps and changing classes through mpcore | Headless mpcore does not emulate CSS layout |
 | React Web | Production computed styles and interactions in Chromium, Firefox and WebKit | Browser behavior is not mini-program device evidence |
 | Real WeChat DevTools | Opt-in rendering probes for the four mini-program examples | Requires an actual run, stable IDE and authorized AppID; simulator evidence is not physical-device evidence |
 | Native WeChat, Taro Vite, other mini-program targets, App/RN | No dedicated integration acceptance | Existing framework scripts do not establish adapter support |
+
+Cross-file import regression covers eight real builds: React Web, Weapp Vite WeChat, Taro React WeChat/H5, Taro Vue WeChat/H5 and Uni-app WeChat/H5. The shared fixture checks imported portable classes, unlayered precedence, important inversion and condition metadata. Three browsers compare compiled CSS with native cross-file layers; the specificity counterexample remains an explicit boundary.
 
 Use [the testing guide](https://github.com/weapp-pandacss/weapp-pandacss/blob/main/docs/testing-strategy.md) for commands and prerequisites. These levels describe test scope, rather than claim that every suite ran for your application.
 

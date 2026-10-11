@@ -1,4 +1,6 @@
 @layer reset, base, tokens, recipes, utilities;
+@layer import-demo.base, import-demo.utilities;
+@import './imports/entry.css';
 
 @layer reset {
   * {

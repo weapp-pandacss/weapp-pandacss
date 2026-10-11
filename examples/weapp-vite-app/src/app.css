@@ -1,4 +1,6 @@
 @layer reset, base, tokens, recipes, utilities;
+@layer import-demo.base, import-demo.utilities;
+@import './imports/entry.css';
 @layer layer-demo.base, layer-demo.utilities;
 
 /* Deliberately write the higher layer first; block order must not win. */

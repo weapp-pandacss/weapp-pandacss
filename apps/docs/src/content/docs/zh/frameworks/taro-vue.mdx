@@ -12,7 +12,7 @@ sidebar:
 在已有 Taro Vue 应用中，adapter 声明 Node `^22.18.0 || >=24.11.0`，推荐使用 Node 22.18+ 或 24.11+ 的 LTS 版本：
 
 ~~~sh
-pnpm add -D @pandacss/dev@2.1.2 @pandacss/preset-base@2.1.2 @pandacss/preset-panda@2.1.2 weapp-pandacss@^2 postcss postcss-rem-to-responsive-pixel
+pnpm add -D @pandacss/dev@2.1.2 @pandacss/preset-base@2.1.2 @pandacss/preset-panda@2.1.2 weapp-pandacss@^2 postcss postcss-import@17.0.0 postcss-rem-to-responsive-pixel
 ~~~
 
 Taro 依赖组保持匹配版本。仅在编码原始手写 class 时，才将 `@weapp-pandacss/runtime` 安装为应用依赖。
@@ -85,6 +85,7 @@ const process = require('node:process')
 
 module.exports = {
   plugins: {
+    'postcss-import': {},
     '@pandacss/dev/postcss': {},
     'weapp-pandacss/postcss': {
       target: process.env.TARO_ENV === 'h5' ? 'web' : 'weapp',
@@ -104,7 +105,13 @@ module.exports = {
 @layer reset, base, tokens, recipes, utilities;
 ~~~
 
-在 `src/app.ts` 中与 Vue 的 `createApp` 一起导入 `./app.css`。顺序保持 Panda → adapter → 可选单位转换，并与 Taro 的 `pxtransform`、`designWidth` 协调。
+在 `src/app.ts` 中与 Vue 的 `createApp` 一起导入 `./app.css`。顺序保持 postcss-import → Panda → adapter → 可选单位转换，并与 Taro 的 `pxtransform`、`designWidth` 协调。
+
+## 在生成前导入手写样式
+
+微信与 H5 显式使用 `postcss-import → Panda → adapter → 单位转换`。在 `src/app.css` 顶部、样式规则前写入 `@import "./styles/shared.css";`。Importer 从真实入口相对解析并展开多级导入，让 adapter 同时收到被导入和生成的规则。
+
+被导入文件的特殊 class selector 也必须经过 adapter。例如在导入 CSS 中编写 `.custom\/active`，业务代码从 `@weapp-pandacss/runtime` 调用 `encodeClassName('custom/active')` 后绑定。不要导入已独立展平的 CSS，也不要再次编码 Panda 输出。检查目标 CSS/WXSS 的对应编码 selector 与跨文件层顺序。远程残留 import 需要本地化或前序解析器，warning 模式也不会跳过 `LAYER_IMPORT`。
 
 ## 单目标构建
 
@@ -149,4 +156,4 @@ pnpm --filter @weapp-pandacss/taro-app-vue3 build:h5
 pnpm --filter @weapp-pandacss/taro-app-vue3 typecheck
 ~~~
 
-产物测试检查生成 class 与样式匹配。可选真实 IDE 探针检查部分 token 渲染颜色与重新启动，不代表覆盖全部 Vue/NutUI 交互或物理设备。忽略 `styled-system/`、`dist/` 与私有 IDE 文件。提取或样式缺失问题见[故障排查](/zh/troubleshooting/)。
+微信/H5 产物测试检查生成/导入 class 与样式匹配。可选真实 IDE 探针检查部分 token 渲染颜色与重新启动，不代表覆盖全部 Vue/NutUI 交互或物理设备。忽略 `styled-system/`、`dist/` 与私有 IDE 文件。提取或样式缺失问题见[故障排查](/zh/troubleshooting/)。

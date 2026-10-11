@@ -1,4 +1,6 @@
-import postcss from 'postcss'
+import type { CascadeLayerDiagnostic } from '@weapp-tailwindcss/css-compat/diagnostics'
+import { CascadeLayerError } from '@weapp-tailwindcss/css-compat/diagnostics'
+import postcss, { CssSyntaxError } from 'postcss'
 import adapter from '@/postcss'
 import { orderedLayersPlugin } from '@/postcss/layers'
 import { useOptions } from '@/postcss/plugins'
@@ -73,10 +75,10 @@ it('keeps conditional wrappers and all descriptor at-rules intact without duplic
   expect(result.css).toContain('opacity:0!important')
 })
 
-it('preserves import/charset/namespace prologues and source mapping', async () => {
-  const result = await compile('@charset "UTF-8"; @import "plain.css"; @namespace svg "http://www.w3.org/2000/svg";\n@layer a{.x{color:red}}')
+it('preserves charset/namespace prologues and source mapping after imports are expanded', async () => {
+  const result = await compile('@charset "UTF-8"; @namespace svg "http://www.w3.org/2000/svg";\n@layer a{.x{color:red}}')
   expect(result.css.indexOf('@charset')).toBeLessThan(result.css.indexOf('.x'))
-  expect(result.map!.toJSON().sourcesContent).toEqual(['@charset "UTF-8"; @import "plain.css"; @namespace svg "http://www.w3.org/2000/svg";\n@layer a{.x{color:red}}'])
+  expect(result.map!.toJSON().sourcesContent).toEqual(['@charset "UTF-8"; @namespace svg "http://www.w3.org/2000/svg";\n@layer a{.x{color:red}}'])
 })
 
 it('preserves unfamiliar descriptor at-rules atomically and maintains unfamiliar rule wrappers', async () => {
@@ -85,7 +87,8 @@ it('preserves unfamiliar descriptor at-rules atomically and maintains unfamiliar
   expect(result.css).toContain('@custom-rule{.x{color:red!important}}')
   expect(result.css).toContain('@future-descriptor{/*comment*/value:x}')
   expect(result.css).toContain('@custom-container{@media (width:1px){.y{color:blue}}}')
-  expect(result.warnings()).toEqual([])
+  expect(result.warnings().map(warning => (warning as typeof warning & { code: string }).code)).toEqual(['LAYER_WRAPPER_SEMANTICS', 'LAYER_WRAPPER_SEMANTICS'])
+  await expect(compile('@layer a{@scope (.root){.x{color:red}}}', 'error')).rejects.toThrow('LAYER_WRAPPER_SEMANTICS')
 })
 
 it('is byte-stable across parse/serialize passes and processor reuse', async () => {
@@ -98,29 +101,31 @@ it('is byte-stable across parse/serialize passes and processor reuse', async () 
 })
 
 it('does not reorder no-layer inputs, split standalone important rules or interpret strings as keywords', async () => {
-  const css = '@import "layer.css"; .x:not(.disabled){color:red!important;content:"revert-layer"}'
+  const css = '.x:not(.disabled){color:red!important;content:"revert-layer";background:url("revert-layer")}'
   expect((await compile(css)).css).toContain(css)
 })
 
 it.each([
-  ['@import "x" layer(foo);', 'Inline @import'],
-  ['@import url(x) layer;', 'Inline @import'],
-  ['.x{color:revert-layer}', 'revert-layer'],
-  ['.x{color:var(--x, REVERT-LAYER)}', 'revert-layer'],
-  ['.x{.y{color:red}}', 'nested style rules'],
-  ['.x{@media (width:1px){.y{color:red}}}', 'nested style rules'],
-  ['&.x{color:red}', 'nesting selectors'],
-  ['.x{@layer a{color:red}}', '@layer must be outside'],
-  ['@font-face{@layer a{font-family:x}}', 'descriptor at-rules'],
+  ['@import "plain.css";', 'LAYER_IMPORT'],
+  ['@import "x" layer(foo);', 'LAYER_IMPORT'],
+  ['@import url(x) layer;', 'LAYER_IMPORT'],
+  ['.x{color:revert-layer}', 'LAYER_REVERT'],
+  ['.x{color:var(--x, REVERT-LAYER)}', 'LAYER_REVERT'],
+  ['.x{.y{color:red}}', 'LAYER_NESTING'],
+  ['.x{@media (width:1px){.y{color:red}}}', 'LAYER_NESTING'],
+  ['&.x{color:red}', 'LAYER_NESTING'],
+  ['.x{@layer a{color:red}}', 'LAYER_NESTING'],
+  ['@font-face{@layer a{font-family:x}}', 'LAYER_NESTING'],
   ['.x:not(#\\#){color:red}', 'Disable Panda polyfill'],
-  ['@layer;', 'anonymous @layer'],
-  ['@layer a,b{.x{color:red}}', 'exactly one layer name'],
-  ['@layer .a{.x{color:red}}', 'Invalid @layer name'],
-  ['@layer a b;', 'Invalid @layer name'],
-  ['@layer a{color:red}', 'declarations must belong'],
-  ['@layer a; @media (width:1px){color:red}', 'declarations must belong'],
-  ['@layer a{@import "plain.css";}', 'cannot appear inside'],
-  ['@media (width:1px){@namespace x "y";} @layer a;', 'cannot appear inside'],
+  ['@layer;', 'LAYER_NAME'],
+  ['@layer a,b{.x{color:red}}', 'LAYER_NAME'],
+  ['@layer .a{.x{color:red}}', 'LAYER_NAME'],
+  ['@layer a b;', 'LAYER_NAME'],
+  ['@layer a{color:red}', 'LAYER_NESTING'],
+  ['@layer a; @media (width:1px){color:red}', 'LAYER_NESTING'],
+  ['@layer a{@import "plain.css";}', 'LAYER_IMPORT'],
+  ['@media (width:1px){@namespace x "y";} @layer a;', 'LAYER_IMPORT'],
+  ['/* #ifdef MP-WEIXIN */ @layer a{.x{color:red}} /* #endif */', 'LAYER_PREPROCESSOR'],
 ])('rejects unsupported input %s with an actionable error', async (css, message) => {
   await expect(compile(css)).rejects.toThrow(message)
 })
@@ -177,4 +182,130 @@ it('integrates ordered naming and platform transforms without altering handwritt
   expect((await postcss([adapter()]).process(first.css, { from: undefined })).css).toBe(first.css)
   expect((await postcss([adapter({ target: 'web' })]).process(css, { from: undefined })).css).toContain('@layer a,b;')
   expect((await postcss([adapter({ disabled: true })]).process(css, { from: undefined })).css).toBe(css)
+})
+
+it('retains legacy warning text and exposes structured upstream diagnostics', async () => {
+  const css = '@layer a,b; @layer a{#id .x{color:red}}\n@layer b{.x{color:blue}}'
+  const result = await compile(css)
+  const warning = result.warnings()[0]! as postcss.Warning & { code: string, diagnostic: CascadeLayerDiagnostic }
+  expect(warning.text).toContain('WP_LAYER_SPECIFICITY')
+  expect(warning.code).toBe('LAYER_SPECIFICITY')
+  expect(warning.diagnostic).toMatchObject({
+    severity: 'warning',
+    property: 'color',
+    selector: '.x',
+    source: { file: expect.stringMatching(/layers\.css$/), line: 2 },
+    related: { file: expect.stringMatching(/layers\.css$/), line: 1 },
+  })
+  expect(warning.node!.source!.start!.line).toBe(2)
+  try {
+    await compile(css, 'error')
+    expect.fail('A strict conflict must fail')
+  }
+  catch (error) {
+    expect(error).toBeInstanceOf(CssSyntaxError)
+    expect(error).toMatchObject({ code: 'LAYER_SPECIFICITY', plugin: 'weapp-pandacss-ordered-layers', line: 2, cause: expect.any(CascadeLayerError) })
+    expect((error as { diagnostic: CascadeLayerDiagnostic }).diagnostic).toMatchObject({ severity: 'error', source: { line: 2 } })
+  }
+})
+
+it('selects the fatal diagnostic and source after an earlier warning without losing context', async () => {
+  const css = '@media (width:1px){@layer a{.x{color:red}}}\n@layer b{\ncolor:blue\n}'
+  try {
+    await compile(css)
+    expect.fail('Invalid layer input must fail after its conditional-order warning')
+  }
+  catch (error) {
+    expect(error).toBeInstanceOf(CssSyntaxError)
+    const failure = error as CssSyntaxError & { code: string, diagnostic: CascadeLayerDiagnostic, diagnostics: CascadeLayerDiagnostic[], cause: CascadeLayerError }
+    expect(failure).toMatchObject({
+      code: 'LAYER_NESTING',
+      file: expect.stringMatching(/layers\.css$/),
+      line: 3,
+      column: 1,
+      diagnostic: { code: 'LAYER_NESTING', severity: 'error', source: { line: 3, column: 1 } },
+      diagnostics: [
+        { code: 'LAYER_CONDITIONAL_ORDER', severity: 'warning', source: { line: 1 } },
+        { code: 'LAYER_NESTING', severity: 'error', source: { line: 3, column: 1 } },
+      ],
+      cause: expect.any(CascadeLayerError),
+    })
+    expect(failure.diagnostic).toBe(failure.diagnostics[1])
+    expect(failure.diagnostics).toBe(failure.cause.diagnostics)
+    expect(failure.reason).toContain('[WP_LAYER_CONDITIONAL_ORDER]')
+    expect(failure.reason).toContain('[LAYER_NESTING]')
+  }
+})
+
+it.each(['@import "remaining.css";', '@layer a,b; @layer a{#id .x{color:red}} @layer b{.x{color:blue}}'])('leaves independent layer input AST intact on failure: %s', async (css) => {
+  const root = postcss.parse(css, { from: 'unchanged.css' })
+  const nodes: postcss.Node[] = []
+  root.walk((node) => {
+    nodes.push(node)
+  })
+  const parents = nodes.map(node => node.parent)
+  await expect(postcss([orderedLayersPlugin('error')]).process(root, { from: undefined })).rejects.toBeInstanceOf(CssSyntaxError)
+  const after: postcss.Node[] = []
+  root.walk((node) => {
+    after.push(node)
+  })
+  expect(root.toString()).toBe(css)
+  expect(after).toHaveLength(nodes.length)
+  after.forEach((node, index) => {
+    expect(node).toBe(nodes[index])
+    expect(node.parent).toBe(parents[index])
+  })
+})
+
+it('does not invent upstream source positions for manually created nodes', async () => {
+  const createRoot = () => {
+    const root = postcss.parse('@layer a,b; @layer a{#id .x{color:red}} @layer b{.x{color:blue}}')
+    delete root.source
+    root.walk((node) => {
+      delete node.source
+    })
+    return root
+  }
+  const result = await postcss([orderedLayersPlugin('warning')]).process(createRoot(), { from: undefined })
+  const diagnostic = (result.warnings()[0]! as postcss.Warning & { diagnostic: CascadeLayerDiagnostic }).diagnostic
+  expect(diagnostic.source).toEqual({ file: undefined, line: undefined, column: undefined })
+  await expect(postcss([orderedLayersPlugin('error')]).process(createRoot(), { from: undefined })).rejects.toMatchObject({
+    code: 'LAYER_SPECIFICITY',
+    diagnostic: { source: { file: undefined, line: undefined, column: undefined } },
+  })
+})
+
+it('delegates malformed selector diagnostics to the shared compiler', async () => {
+  const root = postcss.root({ nodes: [postcss.rule({ selector: '.x[', nodes: [] })] })
+  await expect(postcss([orderedLayersPlugin('warning')]).process(root, { from: undefined })).rejects.toMatchObject({ code: 'LAYER_SELECTOR_UNKNOWN' })
+})
+
+it('does not mistake authored negation for Panda placeholders', async () => {
+  const css = '@layer a{.x:not(#real){color:red}.x:not(.a,.b){background:blue}.x:not([data-x]){padding:0}.x:hover{margin:0}}'
+  expect((await compile(css)).css).toContain('.x:not(#real)')
+})
+
+it('preserves unexpected upstream failures rather than masking them as CSS diagnostics', async () => {
+  const root = postcss.parse('@layer a{.x{color:red}}')
+  const failure = new Error('custom AST traversal failed')
+  vi.spyOn(root, 'walkAtRules').mockImplementation(() => {
+    throw failure
+  })
+  await expect(postcss([orderedLayersPlugin('warning')]).process(root, { from: undefined })).rejects.toBe(failure)
+})
+
+it('reports invalid runtime layer options against the root without losing the cause', async () => {
+  await expect(postcss([orderedLayersPlugin('invalid' as 'warning')]).process('.x{}', { from: 'options.css' })).rejects.toMatchObject({
+    code: 'LAYER_OPTIONS',
+    cause: expect.any(CascadeLayerError),
+    file: expect.stringMatching(/options\.css$/),
+  })
+})
+
+it('reports cross-layer descriptor identity conflicts and retains each descriptor once', async () => {
+  const css = '@layer a,b; @layer a{@keyframes spin{to{opacity:1}}} @layer b{@keyframes spin{to{opacity:0}}}'
+  const result = await compile(css)
+  expect(result.warnings().some(warning => warning.text.includes('LAYER_DESCRIPTOR_ORDER'))).toBe(true)
+  expect(result.css.match(/@keyframes spin/g)).toHaveLength(2)
+  await expect(compile(css, 'error')).rejects.toThrow('LAYER_DESCRIPTOR_ORDER')
 })
