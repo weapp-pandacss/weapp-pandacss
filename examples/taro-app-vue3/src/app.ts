@@ -1,5 +1,8 @@
 import { createApp } from 'vue'
 import './app.css'
+import './preprocessors/sass.scss'
+import './preprocessors/less.less'
+import './preprocessors/stylus.styl'
 
 const App = createApp({
   onShow(_options) {},

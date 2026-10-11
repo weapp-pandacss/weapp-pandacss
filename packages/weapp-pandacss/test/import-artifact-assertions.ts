@@ -89,3 +89,47 @@ export function expectImportedArtifacts(css: string, target: 'web' | 'weapp', op
     expect(values('import-unlayered', 'color')).toEqual(expect.arrayContaining(['#dc2626', '#0284c7', '#111827']))
   }
 }
+
+/** Framework preprocessors run before the single PostCSS plugin. */
+export function expectPreprocessedArtifacts(css: string, options: { remUnit: 'px' | 'rpx' | 'rem', remScale: number }) {
+  const root = postcss.parse(css)
+  const fixtures = [
+    { language: 'sass', color: '#123456', space: 0.25 },
+    { language: 'less', color: '#234567', space: 0.5 },
+    { language: 'stylus', color: '#345678', space: 0.75 },
+  ]
+  for (const { language, color, space } of fixtures) {
+    const name = encodeClassName(`preprocess/${language}-中文`)
+    const imported = encodeClassName(`preprocess/import-${language}`)
+    const declarations: { property: string, value: string, active: boolean }[] = []
+    const importedValues: { property: string, value: string }[] = []
+    root.walkRules((rule) => {
+      const classes = new Set<string>()
+      selectorParser(selectors => selectors.walkClasses((node) => {
+        classes.add(node.value)
+      })).processSync(rule.selector)
+      if (classes.has(name)) {
+        rule.walkDecls((declaration) => {
+          declarations.push({ property: declaration.prop, value: declaration.value, active: classes.has('active') })
+        })
+      }
+      if (classes.has(imported)) {
+        rule.walkDecls((declaration) => {
+          importedValues.push({ property: declaration.prop, value: declaration.value })
+        })
+      }
+    })
+    expect(declarations, `Missing framework-compiled ${language} special class`).toContainEqual({ property: 'color', value: color, active: false })
+    const padding = declarations.find(declaration => declaration.property === 'padding-left')?.value
+    const match = /^([\d.]+)([a-z]+)$/.exec(padding ?? '')
+    expect(match?.[2], `${language} mixin unit`).toBe(options.remUnit)
+    expect(Number(match?.[1]), `${language} mixin value`).toBeCloseTo(space * options.remScale)
+    const opacity = declarations.find(declaration => declaration.property === 'opacity' && declaration.active)
+    expect(Number(opacity?.value), `${language} compiled nesting`).toBe(0.75)
+    expect(importedValues, `${language} CSS import expansion`).toContainEqual({ property: 'white-space', value: 'nowrap' })
+    const border = importedValues.find(declaration => declaration.property === 'letter-spacing')?.value
+    const borderMatch = /^([\d.]+)([a-z]+)$/.exec(border ?? '')
+    expect(borderMatch?.[2]).toBe(options.remUnit)
+    expect(Number(borderMatch?.[1])).toBeCloseTo(0.125 * options.remScale)
+  }
+}

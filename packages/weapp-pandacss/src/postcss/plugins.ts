@@ -1,4 +1,4 @@
-import type { Plugin, PluginCreator } from 'postcss'
+import type { Input, Plugin, PluginCreator } from 'postcss'
 import type {
   Node,
   Selector,
@@ -7,13 +7,15 @@ import type { IPostcssPluginOptions } from '@/types'
 import type { Ref } from '@/utils'
 import createCascadeLayersPlugin from '@csstools/postcss-cascade-layers'
 import createIsPseudoClassPlugin from '@csstools/postcss-is-pseudo-class'
+import postcss from 'postcss'
 import selectorParser from 'postcss-selector-parser'
 import valueParser from 'postcss-value-parser'
-import { escapePostcssPlugin, wrapperPostcssPlugin } from '@/constants'
+import { escapePostcssPlugin, namingMarker, portableCssMarker, wrapperPostcssPlugin } from '@/constants'
 import { getPostcssPluginDefaults } from '@/defaults'
 import { encodeClassName } from '@/runtime'
 import { merge, ref } from '@/utils'
 import { orderedLayersPlugin } from './layers'
+import { pipelinePlugin } from './pipeline'
 
 function resolveLayerMode(options?: IPostcssPluginOptions) {
   // Inspect caller input, never the merged legacy defaults.
@@ -33,18 +35,24 @@ function resolveLayerMode(options?: IPostcssPluginOptions) {
 // exports that Node cannot provide for CommonJS modules.
 const { selector: slt, tag } = selectorParser
 
+function mergePostcssOptions(base: Required<IPostcssPluginOptions>, options?: IPostcssPluginOptions): Required<IPostcssPluginOptions> {
+  const { imports: baseImports, panda: basePanda, ...baseAdapter } = base
+  const { imports, panda, ...adapterOptions } = options ?? {}
+  // Never traverse upstream bags: plugin instances can contain opaque state,
+  // getters or cycles in addition to RegExp values and lifecycle callbacks.
+  return {
+    ...merge.recursive(true, baseAdapter, adapterOptions),
+    imports: imports ?? baseImports,
+    panda: panda ?? basePanda,
+  } as Required<IPostcssPluginOptions>
+}
+
 export function useOptions(options?: IPostcssPluginOptions) {
-  const optionsRef = ref(
-    merge.recursive(
-      true,
-      getPostcssPluginDefaults(),
-      options,
-    ) as Required<IPostcssPluginOptions>,
-  )
+  const optionsRef = ref(mergePostcssOptions(getPostcssPluginDefaults(), options))
   optionsRef.value.cascadeLayers.mode = resolveLayerMode(options)
 
   function mergeOptions(options?: IPostcssPluginOptions) {
-    optionsRef.value = merge.recursive(true, optionsRef.value, options)
+    optionsRef.value = mergePostcssOptions(optionsRef.value, options)
   }
 
   return {
@@ -182,30 +190,47 @@ innerPlugin.postcss = true
 // https://github.com/csstools/postcss-plugins/blob/main/plugins/postcss-cascade-layers/src/index.ts
 // https://github.com/csstools/postcss-plugins/blob/main/plugins/postcss-cascade-layers/src/adjust-selector-specificity.ts
 // ':not(#\\#)' raw: :not(#\\\\#)
-const namingMarker = Symbol.for('weapp-pandacss.postcss.naming')
-const portableCssMarker = '! weapp-pandacss:portable-v1'
-
 export const creator: PluginCreator<IPostcssPluginOptions> = (options) => {
   const { optionsRef } = useOptions(options)
   if (optionsRef.value.disabled) {
     return { postcssPlugin: wrapperPostcssPlugin }
   }
+  const pipeline = pipelinePlugin(optionsRef)
+  if (!optionsRef.value.adapter) {
+    return { postcssPlugin: wrapperPostcssPlugin, plugins: [pipeline] }
+  }
+  const portableInputs = new WeakMap<Input, boolean>()
+  function isPortableInput(input?: Input): boolean {
+    if (!input) {
+      return false
+    }
+    const known = portableInputs.get(input)
+    if (known !== undefined) {
+      return known
+    }
+    // The marker is a top-level comment, never a string declaration or an
+    // unrelated comment that merely mentions its text. Parse each Input once.
+    const portable = input.css.includes(portableCssMarker)
+      && postcss.parse(input.css, { map: false }).nodes.some(node => node.type === 'comment' && node.text === portableCssMarker)
+    portableInputs.set(input, portable)
+    return portable
+  }
   const namingPlugin: Plugin = {
     postcssPlugin: 'weapp-pandacss-portable-naming',
     Once(root) {
-      const marked = root as typeof root & { [namingMarker]?: boolean }
       const hasCssMarker = root.nodes.some(node => node.type === 'comment' && node.text === portableCssMarker)
-      if (hasCssMarker) {
-        marked[namingMarker] = true
-      }
-      if (!marked[namingMarker]) {
-        const parser = selectorParser(selectors => selectors.walkClasses((node) => {
-          node.value = encodeClassName(node.value)
-        }))
-        root.walkRules((rule) => {
+      const parser = selectorParser(selectors => selectors.walkClasses((node) => {
+        node.value = encodeClassName(node.value)
+      }))
+      root.walkRules((rule) => {
+        const marked = rule as typeof rule & { [namingMarker]?: boolean }
+        // Imported portable CSS belongs to its own Input. Its marker must not
+        // suppress encoding of raw rules from the entry or other imports.
+        if (!marked[namingMarker] && !isPortableInput(rule.source?.input)) {
           parser.transformSync(rule, { lossless: false, updateSelector: true })
-        })
-      }
+        }
+        marked[namingMarker] = true
+      })
       if (optionsRef.value.target === 'weapp') {
         function assertVariable(name: string, node: { error: (message: string) => Error }) {
           if (!/^--[\w-]+$/.test(name)) {
@@ -227,7 +252,6 @@ export const creator: PluginCreator<IPostcssPluginOptions> = (options) => {
         })
         root.walkAtRules('property', rule => assertVariable(rule.params.trim(), rule))
       }
-      marked[namingMarker] = true
       if (!hasCssMarker) {
         // Persist the generation marker across parse/serialize boundaries too.
         root.prepend({ text: portableCssMarker, raws: { left: '', right: ' ' } })
@@ -235,7 +259,7 @@ export const creator: PluginCreator<IPostcssPluginOptions> = (options) => {
     },
   }
   if (optionsRef.value.target === 'web') {
-    return { postcssPlugin: wrapperPostcssPlugin, plugins: [namingPlugin] }
+    return { postcssPlugin: wrapperPostcssPlugin, plugins: [pipeline, namingPlugin] }
   }
   const cascadeLayersPlugin = optionsRef.value.cascadeLayers.mode === 'legacy'
     ? createCascadeLayersPlugin(optionsRef.value.cascadeLayersPluginOptions) as Plugin
@@ -247,6 +271,7 @@ export const creator: PluginCreator<IPostcssPluginOptions> = (options) => {
   return {
     postcssPlugin: wrapperPostcssPlugin,
     plugins: [
+      pipeline,
       namingPlugin,
       ...(optionsRef.value.cascadeLayers.mode === 'legacy' ? [cascadeLayersPlugin] : []),
       isPseudoClassPlugin,

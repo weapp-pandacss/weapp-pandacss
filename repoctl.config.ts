@@ -75,6 +75,19 @@ export default {
     },
     stylelint: {
       ignoreFiles: ['**/fixtures/**', '**/styled-system/**'],
+      overrides: [{
+        files: ['**/*.less'],
+        customSyntax: 'postcss-less',
+        extends: ['stylelint-config-standard-less'],
+        // repoctl's base preset enables SCSS rules globally. Less uses its own
+        // variable and operator grammar, checked by the Less preset instead.
+        rules: {
+          'scss/at-rule-no-unknown': null,
+          'scss/operator-no-newline-after': null,
+          'scss/operator-no-newline-before': null,
+          'scss/operator-no-unspaced': null,
+        },
+      }],
       rules: {
         'media-feature-range-notation': 'prefix',
       },

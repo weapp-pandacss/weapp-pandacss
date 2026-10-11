@@ -1,5 +1,6 @@
 <script>
 import { Dongdong } from '@nutui/icons-vue-taro'
+import { encodeClassList } from '@weapp-pandacss/runtime'
 import { css } from 'styled-system/css/index.mjs'
 import { reactive, toRefs } from 'vue'
 
@@ -9,6 +10,7 @@ export default {
     Dongdong,
   },
   setup() {
+    const preprocessors = ['sass', 'less', 'stylus'].map(language => ({ language, className: encodeClassList(`preprocess/${language}-中文 active preprocess/import-${language}`) }))
     const styles = css({
       bg: 'yellow.200',
       rounded: '9999px',
@@ -34,6 +36,7 @@ export default {
     return {
       ...toRefs(state),
       handleClick,
+      preprocessors,
       styles,
     }
   },
@@ -42,6 +45,9 @@ export default {
 
 <template>
   <view class="index">
+    <view v-for="item in preprocessors" :id="`preprocess-${item.language}`" :key="item.language" :class="item.className">
+      {{ item.language }} variables, mixins, nesting and CSS imports
+    </view>
     <view>
       <img src="" alt="">
     </view>

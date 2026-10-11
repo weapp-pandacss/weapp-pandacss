@@ -2,6 +2,9 @@ import type { IPostcssPluginOptions } from '@/types'
 // 有数组的情况会合并
 export function getPostcssPluginDefaults(): Required<IPostcssPluginOptions> {
   return {
+    imports: true,
+    panda: true,
+    adapter: true,
     target: 'weapp',
     cascadeLayers: { mode: 'ordered', onConflict: 'warning' },
     selectorReplacement: {

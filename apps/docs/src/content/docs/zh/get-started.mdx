@@ -1,16 +1,18 @@
 ---
 title: 安装与快速开始
-description: 注册两个插件，生成配套 runtime 与 CSS，再渲染第一份样式。
+description: 用一个 PostCSS 插件生成配套 runtime 与 CSS，再渲染第一份样式。
 sidebar:
   order: 1
 ---
+
+> **发布状态：** 本页对应即将发布的 minor 与仓库实现，当前 npm 已发布版本仍使用原有 PostCSS 默认行为。升级到新 minor 前，保留已安装版本所需的独立 import/Panda/adapter 流水线；升级后按[迁移步骤](/zh/migration/#升级到零选项-postcss-流水线)改为三合一。
 
 ## 环境要求
 
 适配器声明的 Node.js 范围为 `^22.18.0 || >=24.11.0`。仓库 CI 验证 Node 22 与 24，建议使用满足该范围的受支持版本。Panda 与两个 preset 必须使用已验收的 **2.1.2**；适配器会检查实际安装的 Panda 版本，其他版本会报错。
 
 ~~~sh
-pnpm add -D @pandacss/dev@2.1.2 @pandacss/preset-base@2.1.2 @pandacss/preset-panda@2.1.2 weapp-pandacss@^2 postcss postcss-import@17.0.0
+pnpm add -D @pandacss/dev@2.1.2 @pandacss/preset-base@2.1.2 @pandacss/preset-panda@2.1.2 weapp-pandacss@^2 postcss
 ~~~
 
 Panda 2 需要显式安装并注册 preset。仅当业务代码需要编码手写 class 时，再安装独立 runtime：
@@ -51,14 +53,14 @@ export default defineConfig({
 // postcss.config.cjs
 module.exports = {
   plugins: {
-    'postcss-import': {},
-    '@pandacss/dev/postcss': {},
-    'weapp-pandacss/postcss': { target: 'weapp' },
+    'weapp-pandacss/postcss': {},
   },
 }
 ~~~
 
-这份独立配置通过 `postcss-import` 在 Panda 和 adapter 前展开导入。Vite 类框架可提供前置 importer，按框架指南接入，避免配置两个相互竞争的导入阶段。源码可以普通 `@import`，但小程序 ordered 编译前必须展开全部导入。Web/H5 把 adapter 的 target 改成 `web`，保留两个插件，让 runtime 与 selector 使用同一编码。按需使用的 rem/rpx 转换位于适配器之后，需要单独安装依赖，详见[单位与组件样式](/zh/guides/component-styles/)。
+空配置默认执行完整流水线：**import 展开 → 官方 Panda 生成 → 小程序适配**。无需单独安装或注册 `postcss-import`、`@pandacss/dev/postcss`。Panda 配置中的 `weappPanda()` 仍需保留：它编码生成的 JavaScript，这个 PostCSS 入口负责生成并适配 CSS。Web/H5 使用 `{ target: 'web' }`。按需使用的 rem/rpx 转换位于此插件之后，需要单独安装依赖；不会隐含换算比例。详见[单位与组件样式](/zh/guides/component-styles/)。
+
+全局 Panda 入口保持 `.css`。Sass/Less/Stylus 组件样式由框架预编译，内置 importer 不编译原始预处理文件。阶段开关、项目定位及自定义 loader 见 [PostCSS 配置](/zh/postcss/)。
 
 ## 3. 加载应用样式
 

@@ -42,15 +42,26 @@ try {
   assert.equal(fence(chinese, 'css'), documentedCss)
   await fs.mkdir(path.join(fixture, 'src'))
   await fs.writeFile(path.join(fixture, 'src/badge.ts'), source)
+  const entry = path.join(fixture, 'src/app.css')
+  const imported = path.join(fixture, 'src/authored.css')
+  const input = '@import "./authored.css";\n@layer reset, base, tokens, recipes, utilities;'
+  await fs.writeFile(entry, input)
+  await fs.writeFile(imported, '.custom\\/active { color: #123456; }')
   const cli = path.join(adapter, 'node_modules/@pandacss/dev/bin.js')
   await run(process.execPath, [cli, 'codegen'], { cwd: fixture })
-  await run(process.execPath, [cli, 'cssgen', '--outfile', 'panda.css'], { cwd: fixture })
   const runtimeSource = source.replace('../styled-system/css', './styled-system/css/index.mjs')
   await fs.writeFile(path.join(fixture, 'badge.mjs'), runtimeSource)
   const { badgeClass } = await import(pathToFileURL(path.join(fixture, 'badge.mjs')).href)
   assert.equal(badgeClass, 'c__wp_23_0f766e')
-  const input = await fs.readFile(path.join(fixture, 'panda.css'), 'utf8')
-  const actual = await postcss([adapt({ target: 'weapp' })]).process(input, { from: undefined })
+  const actual = await postcss([adapt()]).process(input, {
+    from: entry,
+    to: path.join(fixture, 'app.wxss'),
+    map: { inline: false, annotation: false },
+  })
+  assert.ok(actual.css.includes('.custom_wp_2f_active'), 'The default import stage must encode imported authored selectors.')
+  const importedFile = await fs.realpath(imported)
+  assert.ok(actual.messages.some(message => message.type === 'dependency' && message.file === importedFile), 'The default import stage must preserve watch dependencies.')
+  assert.ok(actual.map.toJSON().sources.some(file => file.endsWith('authored.css')), 'Imported CSS must retain its source-map location.')
   const expected = postcss.parse(documentedCss)
   expected.walkRules((rule) => {
     assert.equal(rule.selector, `.${badgeClass}`)
@@ -61,7 +72,7 @@ try {
       assert.ok(match.some(found => found.nodes.some(node => node.type === 'decl' && node.prop === declaration.prop && node.value === declaration.value)), 'The documented declaration must match Panda output.')
     })
   })
-  console.log('Homepage examples verified: Panda 2.1.2 codegen, runtime and WXSS agree in both locales.')
+  console.log('Homepage examples verified: zero-option import/Panda/adapter pipeline, Panda 2.1.2 runtime, source map and WXSS agree in both locales.')
 }
 finally {
   await fs.rm(fixture, { recursive: true, force: true })

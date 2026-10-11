@@ -2298,13 +2298,16 @@ view,text,view::before,text::before,view::after,text::after,::backdrop{}"
 exports[`postcss > useOptions default 1`] = `
 {
   "value": {
+    "adapter": true,
     "cascadeLayers": {
       "mode": "ordered",
       "onConflict": "warning",
     },
     "cascadeLayersPluginOptions": {},
     "disabled": false,
+    "imports": true,
     "isPseudoClassPluginOptions": {},
+    "panda": true,
     "removeNegationPseudoClass": true,
     "selectorReplacement": {
       "cascadeLayers": "n",
@@ -2322,6 +2325,7 @@ exports[`postcss > useOptions default 1`] = `
 exports[`postcss > useOptions default 2`] = `
 {
   "value": {
+    "adapter": true,
     "cascadeLayers": {
       "mode": "ordered",
       "onConflict": "warning",
@@ -2330,9 +2334,11 @@ exports[`postcss > useOptions default 2`] = `
       "onConditionalRulesChangingLayerOrder": false,
     },
     "disabled": true,
+    "imports": true,
     "isPseudoClassPluginOptions": {
       "onPseudoElement": "warning",
     },
+    "panda": true,
     "removeNegationPseudoClass": true,
     "selectorReplacement": {
       "cascadeLayers": "n",

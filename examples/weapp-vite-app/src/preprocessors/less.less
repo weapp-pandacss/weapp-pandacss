@@ -1,0 +1,18 @@
+@import (css) './less-css.css';
+
+@tone: #234567;
+
+.spacing(@space) {
+  padding-left: @space;
+}
+
+/* stylelint-disable-next-line selector-class-pattern -- This intentional special name exercises portable encoding after Less. */
+.preprocess\/less-中文 {
+  .spacing(0.5rem);
+
+  color: @tone;
+
+  &.active {
+    opacity: 0.75;
+  }
+}

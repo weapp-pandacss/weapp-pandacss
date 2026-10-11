@@ -12,7 +12,7 @@ sidebar:
 Taro 依赖组保持匹配版本。adapter 声明 Node `^22.18.0 || >=24.11.0`，推荐 Node 22.18+ 或 24.11+ 的 LTS 版本，在应用目录执行：
 
 ~~~sh
-pnpm add -D @pandacss/dev@2.1.2 @pandacss/preset-base@2.1.2 @pandacss/preset-panda@2.1.2 weapp-pandacss@^2 postcss postcss-import@17.0.0 postcss-rem-to-responsive-pixel
+pnpm add -D @pandacss/dev@2.1.2 @pandacss/preset-base@2.1.2 @pandacss/preset-panda@2.1.2 weapp-pandacss@^2 postcss postcss-rem-to-responsive-pixel
 ~~~
 
 手写特殊 class 还需要 `pnpm add @weapp-pandacss/runtime`。Panda 和 PostCSS 放在构建依赖中，独立编码器放在应用依赖中。
@@ -86,8 +86,6 @@ const process = require('node:process')
 
 module.exports = {
   plugins: {
-    'postcss-import': {},
-    '@pandacss/dev/postcss': {},
     'weapp-pandacss/postcss': {
       target: process.env.TARO_ENV === 'h5' ? 'web' : 'weapp',
     },
@@ -104,9 +102,13 @@ module.exports = {
 
 ## 在生成前导入手写样式
 
-微信与 H5 显式使用 `postcss-import → Panda → adapter → 单位转换`。在 `src/app.css` 顶部、样式规则前写入 `@import "./styles/shared.css";`。Importer 从真实入口相对解析并展开多级导入，让 adapter 同时收到被导入和生成的规则。
+微信与 H5 都只注册一次 `weapp-pandacss/postcss`，由它执行 **import 展开 → Panda → 适配**，随后按需转换单位。不要再注册官方 Panda 或另一个 importer。在 `src/app.css` 顶部、样式规则前写入 `@import "./styles/shared.css";`。Importer 从真实入口相对解析并展开多级导入，让 adapter 同时收到被导入和生成的规则。
 
 被导入文件的特殊 class selector 也必须经过 adapter。例如在导入 CSS 中编写 `.custom\/active`，业务代码从 `@weapp-pandacss/runtime` 调用 `encodeClassName('custom/active')` 后绑定。不要导入已独立展平的 CSS，也不要再次编码 Panda 输出。检查目标 CSS/WXSS 的对应编码 selector 与跨文件层顺序。远程残留 import 需要本地化或前序解析器，warning 模式也不会跳过 `LAYER_IMPORT`。
+
+## 混用预处理样式
+
+Taro 的 Sass/Less/Stylus loader 在项目 PostCSS 前编译组件样式。共享 Panda 生成入口保持 `src/app.css`，其他组件样式通过框架单独导入并编译。适配开始前，变量、mixin 与 nesting 必须已成为普通 CSS。预处理器保留的 CSS import 随后可由内置 importer 展开；直接交给该 importer 的原始预处理文件会明确报错。编译器及额外 watch 依赖通过 Taro 配置，详见[预处理器边界](/zh/postcss/#sassless-与-stylus)。
 
 ## 按目标生成
 

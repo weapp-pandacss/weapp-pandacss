@@ -9,9 +9,9 @@ sidebar:
 
 ```ts
 import postcssPlugin from 'weapp-pandacss/postcss'
-import type { IPostcssPluginOptions } from 'weapp-pandacss'
+import type { IPostcssPluginOptions, PandaPostcssOptions, PostcssImportOptions } from 'weapp-pandacss'
 
-const plugin = postcssPlugin({ target: 'weapp' })
+const plugin = postcssPlugin()
 ```
 
 The factory accepts an optional `IPostcssPluginOptions` object and returns a PostCSS plugin. The root package exposes the same factory as `postcssPlugin`. Both `postcssPlugin()` and `postcssPlugin({})` use the defaults below.
@@ -22,10 +22,10 @@ declare function postcssPlugin(options?: IPostcssPluginOptions): import('postcss
 
 ```js
 const postcssPlugin = require('weapp-pandacss/postcss')
-const plugin = postcssPlugin({ target: 'weapp' })
+const plugin = postcssPlugin()
 ```
 
-In a standalone PostCSS configuration, use `postcss-import → Panda → adapter → optional unit conversion`. Expand the complete import graph and CSS nesting before ordered compilation. The adapter does not read imported files; residual plain, layer-qualified and remote imports all fail. See the [configuration guide](/postcss/) for the pipeline.
+With no options, the factory composes **CSS import expansion → official Panda generation → mini-program adaptation**. Register only `weapp-pandacss/postcss: {}` in PostCSS, retain `weappPanda()` in Panda's config, and load a global `.css` layer entry. Unit conversion remains separate. See the [configuration guide](/postcss/) for project discovery and framework preprocessors. The independent ordered layer core keeps a pure AST boundary; the composed plugin's importer owns file reads before it.
 
 ## Complete options
 
@@ -33,8 +33,11 @@ All fields are optional. Nested objects inherit omitted defaults; replacement ar
 
 | Field | Type | Default | Effect |
 | --- | --- | --- | --- |
+| `imports` | `boolean \| PostcssImportOptions` | `true` | Expands imports before Panda; upstream fields below |
+| `panda` | `boolean \| PandaPostcssOptions` | `true` | Runs official Panda; upstream fields below |
+| `adapter` | `boolean` | `true` | Runs naming, markers and target CSS adaptation |
 | `target` | `'weapp' \| 'web'` | `'weapp'` | Selects platform CSS behavior; class names match in both targets |
-| `disabled` | `boolean` | `false` | Skips all adapter transformations, including naming and markers |
+| `disabled` | `boolean` | `false` | Bypasses import expansion, Panda generation and all adapter transformations |
 | `cascadeLayers.mode` | `'ordered' \| 'legacy'` | `'ordered'` unless legacy options are passed | Chooses mini-program layer compilation |
 | `cascadeLayers.onConflict` | `'warning' \| 'error'` | `'warning'` | Severity of ordered-layer compatibility diagnostics |
 | `selectorReplacement.root` | `string \| string[]` | `'page'` | Replaces `:root` and `:host` in mini-program CSS |
@@ -56,6 +59,42 @@ const options: IPostcssPluginOptions = {
 ```
 
 Choose replacements for components your platform uses. This transforms selector syntax; it does not establish native component styling permissions or style isolation.
+
+## Import and Panda options
+
+`imports: true` uses the defaults of `postcss-import@17.0.0`, with a loader guard against raw preprocessor imports. `false` disables it. Object options are forwarded to the importer; upstream behavior and callbacks are documented in [postcss-import](https://github.com/postcss/postcss-import#options).
+
+| `imports` field | Type | Default | Meaning |
+| --- | --- | --- | --- |
+| `root` | `string` | `process.cwd()` | Importer search root; relative import base comes from the real source file. Supply explicitly for string/virtual input |
+| `path` | `string \| string[]` | `[]` | Additional search paths |
+| `filter` | `(id: string) => boolean` | Accept all | Leave rejected imports unresolved; mini-program ordered mode will reject residual imports |
+| `resolve` | `(id, basedir, options) => string \| string[] \| Promise` | Upstream resolver | Resolve an import, including package CSS |
+| `load` | `(filename, options) => string \| Promise<string>` | Read UTF-8 CSS with preprocessor guard | Provide already compiled CSS; custom loaders own extra dependencies |
+| `plugins` | `AcceptedPlugin[]` | `[]` | Process each imported CSS file before combining it |
+| `skipDuplicates` | `boolean` | `true` | Deduplicate equal content/files in the same import scope |
+| `addModulesDirectories` | `string[]` | `[]` | Add resolution directories alongside `node_modules` and `web_modules` |
+| `warnOnEmpty` | `boolean` | `true` | Warn when an imported file is empty |
+
+`panda: true` lazily loads the official Panda 2.1.2 PostCSS plugin. `false` disables generation. These are its complete options:
+
+| `panda` field | Type | Default | Meaning |
+| --- | --- | --- | --- |
+| `cwd` | `string` | Discovered config directory, then process cwd | Panda project root |
+| `configPath` | `string` | Closest config above the real source file, then cwd discovery | Explicit config path, relative to `cwd` when relative |
+| `outdir` | `string` | Panda config's `outdir` | Override the generated artifact directory |
+| `allow` | `RegExp[]` | Unset | Allow selected `node_modules` CSS through the official processing guard |
+
+For exact callback types, use `Exclude<IPostcssPluginOptions['imports'], boolean | undefined>` and `Exclude<IPostcssPluginOptions['panda'], boolean | undefined>`; the published declarations resolve without consumers installing extra type packages. Explicit `cwd` or `configPath` takes precedence, and invalid explicit configuration fails directly. A no-file CSS string still supports adaptation; the official Panda stage skips generation. Relative imports require a real `from` or explicit importer root. Discovery does not invent physical filenames for virtual/remote inputs.
+
+```ts
+postcssPlugin({ imports: false, panda: false }) // adapter only
+postcssPlugin({ adapter: false }) // import + Panda only
+postcssPlugin({ panda: { cwd: '/workspace/app' } })
+postcssPlugin({ imports: { skipDuplicates: false } })
+```
+
+Before generation, the plugin reports duplicate official Panda registration and incorrect external stage order. External Panda must precede adaptation; an external-only importer must precede generation and adaptation. A trailing framework importer is allowed when the built-in importer has already expanded the graph. Remove the duplicate or disable the internal stage and place its external owner before the remaining stages. `disabled: true` bypasses the entire pipeline; `adapter: false` only skips adaptation and still expands imports/generates Panda CSS. `target: 'web'` retains both defaults and adapts class names while preserving native layers.
 
 ## csstools options
 
@@ -141,11 +180,10 @@ Core warnings include a `diagnostic` object with `code`, `severity`, `message`, 
 
 ```js
 import postcss from 'postcss'
-import postcssImport from 'postcss-import'
 import postcssPlugin from 'weapp-pandacss/postcss'
 
 // sourceCss is the original entry text; from must identify its real location.
-const result = await postcss([postcssImport(), postcssPlugin()]).process(sourceCss, {
+const result = await postcss([postcssPlugin()]).process(sourceCss, {
   from: 'src/app.css',
   to: 'dist/app.wxss',
 })
@@ -155,7 +193,7 @@ for (const warning of result.warnings()) {
 }
 ```
 
-Failures reported by the shared core, including strict diagnostics and invalid input, throw a PostCSS `CssSyntaxError` with `code`, the first error-severity `diagnostic`, the full `diagnostics` array and the original compiler error in `cause`. The adapter's configuration, variable and Panda-polyfill guards retain their own existing errors; do not assume every adapter error has core diagnostic fields. Existing conflict text remains compatible and source positions are preserved when provided. The standalone layer stage validates before committing AST changes, including strict diagnostic failures. This atomicity applies to **that layer stage only**: earlier adapter selector/naming stages may already have modified the root. Do not catch an error and publish a partially processed adapter root.
+Failures reported by the shared core, including strict diagnostics and invalid input, throw a PostCSS `CssSyntaxError` with `code`, the first error-severity `diagnostic`, the full `diagnostics` array and the original compiler error in `cause`. The adapter's configuration, variable and Panda-polyfill guards retain their own existing errors; do not assume every adapter error has core diagnostic fields. Existing conflict text remains compatible and source positions are preserved when provided. The standalone layer stage validates before committing AST changes, including strict diagnostic failures. This atomicity applies to **that layer stage only**: earlier import/Panda or adapter selector/naming stages may already have modified the root. Do not catch an error and publish a partially processed adapter root.
 
 ## Inputs that fail ordered compilation
 

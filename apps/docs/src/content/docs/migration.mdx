@@ -12,7 +12,7 @@ This page covers the original 2.0 migration and the shared ordered-compiler upda
 1. Stop the project's build/watch processes that write the generated directory. Remove its old `styled-system` output, including helper backups and weapp-panda patch files.
 2. Pin `@pandacss/dev`, `@pandacss/preset-base` and `@pandacss/preset-panda` to **2.1.2**. Register `weappPanda()`, set `polyfill: false`, and use supported `.js` or `.mjs` runtime output.
 3. Replace `panda codegen && weapp-panda codegen` with `panda codegen`. Remove adapter subprocesses, `codegen:done` patch hooks and platform rollback scripts.
-4. Expand imports → Panda → PostCSS adapter → optional rem/rpx conversion. Use `postcss-import@17.0.0` in a standalone/Taro configuration, or the framework's preceding importer. Move CSS options from the old adapter configuration file into the PostCSS plugin's arguments.
+4. Register only `weapp-pandacss/postcss: {}` for import expansion → Panda → adaptation. Optional rem/rpx conversion follows it. Move CSS options from the old adapter configuration file into this plugin's arguments.
 5. Update authored-class helpers to `@weapp-pandacss/runtime`. Encode raw authored names once, leaving `css()`, recipe, pattern and `cx()` results intact.
 6. Align target environment, generated/output directories and aliases, then regenerate runtime and CSS together. Clear only the affected framework target's stale cache and rebuild.
 7. Inspect final classes, selectors, token references and actual interactions on each target you support.
@@ -87,16 +87,30 @@ Layer conversion is order compatibility, not full native cascade equivalence. Re
 The source update replaces the local ordered core with pinned `@weapp-tailwindcss/css-compat@0.1.1` and records **minor release intent**. It does not assign or publish a new adapter version; consult the package/release for the installed version. The published guide already required imports and nesting to be expanded before adaptation. The shared core now validates that requirement for **every residual import**, including ordinary and remote imports, rather than only layer-qualified imports.
 
 1. Keep source `@import` declarations. Check their graph is combined before Panda and the adapter, using the [PostCSS pipeline](/postcss/) or your framework's importer. Do not remove imports to make validation pass.
-2. On Taro React/Vue, add `postcss-import` explicitly before Panda. On React Vite/Weapp Vite, retain the framework's preceding import handling. For the Uni-app Panda virtual entry, resolve from the real `pandaEntry` filename and forward imported-file dependencies to watch.
+2. Use the default composed PostCSS plugin on Taro React/Vue, React Vite and Weapp Vite. For the Uni-app Panda virtual entry, pass the real `pandaEntry` filename and forward imported-file/Panda dependencies to watch; H5 uses `adapter: false` there and an adapter-only Web pass later.
 3. Vendor remote styles locally or use an upstream resolver; `postcss-import` leaves remote imports unresolved. Expand nesting and preprocessor syntax before adaptation; replace `revert-layer` with explicit rules.
 4. Retain existing public options and legacy selection. The old three `WP_LAYER_*` text prefixes remain; programmatic diagnostics now expose `LAYER_*` codes, source positions and context. New descriptor/wrapper compatibility warnings can make `onConflict: 'error'` reject additional risky input.
 5. Regenerate and rebuild every supported target. Verify imported special-class encoding, normal unlayered precedence, important inversion and updates after editing an imported file. H5 keeps native layers; the source import graph must be fully expanded before mini-program ordered compilation. The compiler removes layers from that root. A framework can subsequently emit valid WXSS imports of independently compiled assets; those output imports are outside this input check.
 
 No runtime migration, naming rollback or new direct application dependency on CSS compat is required. Strict/input failures carry structured diagnostics in a PostCSS `CssSyntaxError`; atomic validation is guaranteed for the independent layer stage, not for all preceding adapter mutations. See [troubleshooting](/troubleshooting/#ordinary-import-now-fails) for symptoms and checks.
 
+## Upgrade to the zero-option PostCSS pipeline
+
+This minor update makes the existing PostCSS entry compose imports, official Panda and adaptation by default. Replace separate `postcss-import` / `@pandacss/dev/postcss` registrations with:
+
+~~~js
+module.exports = {
+  plugins: { 'weapp-pandacss/postcss': {} },
+}
+~~~
+
+Keep `panda.config`, `weappPanda()`, `polyfill: false`, explicit Panda 2.1.2 presets, the global `.css` layer entry and codegen scripts. H5 uses `{ target: 'web' }`; unit conversion stays separate. Custom pipelines can retain external stages by disabling the matching internal `imports`/`panda` stage, or use `{ imports: false, panda: false }` for adapter-only processing. `disabled: true` now bypasses the complete composed pipeline, while `adapter: false` still imports and generates CSS.
+
+Panda discovers the config nearest the real source file before process-cwd fallback; explicit overrides belong under `panda`. Use the real `from` for custom loaders and forward dependency messages. Sass/Less/Stylus remain framework preprocessing steps, with a `.css` Panda entry. The default importer rejects raw preprocessor imports; no compiler or unit ratio is inferred. Rebuild each target and verify watch updates, class/selector matching and native H5 layers. See [the complete interface](/api/postcss-plugin/).
+
 ## Web/H5 and build isolation
 
-Web/H5 keeps both plugins and uses `target: 'web'`. It retains native layers/selectors with the same portable class naming, so there is no runtime rollback step.
+Web/H5 retains `weappPanda()` and the composed PostCSS plugin with `target: 'web'`. It retains native layers/selectors with the same portable class naming, so there is no runtime rollback step.
 
 Taro examples use `styled-system/weapp` and `styled-system/h5` with output under `dist/<platform>`. Uni-app examples use `styled-system/mp-weixin` and `styled-system/h5`; final directories differ for dev/build. Set the platform before codegen and resolve `styled-system` to the matching target. Never let two writers share one generated directory.
 

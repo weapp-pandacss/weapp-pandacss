@@ -1,23 +1,17 @@
 import type { Warning } from 'postcss'
 import type { Plugin } from 'vite'
 import fs from 'node:fs/promises'
-import panda from '@pandacss/dev/postcss'
 import postcss from 'postcss'
-import postcssImport from 'postcss-import'
 import pandaAdapter from './panda-postcss.cjs'
 
 const virtualId = '\0virtual:panda-styles.css'
 
 export function createPandaStyles({ cwd, entry, target }: { cwd: string, entry: string, target: 'web' | 'weapp' }): Plugin {
   // Tailwind's Vite generator removes layer-order-only inputs. Expand Panda's
-  // independent entry first, using its physical path for import resolution.
-  // Mini-program layers must be compiled before Tailwind records this source;
-  // Web stays native here and uses the framework's PostCSS adapter instead.
-  const processor = postcss([
-    postcssImport(),
-    panda({ cwd }),
-    ...(target === 'weapp' ? [pandaAdapter({ target })] : []),
-  ])
+  // independent entry with the single plugin and its physical import context.
+  // Mini-program layers must be compiled before Tailwind records this source.
+  // Web defers adaptation until the framework has finished assembling styles.
+  const processor = postcss([pandaAdapter({ panda: { cwd }, target, adapter: target === 'weapp' })])
   return {
     name: 'example-panda-styles',
     enforce: 'pre',

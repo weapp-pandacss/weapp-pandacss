@@ -1,9 +1,11 @@
 <script setup lang="ts">
+import { encodeClassList } from '@weapp-pandacss/runtime'
 import { css } from 'styled-system/css/index.mjs'
 import { ref } from 'vue'
 import IceButtonPanda from '@/components/ButtonPanda.vue'
 import IceButtonTw from '@/components/ButtonTw.vue'
 
+const preprocessors = ['sass', 'less', 'stylus'].map(language => ({ language, className: encodeClassList(`preprocess/${language}-中文 active preprocess/import-${language}`) }))
 const title = ref('Hello')
 const aaa = css({
   color: 'red.300',
@@ -26,6 +28,9 @@ const style0 = css({
 
 <template>
   <view class="content">
+    <view v-for="item in preprocessors" :id="`preprocess-${item.language}`" :key="item.language" :class="item.className">
+      {{ item.language }} variables, mixins, nesting and CSS imports
+    </view>
     <view class="text-area pb-2">
       <text
         class="title" :class="css({

@@ -13,7 +13,7 @@ sidebar:
 
 ## 普通声明的 layer 顺序
 
-Panda 配置保持 `polyfill: false`，让 adapter 读到原始 layer。默认 `cascadeLayers.mode` 为 `ordered`，通过兼容适配层调用 `@weapp-tailwindcss/css-compat@0.1.1`，公开配置和 class 命名不变。编译器在 layer 首次声明时登记顺序，即使样式块出现顺序不同，也按登记顺序输出。
+Panda 配置保持 `polyfill: false`，让 adapter 读到原始 layer。默认 `cascadeLayers.mode` 为 `ordered`，通过兼容适配层调用 `@weapp-tailwindcss/css-compat@0.1.1`，原有适配配置继续支持，新增组合阶段默认启用，class 命名沿用原有契约。编译器在 layer 首次声明时登记顺序，即使样式块出现顺序不同，也按登记顺序输出。
 
 ~~~css
 .probe { color: green; }
@@ -71,8 +71,6 @@ Ordered 编译提供**顺序兼容**，不是完整的原生 layer polyfill。�
 // postcss.config.cjs
 module.exports = {
   plugins: {
-    'postcss-import': {},
-    '@pandacss/dev/postcss': {},
     'weapp-pandacss/postcss': {
       cascadeLayers: { mode: 'ordered', onConflict: 'error' },
     },
@@ -84,7 +82,7 @@ module.exports = {
 
 ## 源码可以正常使用 import
 
-Panda 生成和 ordered 编译前，先展开**完整 import 图**。Adapter 只处理一个 CSS AST，不读取导入文件。普通 import 也会影响结果：导入的未分层样式可覆盖所有分层普通规则，带 layer 的导入则会登记层顺序。
+零选项 PostCSS 插件在官方 Panda 生成与 ordered 编译前展开**完整 import 图**。独立 layer 内核只处理一个 CSS AST，不读取文件；组合插件的 importer 负责此前的展开。普通 import 也会影响结果：导入的未分层样式可覆盖所有分层普通规则，带 layer 的导入则会登记层顺序。
 
 ~~~css
 /* src/app.css */

@@ -1,0 +1,20 @@
+/* stylelint-disable selector-class-pattern -- Intentional special class exercises runtime encoding after Sass. */
+@import './sass-css.css';
+
+$tone: #123456;
+
+/* stylelint-disable-next-line at-rule-no-unknown -- Sass expands this mixin before PostCSS. */
+@mixin spacing($space) {
+  padding-left: $space;
+}
+
+.preprocess\/sass-中文 {
+  /* stylelint-disable-next-line at-rule-no-unknown -- Sass expands this mixin call before PostCSS. */
+  @include spacing(0.25rem);
+
+  color: $tone;
+
+  &.active {
+    opacity: 0.75;
+  }
+}

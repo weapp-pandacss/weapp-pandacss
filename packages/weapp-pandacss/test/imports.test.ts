@@ -31,7 +31,7 @@ async function files(graph: Record<string, string>) {
 
 async function compile(entry = 'entry.css', target: 'weapp' | 'web' = 'weapp', onConflict: 'warning' | 'error' = 'warning') {
   const from = path.join(fixtureRoot, entry)
-  return postcss([postcssImport(), adapter({ target, cascadeLayers: { onConflict } })])
+  return postcss([adapter({ target, cascadeLayers: { onConflict } })])
     .process(await fs.readFile(from, 'utf8'), { from, to: path.join(fixtureRoot, 'output.css'), map: { inline: false } })
 }
 
@@ -130,10 +130,9 @@ it('resolves nested imports relative to their real source files from an unrelate
     import fs from 'node:fs/promises';
     const require = createRequire(process.argv[1]);
     const postcss = require('postcss');
-    const importer = require('postcss-import');
     const adapter = require('weapp-pandacss/postcss');
     const from = process.argv[2];
-    console.log((await postcss([importer(), adapter()]).process(await fs.readFile(from, 'utf8'), {from})).css);
+    console.log((await postcss([adapter()]).process(await fs.readFile(from, 'utf8'), {from})).css);
   `
   const result = await run(process.execPath, ['--input-type=module', '-e', script, path.join(packageRoot, 'package.json'), path.join(fixtureRoot, 'entry.css')], { cwd: unrelated })
   expect(result.stdout).toContain(`.${encodeClassName('a/b')}`)
@@ -154,7 +153,7 @@ it('deduplicates repeated and cyclic imports without losing layer declaration or
 
 it('reloads imported files without leaking state when reusing a processor', async () => {
   await files({ 'entry.css': '@layer a; @import "./source.css";', 'source.css': '@layer a{.x{color:red}}' })
-  const processor = postcss([postcssImport(), adapter()])
+  const processor = postcss([adapter()])
   const from = path.join(fixtureRoot, 'entry.css')
   const css = await fs.readFile(from, 'utf8')
   expect((await processor.process(css, { from })).css).toContain('color:red')
@@ -238,7 +237,7 @@ it('reports missing files and imported parse errors rather than emitting incompl
 
 it.each(['@import "https://example.invalid/styles.css";', '@import "./filtered.css";', '@import "data:text/css;base64,Lnh7Y29sb3I6cmVkfQ==";'])('rejects any import deliberately left unresolved: %s', async (css) => {
   await files({ 'entry.css': css })
-  const result = postcss([postcssImport({ filter: () => false }), adapter()]).process(css, { from: path.join(fixtureRoot, 'entry.css') })
+  const result = postcss([postcssImport({ filter: () => false }), adapter({ imports: false, panda: false })]).process(css, { from: path.join(fixtureRoot, 'entry.css') })
   await expect(result).rejects.toMatchObject({ code: 'LAYER_IMPORT' })
 })
 
@@ -262,7 +261,7 @@ it('keeps independent import graphs isolated when layer names have opposing orde
     'second/a.css': '@layer a{.x{color:green;background:green!important}}',
     'second/b.css': '@layer b{.x{color:purple;background:purple!important}}',
   })
-  const processor = postcss([postcssImport(), adapter()])
+  const processor = postcss([adapter()])
   const firstPath = path.join(fixtureRoot, 'first/entry.css')
   const secondPath = path.join(fixtureRoot, 'second/entry.css')
   const first = await processor.process(await fs.readFile(firstPath, 'utf8'), { from: firstPath })
@@ -286,7 +285,7 @@ it('expands supported URL and data imports before invoking the adapter', async (
 it('keeps unresolved import compatibility for Web, disabled and explicit legacy callers', async () => {
   const source = '@import "./not-resolved.css"; .x{color:red}'
   for (const options of [{ target: 'web' as const }, { disabled: true }, { cascadeLayers: { mode: 'legacy' as const } }]) {
-    const result = await postcss([adapter(options)]).process(source, { from: undefined })
+    const result = await postcss([adapter({ ...options, imports: false, panda: false })]).process(source, { from: undefined })
     expect(result.css).toContain('@import "./not-resolved.css"')
   }
 })

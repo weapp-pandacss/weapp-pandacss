@@ -3,7 +3,6 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import { expect, test } from '@playwright/test'
 import postcss from 'postcss'
-import postcssImport from 'postcss-import'
 import { encodeClassName } from '../../packages/runtime/src/index.js'
 // eslint-disable-next-line antfu/no-import-dist -- Compare the production adapter with browser-native imported styles.
 import adapter from '../../packages/weapp-pandacss/dist/postcss.js'
@@ -45,7 +44,7 @@ test('cross-file imports preserve native cascade and portable names in the produ
 
 test('ordered imported WXSS matches browser-native multi-file layers', async ({ page, baseURL }) => {
   const source = '@layer import-demo.base, import-demo.utilities;\n@import "./entry.css";'
-  const output = await postcss([postcssImport(), adapter({ cascadeLayers: { onConflict: 'error' } })])
+  const output = await postcss([adapter({ panda: false, cascadeLayers: { onConflict: 'error' } })])
     .process(source, { from: path.join(importRoot, 'browser-main.css') })
   expect(output.warnings()).toEqual([])
   expect(output.css).not.toMatch(/@(?:import|layer)\b/)
@@ -73,11 +72,14 @@ test('named, anonymous and conditional imports retain native results at both vie
   }
   const source = files['main.css']!
   const output = await postcss([
-    postcssImport({
-      resolve: id => path.join(importRoot, id),
-      load: filename => files[path.basename(filename)]!,
+    adapter({
+      panda: false,
+      imports: {
+        resolve: id => path.join(importRoot, id),
+        load: filename => files[path.basename(filename)]!,
+      },
+      cascadeLayers: { onConflict: 'error' },
     }),
-    adapter({ cascadeLayers: { onConflict: 'error' } }),
   ]).process(source, { from: path.join(importRoot, 'main.css') })
   expect(output.warnings()).toEqual([])
   expect(output.css).not.toMatch(/@(?:import|layer)\b/)
@@ -93,5 +95,23 @@ test('named, anonymous and conditional imports retain native results at both vie
     expect(native[0]!.color).toBe(width < 700 ? 'rgb(255, 0, 0)' : 'rgb(0, 0, 255)')
     await page.setContent(`<style>${output.css}</style>${probes(true, ['probe'])}`)
     expect(await values(page)).toEqual(native)
+  }
+})
+
+test('framework Sass, Less and Stylus preserve variables, mixins, nesting and imported CSS', async ({ page }) => {
+  await page.goto('/')
+  const fixtures = [
+    { language: 'sass', color: 'rgb(18, 52, 86)', padding: '4px' },
+    { language: 'less', color: 'rgb(35, 69, 103)', padding: '8px' },
+    { language: 'stylus', color: 'rgb(52, 86, 120)', padding: '12px' },
+  ]
+  for (const { language, color, padding } of fixtures) {
+    const probe = page.getByTestId(`preprocess-${language}`)
+    await expect(probe).toHaveCSS('color', color)
+    await expect(probe).toHaveCSS('padding-left', padding)
+    await expect(probe).toHaveCSS('opacity', '0.75')
+    await expect(probe).toHaveCSS('white-space', 'nowrap')
+    await expect(probe).toHaveCSS('letter-spacing', '2px')
+    await expect(probe).toHaveClass(`${encodeClassName(`preprocess/${language}-中文`)} active ${encodeClassName(`preprocess/import-${language}`)}`)
   }
 })

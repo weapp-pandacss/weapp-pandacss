@@ -8,11 +8,21 @@ sidebar:
 
 **weapp-pandacss** 将 Panda CSS **2.1.2** 接入小程序构建。你可以在 Taro、Uni-app 和 Weapp Vite 中使用样式函数、recipes 与 tokens，并在 Web/H5 中沿用相同的 class 命名。
 
+PostCSS 只注册一个空配置插件，默认展开 import、生成 Panda CSS 并适配产物：
+
+~~~js
+module.exports = {
+  plugins: { 'weapp-pandacss/postcss': {} },
+}
+~~~
+
+保留 Panda 的 `weappPanda()` 生成 hook 和全局 `.css` layer 入口。H5 使用 `{ target: 'web' }`，框架预处理和单位转换仍显式配置。
+
 ## 从你的项目开始
 
 <LinkGrid>
   <LinkCard icon="rocket" title="快速开始" href="/zh/get-started/">
-    安装两个生成期插件。
+    配置 Panda hook 与单个 PostCSS 插件。
   </LinkCard>
   <LinkCard icon="blocks" title="框架接入指南" href="/zh/frameworks/">
     配置框架的构建流程。

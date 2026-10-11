@@ -5,7 +5,7 @@ sidebar:
   order: 5
 ---
 
-[React Web 示例](https://github.com/weapp-pandacss/weapp-pandacss/tree/main/examples/react-app)使用 **React 19**、**Vite 8** 和 Panda CSS **2.1.2**。Web 保留原生 cascade layers 和选择器语义，仍需要两个 adapter 插件保证 portable runtime 与 CSS 匹配。
+[React Web 示例](https://github.com/weapp-pandacss/weapp-pandacss/tree/main/examples/react-app)使用 **React 19**、**Vite 8** 和 Panda CSS **2.1.2**。Web 保留原生 cascade layers 和选择器语义，仍保留 `weappPanda()` 与单个三合一 PostCSS 插件，保证 portable runtime 与 CSS 匹配。
 
 ## 安装依赖
 
@@ -44,7 +44,6 @@ export default defineConfig({
 // postcss.config.cjs
 module.exports = {
   plugins: {
-    '@pandacss/dev/postcss': {},
     'weapp-pandacss/postcss': { target: 'web' },
   },
 }
@@ -124,6 +123,10 @@ const aliasOptions = {
 ~~~
 
 `cx()` 用于拼接生成 class 与已编码的手写 class，不要再次编码 Panda 返回值。浏览器 hover/focus 和媒体查询保留 Web 语义，但这不能证明同样条件在小程序中工作。
+
+## 预处理组件样式
+
+Vite 在 PostCSS 前编译 Sass/Less/Stylus。通过 Vite 安装并配置编译器，Panda 生成入口保持 `src/index.css`，变量、mixin 与 nesting 放在独立预处理组件文件中。Vite 可先预处理导入文件；内置 importer 只接收 CSS，进入默认 loader 的原始预处理文件会报错。详见[预处理器混用](/zh/postcss/#sassless-与-stylus)。
 
 ## H5 与小程序共存
 

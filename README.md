@@ -21,7 +21,17 @@ This repository is a pnpm/Turborepo monorepo managed by [repoctl](https://github
 
 The site documents every public adapter function and PostCSS option, with separate guides for Panda's generated styling APIs. Compatibility tables distinguish build-artifact checks, browser interactions and mini-program runtime checks. Every page also has Markdown/MDX exports; AI tools can use [llms.txt](https://panda.weapp.dev/llms.txt) or the [Chinese index](https://panda.weapp.dev/zh/llms.txt).
 
-Source `@import` remains supported: expand the entire graph before Panda and mini-program ordered compilation. The ordered core uses pinned `@weapp-tailwindcss/css-compat@0.1.1`; unresolved plain, layer-qualified or remote imports fail rather than silently changing precedence. Public adapter options and legacy behavior stay compatible. See [CSS compatibility](https://panda.weapp.dev/guides/css-compatibility/) / [CSS 兼容](https://panda.weapp.dev/zh/guides/css-compatibility/) for the pipeline, diagnostic mapping and source-input boundary.
+`weapp-pandacss/postcss` now needs one empty registration:
+
+```js
+module.exports = {
+  plugins: { 'weapp-pandacss/postcss': {} },
+}
+```
+
+It expands CSS imports, runs official Panda and adapts mini-program CSS by default. Keep Panda's config, `weappPanda()` and a global `.css` layer entry; H5 uses `{ target: 'web' }`. `imports`, `panda` and `adapter` can be disabled individually; `disabled: true` bypasses all stages. Sass/Less/Stylus are compiled by the framework, and unit conversion remains explicit.
+
+Source `@import` remains supported: the composed plugin expands the local graph before Panda and mini-program ordered compilation. The ordered core uses pinned `@weapp-tailwindcss/css-compat@0.1.1`; unresolved plain, layer-qualified or remote imports fail rather than silently changing precedence. Existing adapter and legacy options remain available. See [CSS compatibility](https://panda.weapp.dev/guides/css-compatibility/) / [CSS 兼容](https://panda.weapp.dev/zh/guides/css-compatibility/) for diagnostics and the source-input boundary.
 
 ## Brand assets
 

@@ -9,7 +9,7 @@
     "lint": "eslint src panda.config.ts vite.config.ts && pnpm lint:styles",
     "preview": "vite preview",
     "codegen": "panda codegen",
-    "lint:styles": "stylelint --allow-empty-input \"src/**/*.{css,scss,vue}\"",
+    "lint:styles": "stylelint --allow-empty-input \"src/**/*.{css,scss,less,vue}\"",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -24,7 +24,10 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
+    "less": "^4.9.1",
     "postcss": "catalog:",
+    "sass": "^1.105.1",
+    "stylus": "^0.55.0",
     "typescript": "catalog:",
     "vite": "^8.3.4",
     "weapp-pandacss": "workspace:*"

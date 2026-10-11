@@ -47,6 +47,13 @@ export default function Index() {
   return (
     // nutui 样式错乱？
     <View>
+      {['sass', 'less', 'stylus'].map(language => (
+        <View key={language} id={`preprocess-${language}`} className={encodeClassList(`preprocess/${language}-中文 active preprocess/import-${language}`)}>
+          {language}
+          {' '}
+          variables, mixins, nesting and CSS imports
+        </View>
+      ))}
       <View
         className={css({
           fontSize: 'xs',

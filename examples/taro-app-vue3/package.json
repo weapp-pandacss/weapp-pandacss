@@ -38,7 +38,7 @@
     "open": "weapp open -p .",
     "codegen": "panda codegen",
     "lint": "eslint src panda.config.ts vite.config.ts config --no-error-on-unmatched-pattern && pnpm lint:styles",
-    "lint:styles": "stylelint --allow-empty-input \"src/**/*.{css,scss,vue}\"",
+    "lint:styles": "stylelint --allow-empty-input \"src/**/*.{css,scss,less,vue}\"",
     "typecheck": "vue-tsc --noEmit"
   },
   "dependencies": {
@@ -59,6 +59,7 @@
     "@tarojs/runtime": "4.3.0",
     "@tarojs/shared": "4.3.0",
     "@tarojs/taro": "4.3.0",
+    "@weapp-pandacss/runtime": "workspace:*",
     "vue": "^3.5.43"
   },
   "devDependencies": {
@@ -76,10 +77,12 @@
     "babel-loader": "^10.1.1",
     "babel-preset-taro": "4.3.0",
     "css-loader": "^7.1.5",
+    "less": "^4.9.1",
     "postcss": "catalog:",
-    "postcss-import": "17.0.0",
     "postcss-rem-to-responsive-pixel": "^7.0.7",
+    "sass": "^1.105.1",
     "style-loader": "4.0.0",
+    "stylus": "^0.55.0",
     "typescript": "catalog:",
     "unplugin-vue-components": "^32.1.0",
     "vue-loader": "^17.4.2",

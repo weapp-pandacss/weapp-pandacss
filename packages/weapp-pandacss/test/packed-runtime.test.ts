@@ -108,7 +108,7 @@ it('packs the adapter with an exact runtime dependency and usable compatibility 
     const args = format === 'esm' ? ['--input-type=module', '-e', script] : ['-e', script]
     expect((await run(process.execPath, args, { cwd: consumer })).stdout.trim()).toBe('true')
   }
-  await fs.writeFile(path.join(consumer, 'consumer.mts'), 'import {encodeClassName} from \'weapp-pandacss/runtime\'; import {encodeClassList} from \'@weapp-pandacss/runtime\'; const result: string = encodeClassList(encodeClassName(\'a.b\'));\n')
-  await fs.writeFile(path.join(consumer, 'consumer.cts'), 'import api = require(\'weapp-pandacss/runtime\'); const result: string = api.createPortableRuntime().encodeClassName(\'a.b\');\n')
+  await fs.writeFile(path.join(consumer, 'consumer.mts'), 'import {encodeClassName} from \'weapp-pandacss/runtime\'; import {encodeClassList} from \'@weapp-pandacss/runtime\'; const result: string = encodeClassList(encodeClassName(\'a.b\')); import plugin from \'weapp-pandacss/postcss\'; plugin({ imports: { root: \'/app\', path: [\'styles\'], filter: (id: string) => id.endsWith(\'.css\') }, panda: { cwd: \'/app\', configPath: \'panda.config.ts\', allow: [/css/] }, adapter: true });\n')
+  await fs.writeFile(path.join(consumer, 'consumer.cts'), 'import api = require(\'weapp-pandacss/runtime\'); const result: string = api.createPortableRuntime().encodeClassName(\'a.b\'); import plugin = require(\'weapp-pandacss/postcss\'); plugin({ imports: false, panda: { outdir: \'styled-system\' }, adapter: false });\n')
   await run(process.execPath, [path.join(workspaceRoot, 'node_modules/typescript/bin/tsc'), '--noEmit', '--strict', '--module', 'node16', '--target', 'es2018', 'consumer.mts', 'consumer.cts'], { cwd: consumer })
 }, 60_000)

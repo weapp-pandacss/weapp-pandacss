@@ -117,7 +117,7 @@ it('covers the runtime acceptance page, named compounds and slot transitions wit
   const project = createTestProject({ artifact })
   try {
     const { screen, user } = await project.renderPage('/pages/acceptance/index')
-    const ids = ['atomic', 'variable-token', 'value-token', 'semantic-token', 'important', 'merged', 'pattern', 'variant', 'slot-root', 'slot-label', 'named', 'named-root', 'named-label', 'collision-a', 'collision-b', 'leading', 'marked']
+    const ids = ['preprocess-sass', 'preprocess-less', 'preprocess-stylus', 'atomic', 'variable-token', 'value-token', 'semantic-token', 'important', 'merged', 'pattern', 'variant', 'slot-root', 'slot-label', 'named', 'named-root', 'named-label', 'collision-a', 'collision-b', 'leading', 'marked']
     const changing = ['variant', 'slot-root', 'slot-label', 'named', 'named-root', 'named-label']
     const initial = Object.fromEntries(changing.map(id => [id, screen.getByAttribute('id', id).getAttribute('class')]))
     for (let cycle = 0; cycle <= 4; cycle++) {
@@ -179,4 +179,24 @@ it('expands a multi-file import graph before encoding selectors and compiling la
   expect(values('import_wp_2e_a', 'margin-right')).toEqual(['11px'])
   expect(encodeClassName('import/中文')).not.toBe(encodeClassName('import_wp_2f_中文'))
   expect(encodeClassName('import.a')).not.toBe(encodeClassName('import_wp_2e_a'))
+})
+
+it('compiles Sass, Less and Stylus before import expansion and portable adaptation', async () => {
+  const stylesheet = await fs.readFile(path.join(artifact.miniprogramRootPath, 'app.wxss'), 'utf8')
+  const root = postcss.parse(stylesheet)
+  for (const [language, color, padding] of [['sass', '#123456', '8rpx'], ['less', '#234567', '16rpx'], ['stylus', '#345678', '24rpx']]) {
+    const name = encodeClassName(`preprocess/${language}-中文`)
+    const imported = encodeClassName(`preprocess/import-${language}`)
+    const rules: { selector: string, declarations: Record<string, string> }[] = []
+    root.walkRules((rule) => {
+      const declarations: Record<string, string> = {}
+      rule.walkDecls((declaration) => {
+        declarations[declaration.prop] = declaration.value
+      })
+      rules.push({ selector: rule.selector, declarations })
+    })
+    expect(rules).toContainEqual({ selector: `.${name}`, declarations: { 'color': color, 'padding-left': padding } })
+    expect(rules.some(rule => rule.selector === `.${name}.active` && Number(rule.declarations.opacity) === 0.75)).toBe(true)
+    expect(rules.some(rule => rule.selector === `.${imported}` && rule.declarations['white-space'] === 'nowrap' && rule.declarations['letter-spacing'] === '4rpx')).toBe(true)
+  }
 })

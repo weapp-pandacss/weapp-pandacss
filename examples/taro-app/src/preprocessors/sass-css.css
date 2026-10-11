@@ -1,0 +1,7 @@
+/* stylelint-disable selector-class-pattern -- The imported class deliberately needs portable encoding. */
+@layer preprocess {
+  .preprocess\/import-sass {
+    letter-spacing: 0.125rem;
+    white-space: nowrap;
+  }
+}

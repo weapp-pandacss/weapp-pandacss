@@ -38,7 +38,7 @@
     "open": "weapp open -p .",
     "codegen": "panda codegen",
     "lint": "eslint src panda.config.ts vite.config.ts config --no-error-on-unmatched-pattern && pnpm lint:styles",
-    "lint:styles": "stylelint --allow-empty-input \"src/**/*.{css,scss,vue}\"",
+    "lint:styles": "stylelint --allow-empty-input \"src/**/*.{css,scss,less,vue}\"",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -79,11 +79,12 @@
     "@types/webpack-env": "^1.18.8",
     "babel-loader": "^10.1.1",
     "babel-preset-taro": "4.3.0",
+    "less": "^4.9.1",
     "postcss": "catalog:",
-    "postcss-import": "17.0.0",
     "postcss-rem-to-responsive-pixel": "^7.0.7",
     "react-refresh": "^0.14.2",
     "sass": "^1.105.1",
+    "stylus": "^0.55.0",
     "tsconfig-paths-webpack-plugin": "^4.2.0",
     "typescript": "catalog:",
     "weapp-pandacss": "workspace:*",
