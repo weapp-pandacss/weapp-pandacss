@@ -36,14 +36,15 @@ function resolveLayerMode(options?: IPostcssPluginOptions) {
 const { selector: slt, tag } = selectorParser
 
 function mergePostcssOptions(base: Required<IPostcssPluginOptions>, options?: IPostcssPluginOptions): Required<IPostcssPluginOptions> {
-  const { imports: baseImports, panda: basePanda, ...baseAdapter } = base
-  const { imports, panda, ...adapterOptions } = options ?? {}
+  const { imports: baseImports, panda: basePanda, units: baseUnits, ...baseAdapter } = base
+  const { imports, panda, units, ...adapterOptions } = options ?? {}
   // Never traverse upstream bags: plugin instances can contain opaque state,
   // getters or cycles in addition to RegExp values and lifecycle callbacks.
   return {
     ...merge.recursive(true, baseAdapter, adapterOptions),
     imports: imports ?? baseImports,
     panda: panda ?? basePanda,
+    units: units ?? baseUnits,
   } as Required<IPostcssPluginOptions>
 }
 
@@ -195,9 +196,8 @@ export const creator: PluginCreator<IPostcssPluginOptions> = (options) => {
   if (optionsRef.value.disabled) {
     return { postcssPlugin: wrapperPostcssPlugin }
   }
-  const pipeline = pipelinePlugin(optionsRef)
   if (!optionsRef.value.adapter) {
-    return { postcssPlugin: wrapperPostcssPlugin, plugins: [pipeline] }
+    return { postcssPlugin: wrapperPostcssPlugin, plugins: [pipelinePlugin(optionsRef, [])] }
   }
   const portableInputs = new WeakMap<Input, boolean>()
   function isPortableInput(input?: Input): boolean {
@@ -259,7 +259,7 @@ export const creator: PluginCreator<IPostcssPluginOptions> = (options) => {
     },
   }
   if (optionsRef.value.target === 'web') {
-    return { postcssPlugin: wrapperPostcssPlugin, plugins: [pipeline, namingPlugin] }
+    return { postcssPlugin: wrapperPostcssPlugin, plugins: [pipelinePlugin(optionsRef, [namingPlugin])] }
   }
   const cascadeLayersPlugin = optionsRef.value.cascadeLayers.mode === 'legacy'
     ? createCascadeLayersPlugin(optionsRef.value.cascadeLayersPluginOptions) as Plugin
@@ -271,12 +271,13 @@ export const creator: PluginCreator<IPostcssPluginOptions> = (options) => {
   return {
     postcssPlugin: wrapperPostcssPlugin,
     plugins: [
-      pipeline,
-      namingPlugin,
-      ...(optionsRef.value.cascadeLayers.mode === 'legacy' ? [cascadeLayersPlugin] : []),
-      isPseudoClassPlugin,
-      innerPlugin(optionsRef),
-      ...(optionsRef.value.cascadeLayers.mode === 'ordered' ? [cascadeLayersPlugin] : []),
+      pipelinePlugin(optionsRef, [
+        namingPlugin,
+        ...(optionsRef.value.cascadeLayers.mode === 'legacy' ? [cascadeLayersPlugin] : []),
+        isPseudoClassPlugin,
+        innerPlugin(optionsRef) as Plugin,
+        ...(optionsRef.value.cascadeLayers.mode === 'ordered' ? [cascadeLayersPlugin] : []),
+      ]),
     ],
   }
 }

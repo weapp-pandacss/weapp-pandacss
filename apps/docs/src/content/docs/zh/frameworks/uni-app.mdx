@@ -12,7 +12,7 @@ sidebar:
 adapter 声明 Node `^22.18.0 || >=24.11.0`，推荐 Node 22.18+ 或 24.11+ 的 LTS 版本，在应用目录执行：
 
 ~~~sh
-pnpm add -D @pandacss/dev@2.1.2 @pandacss/preset-base@2.1.2 @pandacss/preset-panda@2.1.2 weapp-pandacss@^2 postcss postcss-rem-to-responsive-pixel
+pnpm add -D @pandacss/dev@2.1.2 @pandacss/preset-base@2.1.2 @pandacss/preset-panda@2.1.2 weapp-pandacss@^2 postcss
 ~~~
 
 以下配置适用于 **只使用 Panda 的样式流程**。仓库示例还对比了 Tailwind v4，将这份简化 Vite 配置复制到该示例前，先阅读共存说明。
@@ -51,7 +51,6 @@ import path from 'node:path'
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 import uni from '@dcloudio/vite-plugin-uni'
-import remToResponsivePixel from 'postcss-rem-to-responsive-pixel'
 import { defineConfig } from 'vite'
 import adapter from 'weapp-pandacss/postcss'
 
@@ -69,11 +68,9 @@ export default defineConfig({
   css: {
     postcss: {
       plugins: [
-        adapter({ target: web ? 'web' : 'weapp' }),
-        remToResponsivePixel({
-          rootValue: 32,
-          propList: ['*'],
-          transformUnit: web ? 'px' : 'rpx',
+        adapter({
+          target: web ? 'web' : 'weapp',
+          units: { rules: [{ from: 'rem', to: web ? 'px' : 'rpx', factor: 32 }] },
         }),
       ],
     },
@@ -81,7 +78,7 @@ export default defineConfig({
 })
 ~~~
 
-这份 Panda-only 配置只注册一个适配器，由它展开 import、执行官方 Panda 并转换合并后的 root。不要额外注册官方 Panda PostCSS 插件。Vite 也可在此前解析本地 CSS import，可选单位转换最后执行。本地 import 放在源码入口顶部；残留远程导入会使小程序 ordered 编译失败。`rootValue: 32` 是示例设计选择，不是平台要求。Vite 使用内联 PostCSS 插件时，将完整流程放在这里，避免必需阶段分散在互相竞争的配置中。
+这份 Panda-only 配置只注册一个适配器，由它展开 import、执行官方 Panda 并转换合并后的 root。不要额外注册官方 Panda PostCSS 插件。Vite 也可在此前解析本地 CSS import，内置 units 在完整适配后、Uni 后处理前执行。本地 import 放在源码入口顶部；残留远程导入会使小程序 ordered 编译失败。`factor: 32` 是示例设计选择，默认不转换单位。微信将 rem 转为 rpx，H5 转为 px，保留示例尺寸；Uni 自己的 rpx/upx 后处理仍负责其他样式。无需另装转换器。Vite 使用内联 PostCSS 插件时，将完整流程放在这里，避免必需阶段分散在互相竞争的配置中。
 
 在原 tsconfig 添加默认微信路径，不替换其他设置：
 
@@ -152,9 +149,9 @@ Uni/Vite 在 PostCSS 前编译 Sass/Less/Stylus SFC 样式。共享生成入口�
 仓库的对比示例需要额外处理样式入口。应同时复制[完整 Vite 配置](https://github.com/weapp-pandacss/weapp-pandacss/blob/main/examples/uni-app-vue3/vite.config.ts)、[panda-styles.ts](https://github.com/weapp-pandacss/weapp-pandacss/blob/main/examples/uni-app-vue3/panda-styles.ts)、[panda-postcss.cjs](https://github.com/weapp-pandacss/weapp-pandacss/blob/main/examples/uni-app-vue3/panda-postcss.cjs)和[应用入口](https://github.com/weapp-pandacss/weapp-pandacss/blob/main/examples/uni-app-vue3/src/main.ts)：
 
 - `src/tailwind.css` 归 Tailwind 生成器和命名 runtime 管理。
-- 微信中，`src/panda.css` 在 `virtual:panda-styles.css` 内使用默认三合一 `adapter()`（imports → Panda → 适配），在 Tailwind Vite 插件接触前完成处理，避免原生 layer 被丢弃或重写。后续框架 adapter 识别 portable 标记，不重复编码这些 class。
-- H5 虚拟入口使用 `adapter({ adapter: false })`，只执行 imports → Panda，保留原生 layer 与原始 selector；后续框架 PostCSS adapter 通过 `target: 'web'` 编码 class。不要提前执行 Web adapter：过早产生 portable 标记会让 Tailwind generator 展平 H5 layer。
-- importer 已内置，后续仅适配阶段设置 `{ imports: false, panda: false }`。Loader 以真实 `src/panda.css` 绝对路径作为 `from: entry`，不能使用虚拟模块 ID。它将文件与目录依赖交给 Vite watcher，并返回 sourcemap；导入文件修改后重新处理时不得使用旧 CSS。Adapter 包装器跳过 Tailwind 入口，并转发 Panda/手写样式诊断；单位转换保留在最终框架流水线。
+- 微信中，`src/panda.css` 在 `virtual:panda-styles.css` 内使用 `adapter({ units: false })`（imports → Panda → 适配），在 Tailwind Vite 插件接触前完成处理，避免原生 layer 被丢弃或重写。后续框架 adapter 识别 portable 标记，不重复编码这些 class。
+- H5 虚拟入口使用 `adapter({ adapter: false, units: false })`，只执行 imports → Panda，保留原生 layer 与原始 selector；后续框架 PostCSS adapter 通过 `target: 'web'` 编码 class。不要提前执行 Web adapter：过早产生 portable 标记会让 Tailwind generator 展平 H5 layer。
+- importer 已内置，后续适配与单位阶段设置 `{ imports: false, panda: false, units: ... }`。Loader 以真实 `src/panda.css` 绝对路径作为 `from: entry`，不能使用虚拟模块 ID。它将文件与目录依赖交给 Vite watcher，并返回 sourcemap；导入文件修改后重新处理时不得使用旧 CSS。虚拟入口显式 `units: false`，最终 Panda/手写样式阶段开启 units，保证只转一次，并继续转发诊断。Tailwind 入口使用同一插件的 `{ imports: false, panda: false, adapter: false, units: ... }` 仅转换单位，保留 Tailwind 命名；不能直接跳过并丢失转换。
 - `main.ts` 同时导入 Tailwind 入口与 Panda 虚拟入口；直接换成上面的简化配置会改变流程。
 
 对 Tailwind 产物使用 Panda 编码会破坏它与 runtime 的匹配。独立入口也不共享跨文件 cascade-layer 注册表；需要相对层顺序时，应先合并 layer 输入，再执行适配。

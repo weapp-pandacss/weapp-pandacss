@@ -14,7 +14,7 @@ sidebar:
     `weappPanda()` 与生成生命周期，在 Panda 配置中执行。
   </LinkCard>
   <LinkCard icon="file-cog" title="PostCSS 插件" href="/zh/api/postcss-plugin/">
-    `postcssPlugin()` 默认执行 import 展开 → Panda → 适配，全部阶段和适配参数在 CSS 构建中执行。
+    `postcssPlugin()` 默认执行 import 展开 → Panda → 适配，内置 units 按需启用；全部阶段和适配参数在 CSS 构建中执行。
   </LinkCard>
   <LinkCard icon="code" title="Runtime 编码" href="/zh/api/runtime/">
     `encodeClassName()`、`encodeClassList()` 与 `createPortableRuntime()`，用于页面或生成的 runtime。
@@ -39,11 +39,11 @@ sidebar:
 
 ## 包入口
 
-所有 JavaScript 入口都提供 ESM、CommonJS 和对应 TypeScript 声明。`IPostcssPluginOptions`、`PostcssImportOptions`、`PandaPostcssOptions` 是类型导出。
+所有 JavaScript 入口都提供 ESM、CommonJS 和对应 TypeScript 声明。`IPostcssPluginOptions`、`PostcssImportOptions`、`PandaPostcssOptions`、`UnitConversionOptions` 及单位规则 / 上下文 / preset 类型是类型导出。
 
 | 入口 | 导出 |
 | --- | --- |
-| `weapp-pandacss` | `weappPanda`、`postcssPlugin`、`encodeClassName`、`encodeClassList`、`IPostcssPluginOptions`、`PostcssImportOptions`、`PandaPostcssOptions` |
+| `weapp-pandacss` | `weappPanda`、`postcssPlugin`、`encodeClassName`、`encodeClassList`、`unitPresets`、`composeUnitRules`，配置与单位类型 |
 | `weapp-pandacss/panda` | `weappPanda` |
 | `weapp-pandacss/postcss` | 默认导出的 `postcssPlugin` 工厂 |
 | `@weapp-pandacss/runtime` | `encodeClassName`、`encodeClassList`、`createPortableRuntime` |
@@ -65,6 +65,12 @@ const authored = encodeClassName('custom/active')
 ```
 
 主包根入口不导出 `createPortableRuntime`，内部辅助函数也不是公共 API。v1 文件补丁 API、adapter 配置加载器、内部路径 wildcard 与两个 CLI 已删除，替代方式见[迁移指南](/zh/migration/)。
+
+## 单位辅助函数
+
+`unitPresets`、`composeUnitRules` 从根入口导入，运行在构建配置中。
+`UnitConversionOptions` 及完整规则、上下文、preset 类型同样从根入口导出。
+它们复用内置转换器，无需额外安装。详见[完整 API](/zh/api/postcss-plugin/#内置单位转换)。
 
 ## 使用生成 API 前
 

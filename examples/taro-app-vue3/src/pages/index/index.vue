@@ -1,13 +1,18 @@
 <script>
 import { Dongdong } from '@nutui/icons-vue-taro'
+import { Button as NutButton, Toast as NutToast } from '@nutui/nutui-taro'
 import { encodeClassList } from '@weapp-pandacss/runtime'
 import { css } from 'styled-system/css/index.mjs'
 import { reactive, toRefs } from 'vue'
+import '@nutui/nutui-taro/dist/packages/button/style/index.mjs'
+import '@nutui/nutui-taro/dist/packages/toast/style/index.mjs'
 
 export default {
   name: 'Index',
   components: {
     Dongdong,
+    NutButton,
+    NutToast,
   },
   setup() {
     const preprocessors = ['sass', 'less', 'stylus'].map(language => ({ language, className: encodeClassList(`preprocess/${language}-中文 active preprocess/import-${language}`) }))
@@ -57,11 +62,11 @@ export default {
 
     <Dongdong />
     <view class="btn">
-      <nut-button type="primary" @click="handleClick('text', msg2, true)">
+      <NutButton type="primary" @click="handleClick('text', msg2, true)">
         点我
-      </nut-button>
+      </NutButton>
     </view>
-    <nut-toast v-model:visible="show" :msg="msg2" :type="type" :cover="cover" />
+    <NutToast v-model:visible="show" :msg="msg2" :type="type" :cover="cover" />
   </view>
 </template>
 

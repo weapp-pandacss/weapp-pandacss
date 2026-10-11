@@ -35,22 +35,45 @@ export default defineConfig({
 module.exports = {
   plugins: {
     'weapp-pandacss/postcss': {},
-    // Put any rem/rpx conversion after the adapter.
+    // Add units only when the project needs conversion.
   },
 }
 ```
 
-Empty options enable import expansion → official Panda generation → mini-program adaptation. Do not separately install/register `postcss-import` or `@pandacss/dev/postcss`; the importer is built in. Optional unit conversion follows this plugin and does not use an inferred ratio. Add `@layer reset, base, tokens, recipes, utilities;` to your global CSS. Generate the runtime with `panda codegen` before building or starting development. Panda's PostCSS integration also runs the plugin when regenerating artifacts. Ignore `styled-system` in Git.
+Empty options enable import expansion → official Panda generation → mini-program adaptation. Do not separately install/register `postcss-import` or `@pandacss/dev/postcss`; the importer is built in. Unit conversion is built in through opt-in `units`, defaulting to `false` with no inferred ratio. Add `@layer reset, base, tokens, recipes, utilities;` to your global CSS. Generate the runtime with `panda codegen` before building or starting development. Panda's PostCSS integration also runs the plugin when regenerating artifacts. Ignore `styled-system` in Git.
 
 For Web/H5, keep `weappPanda()` and use `target: 'web'`. Web keeps layers and pseudo-selector semantics; both targets use the same class names. Use separate generated directories and matching bundler aliases when building targets in parallel (see the Taro and Uni-app examples).
 
 ## Stage options and preprocessors
 
-`imports`, `panda` and `adapter` default to `true`. The first two also accept upstream option objects. Existing adaptation options remain at the top level. Use `{ imports: false, panda: false }` for pure adaptation, `{ adapter: false }` for import/Panda generation only, or `{ disabled: true }` to bypass everything. An external Panda/importer stage must replace its internal counterpart and run before stages consuming its output.
+`imports`, `panda` and `adapter` default to `true`. The first two also accept upstream option objects. Existing adaptation options remain at the top level. Use `{ imports: false, panda: false }` for pure adaptation, `{ adapter: false }` to skip adaptation while retaining imports, Panda and configured units, or `{ disabled: true }` to bypass everything. An external Panda/importer stage must replace its internal counterpart and run before stages consuming its output.
 
 Panda discovers explicit `panda.cwd/configPath`, then the nearest config above the real CSS file, then process cwd. A discovered config's directory is the project root; invalid explicit configuration fails directly. Custom loaders pass the real PostCSS `from` and forward file/directory dependencies and source maps. A string without file context can be adapted, but Panda generation skips it; relative imports need a real filename or `imports.root`.
 
-Keep the global Panda layer entry as `.css`. Sass/Less/Stylus variables, mixins and nesting are compiled by the framework first. The built-in importer expands CSS and rejects raw `.scss/.sass/.less/.styl/.stylus` imports unless a custom loader supplies compiled CSS. Unit conversion stays separate. The [PostCSS reference](https://panda.weapp.dev/api/postcss-plugin/) lists every stage option, default and callback.
+Keep the global Panda layer entry as `.css`. Sass/Less/Stylus variables, mixins and nesting are compiled by the framework first. The built-in importer expands CSS and rejects raw `.scss/.sass/.less/.styl/.stylus` imports unless a custom loader supplies compiled CSS. The built-in `units` stage converts compiled CSS after complete adaptation and before framework postprocessing. The [PostCSS reference](https://panda.weapp.dev/api/postcss-plugin/) lists every stage option, default and callback.
+
+## Built-in unit conversion
+
+Empty PostCSS options preserve all units. To keep a `1rem = 32rpx` design scale,
+configure the same plugin; no extra converter installation is needed:
+
+```js
+module.exports = {
+  plugins: {
+    'weapp-pandacss/postcss': {
+      units: { rules: [{ from: 'rem', to: 'rpx', factor: 32 }] },
+    },
+  },
+}
+```
+
+Rules support strings, regexes and functions, custom factors and signed callbacks.
+`minValue` compares absolute magnitude. Default CSS tokenization protects strings,
+URLs, identifiers and complete `var()` fallbacks. The first matching rule wins;
+values do not chain in one run, but repeated processing may convert again.
+`adapter: false` retains configured units; `disabled: true` bypasses all stages.
+Import `unitPresets`, `composeUnitRules` and `UnitConversionOptions` from
+`weapp-pandacss` to compose typed presets. See [all unit options and boundaries](https://panda.weapp.dev/api/postcss-plugin/#built-in-unit-conversion).
 
 ## Naming and public entries
 
@@ -72,7 +95,7 @@ Keep authored CSS selectors in their original form (with normal CSS escapes). Po
 
 The plugin enables Panda's native `hash.cssVar` and normalizes its variable prefix; it preserves your `hash.className` setting. Configured class prefixes and recipe labels with unsafe heads or reserved markers are canonicalized before Panda escapes CSS. It never renames variable declarations. In mini-program mode, unsupported hand-written variable identifiers fail with a diagnostic; use ASCII identifiers. `disabled: true` bypasses the complete pipeline, including imports and Panda generation.
 
-`weapp-pandacss/panda`, `/postcss` and `/runtime` provide ESM and CJS entries with declarations. The root entry exports `weappPanda`, `postcssPlugin`, `encodeClassName` and `encodeClassList`. Version 2 removes the old file-patching/configuration APIs, both adapter CLI names and the PostCSS `naming` option. PostCSS options are passed directly to the plugin.
+`weapp-pandacss/panda`, `/postcss` and `/runtime` provide ESM and CJS entries with declarations. The root entry exports `weappPanda`, `postcssPlugin`, `encodeClassName`, `encodeClassList`, `unitPresets`, `composeUnitRules`, and complete option/rule/context/preset types. Version 2 removes the old file-patching/configuration APIs, both adapter CLI names and the PostCSS `naming` option. PostCSS options are passed directly to the plugin.
 
 Panda 2.1.2 with `.js` or `.mjs` output is supported. Panda source-transform optimizations that inline raw classes and bypass runtime are outside this release's scope. See the [Chinese guide](./README.zh.md) and [2.0 migration guide](../../docs/panda-plugin-migration.md) for configuration and breaking changes.
 

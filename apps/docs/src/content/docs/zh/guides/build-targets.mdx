@@ -91,7 +91,7 @@ const plugin = adapter({ panda: { cwd: import.meta.dirname } })
 
 示例流程先执行初始 codegen，再启动框架 dev/watch。Panda PostCSS 会记录提取依赖，让 bundler 能重建样式。独立流程需要监视 runtime 生成时，Panda 2.1.2 也提供 `panda codegen --watch`，CSS 仍需要经过 PostCSS。每个生成目录指定一个写入负责人。
 
-修改 recipe、token、`include` 或 hash 后，确认 runtime 与 CSS 都已重新生成。环境、alias、TypeScript 配置变化可能需要重启框架进程。保留生成标记能让重复处理安全，但不能让并发写入安全。
+修改 recipe、token、`include` 或 hash 后，确认 runtime 与 CSS 都已重新生成。环境、alias、TypeScript 配置变化可能需要重启框架进程。生成标记只避免重复 class 编码，不避免单位再次转换，也不能让并发写入安全。
 
 ## 缓存与干净构建
 
@@ -104,14 +104,14 @@ const plugin = adapter({ panda: { cwd: import.meta.dirname } })
 Uni-app 对比示例分别维护入口：
 
 ~~~text
-Panda 微信 → 虚拟入口（默认三合一）→ 幂等框架 adapter → 单位转换
-Panda H5 → 虚拟入口（adapter: false，原生 layer）→ 框架 Web adapter → 单位转换
-tailwind.css → weapp-tailwindcss 专用流程 → 与它配套的 class runtime
+Panda 微信 → 虚拟入口（units: false）→ 框架 adapter + units → Uni 后处理
+Panda H5 → 虚拟入口（adapter: false, units: false）→ Web adapter + units → Uni 后处理
+tailwind.css → weapp-tailwindcss 专用流程 → 仅 units → Uni 后处理；配套 class runtime 不变
 ~~~
 
 Panda 入口始终先基于真实源码路径展开 import，再生成样式。小程序虚拟入口提前适配，防止 Tailwind generator 删除或重写原生 layer；后续框架处理通过 portable 标记避免重复编码。H5 虚拟入口保留原生 layer 和 selector，只在框架 PostCSS 中执行 Web adapter。提前执行 Web adapter 产生的标记会让 Tailwind 展平 H5 layer，应保留这个目标边界。虚拟入口将导入文件与 Panda 文件/目录依赖都登记为 Vite watch 依赖，并透传 sourcemap；导入文件变化时必须使虚拟入口失效、重新生成，不能返回旧 CSS。
 
-示例 [panda-postcss.cjs](https://github.com/weapp-pandacss/weapp-pandacss/blob/main/examples/uni-app-vue3/panda-postcss.cjs)跳过 `tailwind.css`，仅适配 Panda 与手写 CSS；`WeappTailwindcss` 显式接收 Tailwind `cssEntries`。不要再注册第二个 Tailwind generator，也不要把其已适配 CSS 送进 Panda 编码器。这是示例集成方式，不是 adapter 新选项。
+示例 [panda-postcss.cjs](https://github.com/weapp-pandacss/weapp-pandacss/blob/main/examples/uni-app-vue3/panda-postcss.cjs)对 Panda 与手写 CSS 执行最终适配和 units；虚拟入口显式 `units: false`，只在最终阶段换算一次。`tailwind.css` 使用同一入口的 `{ imports: false, panda: false, adapter: false, units: ... }` 仅转换单位，不进入 Panda 命名阶段；`WeappTailwindcss` 显式接收 Tailwind `cssEntries`。不要再注册第二个 Tailwind generator，也不要把其已适配 CSS 送进 Panda 编码器。这是示例集成方式，不是 adapter 新选项。
 
 ## 按目标验收
 

@@ -11,7 +11,7 @@ export function createPandaStyles({ cwd, entry, target }: { cwd: string, entry: 
   // independent entry with the single plugin and its physical import context.
   // Mini-program layers must be compiled before Tailwind records this source.
   // Web defers adaptation until the framework has finished assembling styles.
-  const processor = postcss([pandaAdapter({ panda: { cwd }, target, adapter: target === 'weapp' })])
+  const processor = postcss([pandaAdapter({ panda: { cwd }, target, adapter: target === 'weapp', units: false })])
   return {
     name: 'example-panda-styles',
     enforce: 'pre',

@@ -12,7 +12,7 @@ sidebar:
 adapter 声明 Node `^22.18.0 || >=24.11.0`，推荐 Node 22.18+ 或 24.11+ 的 LTS 版本，在应用目录执行：
 
 ~~~sh
-pnpm add -D @pandacss/dev@2.1.2 @pandacss/preset-base@2.1.2 @pandacss/preset-panda@2.1.2 weapp-pandacss@^2 postcss postcss-rem-to-responsive-pixel
+pnpm add -D @pandacss/dev@2.1.2 @pandacss/preset-base@2.1.2 @pandacss/preset-panda@2.1.2 weapp-pandacss@^2 postcss
 ~~~
 
 只有手写特殊 class 需要编码时，才把 `@weapp-pandacss/runtime` 安装为应用依赖。Panda 生成的 class 无需额外导入它。
@@ -42,7 +42,6 @@ export default defineConfig({
 
 ~~~ts
 // vite.config.ts
-import remToResponsivePixel from 'postcss-rem-to-responsive-pixel'
 import adapter from 'weapp-pandacss/postcss'
 import { defineConfig } from 'weapp-vite/config'
 
@@ -57,11 +56,8 @@ export default defineConfig({
   css: {
     postcss: {
       plugins: [
-        adapter(),
-        remToResponsivePixel({
-          rootValue: 32,
-          propList: ['*'],
-          transformUnit: 'rpx',
+        adapter({
+          units: { rules: [{ from: 'rem', to: 'rpx', factor: 32 }] },
         }),
       ],
     },
@@ -71,7 +67,7 @@ export default defineConfig({
 
 `adapter()` 默认执行 import 展开、官方 Panda 生成和小程序适配。Weapp Vite 也会先解析本地 CSS import，内置 importer 处理剩余本地 CSS 图。`@import` 放在 `src/app.css` 顶部。真实源文件名让 Panda 从入口附近发现该应用配置，即使构建 API 从 monorepo 根目录调用也能定位；导入文件与 Panda 依赖保留供 watch 使用。虚拟 loader 须传真实 `from` 并转发依赖，残留远程导入需本地化或前序解析。
 
-默认从源文件附近发现 Panda 配置；必要时用 `panda: { cwd: appRoot }` 覆盖。Sass/Less/Stylus SFC 使用框架预编译，Panda 入口保持 `.css`，详见[预处理器混用](/zh/postcss/#sassless-与-stylus)。`rootValue: 32` 表示 `1rem = 32rpx`，应按设计选择；直接使用目标单位时可以移除转换插件。在已有项目中保留合适的路由、分包与 chunk 设置。
+默认从源文件附近发现 Panda 配置；必要时用 `panda: { cwd: appRoot }` 覆盖。Sass/Less/Stylus SFC 使用框架预编译，Panda 入口保持 `.css`，详见[预处理器混用](/zh/postcss/#sassless-与-stylus)。`factor: 32` 表示 `1rem = 32rpx`，应按设计选择；直接使用目标单位时可省略 `units`，默认保留原单位，无需另装转换器。在已有项目中保留合适的路由、分包与 chunk 设置。
 
 创建 `src/app.css`：
 

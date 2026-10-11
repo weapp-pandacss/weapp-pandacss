@@ -14,7 +14,7 @@ Choose the API by where it runs: configure the adapter at build time, use Panda'
     `weappPanda()` and generation lifecycle. Runs in Panda configuration.
   </LinkCard>
   <LinkCard icon="file-cog" title="PostCSS plugin" href="/api/postcss-plugin/">
-    `postcssPlugin()` defaults to import expansion → Panda → adaptation. Every stage and adapter option runs in the CSS build.
+    `postcssPlugin()` defaults to import expansion → Panda → adaptation, with opt-in built-in units. Every stage and adapter option runs in the CSS build.
   </LinkCard>
   <LinkCard icon="code" title="Runtime encoders" href="/api/runtime/">
     `encodeClassName()`, `encodeClassList()` and `createPortableRuntime()`. Runs in application or generated runtime.
@@ -39,11 +39,11 @@ These functions belong to **Panda CSS 2.1.2** and are imported from your generat
 
 ## Package entries
 
-Every JavaScript entry supports ESM, CommonJS and corresponding TypeScript declarations. `IPostcssPluginOptions`, `PostcssImportOptions` and `PandaPostcssOptions` are type exports.
+Every JavaScript entry supports ESM, CommonJS and corresponding TypeScript declarations. `IPostcssPluginOptions`, `PostcssImportOptions`, `PandaPostcssOptions`, `UnitConversionOptions` and unit rule/context/preset types are type exports.
 
 | Entry | Exports |
 | --- | --- |
-| `weapp-pandacss` | `weappPanda`, `postcssPlugin`, `encodeClassName`, `encodeClassList`, `IPostcssPluginOptions`, `PostcssImportOptions`, `PandaPostcssOptions` |
+| `weapp-pandacss` | `weappPanda`, `postcssPlugin`, `encodeClassName`, `encodeClassList`, `unitPresets`, `composeUnitRules`, configuration and unit types |
 | `weapp-pandacss/panda` | `weappPanda` |
 | `weapp-pandacss/postcss` | Default `postcssPlugin` factory |
 | `@weapp-pandacss/runtime` | `encodeClassName`, `encodeClassList`, `createPortableRuntime` |
@@ -65,6 +65,13 @@ const authored = encodeClassName('custom/active')
 ```
 
 The root entry does not export `createPortableRuntime`. Internal helpers are not public APIs. The v1 file-patching APIs, adapter configuration loader, wildcard internal paths and adapter CLI binaries were removed; see the [migration guide](/migration/).
+
+## Unit helpers
+
+`unitPresets` and `composeUnitRules` come from the root entry and run in build
+configuration. `UnitConversionOptions` and all corresponding rule, context and
+preset types are exported there too. They reuse the built-in converter; no
+separate installation is needed. See [the full API](/api/postcss-plugin/#built-in-unit-conversion).
 
 ## Before using a generated API
 

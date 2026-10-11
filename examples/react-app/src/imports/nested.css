@@ -2,3 +2,17 @@
 .import-nested {
   margin-left: 0.25rem;
 }
+
+/* Signed and scientific lengths, including an explicit positive exponent, must survive import expansion and conversion. */
+.import-units {
+  width: 1e1rem;
+  /* stylelint-disable scss/operator-no-unspaced -- CSS exponent signs are not Sass operators. */
+  padding-top: 1e-3rem;
+  margin-top: -0.5rem;
+
+  /* prettier-ignore */
+  margin-bottom: -2e+0rem;
+  /* stylelint-enable scss/operator-no-unspaced */
+
+  --import-unit-space: 1.25rem;
+}

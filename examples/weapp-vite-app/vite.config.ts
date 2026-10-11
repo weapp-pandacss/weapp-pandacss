@@ -1,4 +1,3 @@
-import remToResponsivePixel from 'postcss-rem-to-responsive-pixel'
 import weappPanda from 'weapp-pandacss/postcss'
 import { defineConfig } from 'weapp-vite/config'
 
@@ -13,8 +12,7 @@ export default defineConfig({
   css: {
     postcss: {
       plugins: [
-        weappPanda(),
-        remToResponsivePixel({ rootValue: 32, propList: ['*'], transformUnit: 'rpx' }),
+        weappPanda({ units: { rules: [{ from: 'rem', to: 'rpx', factor: 32 }] } }),
       ],
     },
   },

@@ -17,8 +17,9 @@ export default defineConfig({
 
   // Useful for theme customization
   theme: {
-    extend: {},
+    extend: { tokens: { spacing: { 'unit-fixture': { value: '1.25rem' } } } },
   },
+  staticCss: { css: [{ properties: { paddingLeft: ['unit-fixture'] } }] },
 
   jsxFramework: 'vue',
 

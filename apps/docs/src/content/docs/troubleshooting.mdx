@@ -85,9 +85,34 @@ Follow the chain: source style → Panda extraction → generated runtime → Po
 
 **Cause:** A Web CSS target was used for WXSS, rem conversion differs, an inline runtime style bypassed PostCSS, or the renderer does not support the CSS feature.
 
-**Fix:** Use `target: 'web'` for H5 and `weapp` for mini-program CSS. Put optional unit conversion after the adapter and select a design `rootValue`. With `rootValue: 32`, `0.5rem` becomes `16rpx` when `transformUnit: 'rpx'`. Runtime style strings need their intended unit directly.
+**Fix:** Use `target: 'web'` for H5 and `weapp` for mini-program CSS. Units are unchanged by default; opt in on the same plugin with `units: { rules: [{ from: 'rem', to: 'rpx', factor: 32 }] }` to turn `0.5rem` into `16rpx`. Supply your design ratio explicitly. Keep Taro's `pxtransform` ownership consistent, and disable overlapping framework conversion if custom units take over px/rpx. Runtime style strings need their intended unit directly.
 
 **Verify:** Compare the final declaration, referenced token variable and computed/displayed result in the actual renderer. A class/selector match does not validate layout. See [units](/guides/component-styles/#units-and-design-scale).
+
+## Unit conversion is skipped or runs twice
+
+**Symptom:** A length keeps rem, a `var()` fallback is unchanged, imported vendor
+CSS converts unexpectedly, or a rebuild changes dimensions again.
+
+**Cause:** `units` defaults to `false`, `units: {}` has no rules, a filter/threshold
+skips the token, or default tokenization protects `var()`. `exclude` uses the root
+entry after imports. Repeated adapter passes still run units; the portable marker
+only prevents repeated class encoding. Framework converters may also own px/rpx.
+
+**Fix:** Add explicit rules to the existing plugin and inspect `propList`,
+`selectorBlackList`, absolute `minValue` and root-entry `exclude`. Set token values
+on custom-property declarations rather than relying on conversion inside `var()`;
+use custom `unitRegex` only with intentional protection boundaries. For per-import
+filtering, inspect `context.decl?.source?.input.file` in a transform and return
+`undefined` to retain the source value. Assign one conversion owner: Uni virtual
+entries use `units: false`, final framework passes convert once, and Tailwind uses
+`adapter: false` without losing configured units. Outer `disabled: true` disables
+units too.
+
+**Verify:** Process a fixture containing `-2rem`, `1e-3rem`, a custom property and
+`var()` fallback. Check imported sources and the same processor's second file;
+then compare output before and after framework postprocessing and a watch update.
+See [unit matching and options](/api/postcss-plugin/#built-in-unit-conversion).
 
 ## CSS variable diagnostic
 

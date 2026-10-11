@@ -45,7 +45,7 @@ module.exports = {
 }
 ```
 
-空配置默认执行 import 展开 → 官方 Panda 生成 → 小程序适配。无需单独安装或注册 `postcss-import`、`@pandacss/dev/postcss`，importer 已内置。rem/rpx 插件按需安装并放在此插件之后，不隐含换算比例。
+空配置默认执行 import 展开 → 官方 Panda 生成 → 小程序适配。无需单独安装或注册 `postcss-import`、`@pandacss/dev/postcss`，importer 已内置。单位转换通过内置 `units` 按需启用，默认 `false`，不隐含换算比例，无需另装转换器。
 全局 CSS 注册 `@layer reset, base, tokens, recipes, utilities;`。
 构建或开发启动前执行 `panda codegen`，把生成目录加入 `.gitignore`。
 Panda 的 PostCSS 自动生成流程也会运行生成期插件。
@@ -64,11 +64,33 @@ Panda 的 PostCSS 自动生成流程也会运行生成期插件。
 
 ## 阶段选项与预处理器
 
-`imports`、`panda`、`adapter` 默认均为 `true`，前两项也接受上游配置对象；原有适配参数保留顶层。`{ imports: false, panda: false }` 仅适配，`{ adapter: false }` 仅导入与 Panda 生成，`{ disabled: true }` 跳过整个流水线。外置 Panda/importer 必须关闭对应内置阶段，且运行在消费其输出的阶段之前。
+`imports`、`panda`、`adapter` 默认均为 `true`，前两项也接受上游配置对象；原有适配参数保留顶层。`{ imports: false, panda: false }` 仅适配，`{ adapter: false }` 只跳过适配，仍执行导入、Panda 与显式配置的 units，`{ disabled: true }` 跳过整个流水线。外置 Panda/importer 必须关闭对应内置阶段，且运行在消费其输出的阶段之前。
 
 Panda 优先使用显式 `panda.cwd/configPath`，其次发现真实 CSS 源文件上方最近配置，最后从进程 cwd 查找。配置所在目录成为项目根；无效显式配置直接报错。自定义 loader 使用真实 PostCSS `from`，转发文件/目录依赖与 sourcemap。无文件字符串仍可适配，但 Panda 跳过生成；相对 import 需要真实文件名或 `imports.root`。
 
-全局 Panda layer 入口保持 `.css`。Sass/Less/Stylus 变量、mixin 与 nesting 先由框架编译。内置 importer 展开 CSS，遇到原始 `.scss/.sass/.less/.styl/.stylus` 导入会报错，除非自定义 loader 已返回编译后的 CSS。单位转换仍单独配置。全部阶段参数与回调详见 [PostCSS 参考](https://panda.weapp.dev/zh/api/postcss-plugin/)。
+全局 Panda layer 入口保持 `.css`。Sass/Less/Stylus 变量、mixin 与 nesting 先由框架编译。内置 importer 展开 CSS，遇到原始 `.scss/.sass/.less/.styl/.stylus` 导入会报错，除非自定义 loader 已返回编译后的 CSS。内置 `units` 在完整适配后、框架后处理前转换编译后的 CSS。全部阶段参数与回调详见 [PostCSS 参考](https://panda.weapp.dev/zh/api/postcss-plugin/)。
+
+## 内置单位转换
+
+空 PostCSS 配置保留原单位。需要 `1rem = 32rpx` 的设计比例时，在同一插件中配置，
+无需额外安装转换器：
+
+```js
+module.exports = {
+  plugins: {
+    'weapp-pandacss/postcss': {
+      units: { rules: [{ from: 'rem', to: 'rpx', factor: 32 }] },
+    },
+  },
+}
+```
+
+规则支持字符串、正则与函数匹配、自定义比例及带符号回调，`minValue` 按绝对值
+比较。默认 CSS tokenizer 保护字符串、URL、标识符及整个 `var()` fallback。
+第一条命中规则即为最终选择，单轮不连锁转换，但重复处理仍可能再次换算。
+`adapter: false` 保留显式 units，`disabled: true` 关闭全部阶段。
+从 `weapp-pandacss` 导入 `unitPresets`、`composeUnitRules`、`UnitConversionOptions`
+即可组合带类型的 preset。详见[全部单位选项与边界](https://panda.weapp.dev/zh/api/postcss-plugin/#内置单位转换)。
 
 ## H5 与小程序
 
@@ -137,8 +159,8 @@ runtime。缺少 runtime、结构变更或不支持的版本会抛出诊断。�
 优化流程暂不支持。
 
 v2 直接移除旧的文件补丁/配置 API、`weapp-panda` / `weapp-pandacss` 两个 CLI
-和 PostCSS `naming` 选项。根入口仅导出 `weappPanda`、`postcssPlugin`、
-`encodeClassName`、`encodeClassList` 及 PostCSS 配置类型；子入口均提供 ESM/CJS
+和 PostCSS `naming` 选项。根入口导出 `weappPanda`、`postcssPlugin`、`encodeClassName`、`encodeClassList`、
+`unitPresets`、`composeUnitRules` 及完整单位选项、规则、上下文与 preset 类型；子入口均提供 ESM/CJS
 和对应声明。升级需要清理旧生成目录和备份，然后注册插件、重新 codegen；
 详见 [2.0 迁移指南](../../docs/panda-plugin-migration.md)。
 

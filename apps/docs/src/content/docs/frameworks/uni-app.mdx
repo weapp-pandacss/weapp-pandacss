@@ -12,7 +12,7 @@ The [reference example](https://github.com/weapp-pandacss/weapp-pandacss/tree/ma
 The adapter engine is `^22.18.0 || >=24.11.0`; Node 22.18+ or 24.11+ on their LTS lines is recommended. In the application directory:
 
 ~~~sh
-pnpm add -D @pandacss/dev@2.1.2 @pandacss/preset-base@2.1.2 @pandacss/preset-panda@2.1.2 weapp-pandacss@^2 postcss postcss-rem-to-responsive-pixel
+pnpm add -D @pandacss/dev@2.1.2 @pandacss/preset-base@2.1.2 @pandacss/preset-panda@2.1.2 weapp-pandacss@^2 postcss
 ~~~
 
 The configuration below is for a **Panda-only stylesheet pipeline**. The repository also compares Tailwind v4; see the coexistence section before copying this simplified Vite setup into that example.
@@ -51,7 +51,6 @@ import path from 'node:path'
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 import uni from '@dcloudio/vite-plugin-uni'
-import remToResponsivePixel from 'postcss-rem-to-responsive-pixel'
 import { defineConfig } from 'vite'
 import adapter from 'weapp-pandacss/postcss'
 
@@ -69,11 +68,9 @@ export default defineConfig({
   css: {
     postcss: {
       plugins: [
-        adapter({ target: web ? 'web' : 'weapp' }),
-        remToResponsivePixel({
-          rootValue: 32,
-          propList: ['*'],
-          transformUnit: web ? 'px' : 'rpx',
+        adapter({
+          target: web ? 'web' : 'weapp',
+          units: { rules: [{ from: 'rem', to: web ? 'px' : 'rpx', factor: 32 }] },
         }),
       ],
     },
@@ -81,7 +78,7 @@ export default defineConfig({
 })
 ~~~
 
-In this Panda-only setup, the single adapter registration expands imports, runs official Panda and adapts the combined root. Do not separately register the official Panda PostCSS plugin. Vite can resolve local CSS imports before this pipeline too; optional unit conversion runs last. Keep local imports at the start of the source entry; residual remote imports fail mini-program ordered compilation. `rootValue: 32` is an example choice, not a platform requirement. When Vite supplies inline PostCSS plugins, put the complete pipeline there rather than splitting required stages between competing configurations.
+In this Panda-only setup, the single adapter registration expands imports, runs official Panda and adapts the combined root. Do not separately register the official Panda PostCSS plugin. Vite can resolve local CSS imports before this pipeline too; built-in units run after complete adaptation and before Uni postprocessing. Keep local imports at the start of the source entry; residual remote imports fail mini-program ordered compilation. `factor: 32` is a design choice; conversion is disabled by default. WeChat converts rem to rpx, while H5 converts rem to px to preserve the example sizing. Uni still handles rpx/upx from other styles. No extra converter is installed. When Vite supplies inline PostCSS plugins, put the complete pipeline there rather than splitting required stages between competing configurations.
 
 Add the default WeChat TypeScript path without replacing the rest of your tsconfig:
 
@@ -152,9 +149,9 @@ The launcher sets `UNI_PLATFORM` for both codegen and Uni. WeChat runtime goes t
 The repository's comparison example needs additional entry handling. Copy its [full Vite configuration](https://github.com/weapp-pandacss/weapp-pandacss/blob/main/examples/uni-app-vue3/vite.config.ts), [panda-styles.ts](https://github.com/weapp-pandacss/weapp-pandacss/blob/main/examples/uni-app-vue3/panda-styles.ts), [panda-postcss.cjs](https://github.com/weapp-pandacss/weapp-pandacss/blob/main/examples/uni-app-vue3/panda-postcss.cjs) and [main entry](https://github.com/weapp-pandacss/weapp-pandacss/blob/main/examples/uni-app-vue3/src/main.ts) together:
 
 - `src/tailwind.css` belongs to Tailwind's generator and naming runtime.
-- On WeChat, `src/panda.css` uses the default composed plugin (`adapter()`: imports → Panda → adaptation) inside `virtual:panda-styles.css` before Tailwind's Vite plugin can discard or rewrite the native layers. The framework's later adapter pass recognizes the portable marker and does not encode those classes again.
-- On H5, the virtual entry uses `adapter({ adapter: false })` to run only imports → Panda, preserving native layers and raw selectors. The framework's PostCSS adapter subsequently encodes classes with `target: 'web'`. Do not run the Web adapter early: the premature portable marker can cause Tailwind's generator to flatten the H5 layers.
-- The importer is built in; the final adapter-only pass sets `{ imports: false, panda: false }`. The loader processes with `from: entry`, the real absolute `src/panda.css` path, not the virtual module ID. It forwards file and directory dependencies to Vite's watcher and returns the source map; reprocessing imported-file changes must not reuse stale CSS. The adapter wrapper skips the Tailwind entry and forwards Panda/authored-style diagnostics. Keep unit conversion in the final framework pipeline.
+- On WeChat, `src/panda.css` uses the default composed plugin (`adapter({ units: false })`: imports → Panda → adaptation) inside `virtual:panda-styles.css` before Tailwind's Vite plugin can discard or rewrite the native layers. The framework's later adapter pass recognizes the portable marker and does not encode those classes again.
+- On H5, the virtual entry uses `adapter({ adapter: false, units: false })` to run only imports → Panda, preserving native layers and raw selectors. The framework's PostCSS adapter subsequently encodes classes with `target: 'web'`. Do not run the Web adapter early: the premature portable marker can cause Tailwind's generator to flatten the H5 layers.
+- The importer is built in; the final adapter/units pass sets `{ imports: false, panda: false, units: ... }`. The loader processes with `from: entry`, the real absolute `src/panda.css` path, not the virtual module ID. It forwards file and directory dependencies to Vite's watcher and returns the source map; reprocessing imported-file changes must not reuse stale CSS. The virtual entry explicitly sets `units: false`; the final Panda/authored-style pass enables units once and forwards diagnostics. Tailwind uses this same plugin with `{ imports: false, panda: false, adapter: false, units: ... }` for conversion alone, preserving its naming; returning early would lose conversion.
 - `main.ts` imports both the Tailwind entry and the Panda virtual entry; replacing the virtual import with the simplified setup above changes the pipeline.
 
 Applying Panda encoding to Tailwind output breaks that stylesheet's runtime contract. Separate entries also do not provide one shared cross-file cascade-layer registry; combine layered inputs before adaptation when their relative order matters.

@@ -26,17 +26,24 @@ module.exports = {
 }
 ~~~
 
-使用单位转换时，安装 `postcss-rem-to-responsive-pixel`，在适配器后加入：
+单位转换已内置，默认 `units: false`，不会按目标隐含比例。需要时在同一插件中启用：
 
 ~~~js
-'postcss-rem-to-responsive-pixel': {
-  rootValue: 32,
-  propList: ['*'],
-  transformUnit: 'rpx',
+module.exports = {
+  plugins: {
+    'weapp-pandacss/postcss': {
+      units: {
+        rules: [{ from: 'rem', to: 'rpx', factor: 32 }],
+      },
+    },
+  },
 }
 ~~~
 
-`rootValue` 按项目设计设置。Wevu 示例使用 `1rem = 32rpx`。
+这会在完整适配后、框架后处理前把 `0.5rem` 转为 `16rpx`，无需额外安装转换器。
+规则可使用字符串、正则或函数匹配，支持自定义比例和带符号回调；字体、容器、视口
+相关单位的换算依据由项目提供。默认空配置保留原单位。详见
+[完整单位选项与匹配边界](/zh/api/postcss-plugin/#内置单位转换)。
 
 ## 配置选项
 
@@ -47,8 +54,9 @@ module.exports = {
 | `imports` | `true` | 展开 CSS import，可传 importer 配置或 `false` |
 | `panda` | `true` | 生成 Panda CSS，可传 Panda PostCSS 配置或 `false` |
 | `adapter` | `true` | 编码 selector，并执行所选目标转换 |
+| `units` | `false` | 内置通用单位转换，可传 `UnitConversionOptions`；不隐含比例 |
 | `target` | `weapp` | 小程序平台转换；`web` 保留 Web 语义 |
-| `disabled` | `false` | 跳过三个阶段，包括 import 展开与生成 |
+| `disabled` | `false` | 跳过全部阶段，包括 import、Panda、适配与单位转换 |
 | `cascadeLayers.mode` | `ordered` | 编译层顺序；显式 `legacy` 保留旧路径 |
 | `cascadeLayers.onConflict` | `warning` | 警告潜在语义差异；`error` 阻止构建 |
 | `selectorReplacement.root` | `page` | 替换 `:root` 与 `:host` |
@@ -65,6 +73,7 @@ adapter() // imports → Panda → 默认小程序适配
 adapter({ target: 'web' }) // imports → Panda → 编码后的 Web CSS
 adapter({ imports: false, panda: false }) // 仅适配
 adapter({ adapter: false }) // imports → Panda，保留原始 selector 和 layer
+adapter({ adapter: false, units: { rules: [{ from: 'rem', to: 'px', factor: 16 }] } }) // 仍转换单位
 adapter({ disabled: true }) // 跳过整个流水线
 adapter({
   imports: { skipDuplicates: false },
@@ -80,11 +89,11 @@ Panda 配置优先使用显式 `panda.cwd` / `panda.configPath`，其次从实�
 
 ## Sass、Less 与 Stylus
 
-顺序为 **框架预处理器 → 三合一 PostCSS 插件 → 按需单位转换**。预处理器通过框架安装并配置。全局 Panda layer 入口保持 `.css`：官方 Panda 2.1.2 按 CSS 文件名处理，即使框架已把 `.scss` 入口编译成 CSS 文本也不例外。
+顺序为 **框架预处理器 → import → Panda → 完整适配 → 内置 units（启用时）→ 框架后处理**。预处理器通过框架安装并配置。全局 Panda layer 入口保持 `.css`：官方 Panda 2.1.2 按 CSS 文件名处理，即使框架已把 `.scss` 入口编译成 CSS 文本也不例外。
 
 Sass `@use`/`@forward`、Less 变量与 mixin、Stylus 语法由各自编译器负责。内置 importer 展开 CSS 图，其默认 loader 遇到原始 `.scss`、`.sass`、`.less`、`.styl`、`.stylus` 导入会明确报错，避免把未编译语法传入 WXSS。可以导入预编译 CSS、先由框架处理，或通过 `imports.load` 提供真实编译器及 watch 集成。`imports.plugins` 可对每个导入的 CSS 文件执行 PostCSS 转换；自定义 loader 负责返回合法 CSS 并报告额外依赖。
 
-预处理器可能有意保留普通 CSS `@import`，之后由内置导入阶段展开。若 CSS nesting 仍然存在，应在适配前配置 nesting 转换。三合一不内置 Sass/Less/Stylus 编译器，也不设置默认单位比例。
+预处理器可能有意保留普通 CSS `@import`，之后由内置导入阶段展开。若 CSS nesting 仍然存在，应在适配前配置 nesting 转换。插件不内置 Sass/Less/Stylus 编译器，也不设置默认单位比例。`units` 转换它们编译后的 CSS，也转换同一 root 中 Panda 生成与导入的样式。
 
 ## Cascade layer 顺序兼容
 

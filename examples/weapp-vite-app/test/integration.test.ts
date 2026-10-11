@@ -2,6 +2,7 @@ import type { MiniProgramNode } from '@mpcore/test'
 import type { WeappViteTestArtifact } from '@mpcore/weapp-vite'
 import fs from 'node:fs/promises'
 import path from 'node:path'
+import { pathToFileURL } from 'node:url'
 import { createTestProject } from '@mpcore/test'
 import { buildWeappViteTestArtifact } from '@mpcore/weapp-vite'
 import { encodeClassName } from '@weapp-pandacss/runtime'
@@ -173,12 +174,25 @@ it('expands a multi-file import graph before encoding selectors and compiling la
   expect(values('import-unlayered', 'color')).toEqual(['#dc2626', '#0284c7', '#111827'])
   expect(values('import-same-layer', 'color')).toEqual(['#0284c7', 'var(--import-color,#16a34a)'])
   expect(values('import-nested', 'margin-left')).toEqual(['8rpx'])
+  expect(values('import-units', 'margin-top')).toEqual(['-16rpx'])
+  expect(values('import-units', 'padding-top')).toEqual(['0.032rpx'])
+  expect(values('import-units', 'margin-bottom')).toEqual(['-64rpx'])
+  expect(values('import-units', 'width')).toEqual(['320rpx'])
+  expect(values('import-units', '--import-unit-space')).toEqual(['40rpx'])
   expect(values('import/中文', 'padding-left')).toEqual(['16rpx'])
   expect(values('import_wp_2f_中文', 'padding-left')).toEqual(['24rpx'])
   expect(values('import.a', 'margin-right')).toEqual(['7px'])
   expect(values('import_wp_2e_a', 'margin-right')).toEqual(['11px'])
   expect(encodeClassName('import/中文')).not.toBe(encodeClassName('import_wp_2f_中文'))
   expect(encodeClassName('import.a')).not.toBe(encodeClassName('import_wp_2e_a'))
+  const tokens: string[] = []
+  const { token } = await import(pathToFileURL(path.join(exampleRoot, 'styled-system/tokens/index.mjs')).href)
+  const variable: string = token.var('spacing.unit-fixture')
+  postcss.parse(stylesheet).walkDecls(variable.slice(4, -1), (declaration) => {
+    tokens.push(declaration.value)
+  })
+  expect(tokens).toEqual(['40rpx'])
+  expect(stylesheet).toContain(variable)
 })
 
 it('compiles Sass, Less and Stylus before import expansion and portable adaptation', async () => {
@@ -195,7 +209,7 @@ it('compiles Sass, Less and Stylus before import expansion and portable adaptati
       })
       rules.push({ selector: rule.selector, declarations })
     })
-    expect(rules).toContainEqual({ selector: `.${name}`, declarations: { 'color': color, 'padding-left': padding } })
+    expect(rules).toContainEqual({ selector: `.${name}`, declarations: { 'color': color, 'padding-left': padding, 'margin-bottom': `-${padding}` } })
     expect(rules.some(rule => rule.selector === `.${name}.active` && Number(rule.declarations.opacity) === 0.75)).toBe(true)
     expect(rules.some(rule => rule.selector === `.${imported}` && rule.declarations['white-space'] === 'nowrap' && rule.declarations['letter-spacing'] === '4rpx')).toBe(true)
   }

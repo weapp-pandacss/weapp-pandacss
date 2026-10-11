@@ -85,9 +85,29 @@ sidebar:
 
 **根因：** WXSS 使用了 Web target、rem 转换设置不同、运行时内联样式绕过 PostCSS，或渲染器不支持对应 CSS 能力。
 
-**修复：** H5 使用 `target: 'web'`，小程序 CSS 使用 `weapp`。按需单位转换放在 adapter 之后，按设计设置 `rootValue`。`rootValue: 32` 与 `transformUnit: 'rpx'` 会把 `0.5rem` 转成 `16rpx`，运行时 style 字符串需直接携带预期单位。
+**修复：** H5 使用 `target: 'web'`，小程序 CSS 使用 `weapp`。默认保留单位；在同一插件中配置 `units: { rules: [{ from: 'rem', to: 'rpx', factor: 32 }] }` 可把 `0.5rem` 转成 `16rpx`，比例由项目显式提供。与 Taro `pxtransform` 明确分工，自定义 units 接管 px/rpx 时关闭重叠的框架转换。运行时 style 字符串需直接携带预期单位。
 
 **验证：** 在实际渲染器对照最终声明、引用的 token 变量与 computed/可见结果。Class/selector 匹配不能验证布局，详见[单位设置](/zh/guides/component-styles/#单位与设计比例)。
+
+## 单位没有转换或重复转换
+
+**症状：** 长度仍为 rem、`var()` fallback 不变、导入的第三方样式意外转换，或再次
+构建后尺寸继续变化。
+
+**根因：** `units` 默认 `false`，`units: {}` 没有规则，过滤 / 阈值跳过 token，或
+默认 tokenizer 保护了 `var()`。展开 import 后，`exclude` 只检查根入口。重复
+adapter 阶段仍执行 units，portable 标记只防重复 class 编码；框架也可能转换 px/rpx。
+
+**修复：** 在现有插件上添加显式规则，检查 `propList`、`selectorBlackList`、绝对值
+`minValue` 与根入口 `exclude`。在自定义属性声明上换算 token，不依赖 `var()` 内
+换算；仅在能自行保证保护边界时使用自定义 `unitRegex`。按导入来源保留值时，在
+transform 读取 `context.decl?.source?.input.file` 并返回 `undefined`。为单位指定
+唯一处理阶段：Uni 虚拟入口 `units: false`，最终框架阶段只转一次，Tailwind 使用
+`adapter: false` 仍保留显式 units。外层 `disabled: true` 也会关闭 units。
+
+**验证：** 用 `-2rem`、`1e-3rem`、自定义属性和 `var()` fallback 组成 fixture，检查
+导入来源及同一 processor 处理第二个文件的结果，再对比框架后处理前后与 watch
+修改后的产物。详见[单位匹配与选项](/zh/api/postcss-plugin/#内置单位转换)。
 
 ## CSS 变量诊断
 
