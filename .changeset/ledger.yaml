@@ -18,3 +18,9 @@ weapp-pandacss@2.1.0:
   intents:
     - clever-tips-shave
     - fast-keys-tap
+weapp-pandacss@2.2.0:
+  dir: packages/weapp-pandacss
+  intents:
+    - lucky-seas-relax
+    - new-birds-build
+    - soft-melons-glow
