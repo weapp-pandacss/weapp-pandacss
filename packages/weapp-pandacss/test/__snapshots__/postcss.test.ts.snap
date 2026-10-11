@@ -2318,6 +2318,7 @@ exports[`postcss > useOptions default 1`] = `
       ],
     },
     "target": "weapp",
+    "units": false,
   },
 }
 `;
@@ -2349,6 +2350,7 @@ exports[`postcss > useOptions default 2`] = `
       ],
     },
     "target": "weapp",
+    "units": false,
   },
 }
 `;

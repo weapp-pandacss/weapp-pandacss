@@ -1,7 +1,6 @@
 import path from 'node:path'
 import process from 'node:process'
 import uni from '@dcloudio/vite-plugin-uni'
-import remToResponsivePixel from 'postcss-rem-to-responsive-pixel'
 import { defineConfig } from 'vite'
 import { WeappTailwindcss } from 'weapp-tailwindcss/vite'
 import pandaAdapter from './panda-postcss.cjs'
@@ -27,14 +26,11 @@ export default defineConfig({
   css: {
     postcss: {
       plugins: [
-        pandaAdapter({ imports: false, panda: false, target: pandaTarget }),
-        remToResponsivePixel({
-          // 32 意味着 1rem = 32rpx
-          rootValue: 32,
-          // 默认所有属性都转化
-          propList: ['*'],
-          // 转化的单位,可以变成 px / rpx
-          transformUnit: process.env.UNI_PLATFORM === 'h5' ? 'px' : 'rpx',
+        pandaAdapter({
+          imports: false,
+          panda: false,
+          target: pandaTarget,
+          units: { rules: [{ from: 'rem', to: pandaTarget === 'web' ? 'px' : 'rpx', factor: 32 }] },
         }),
       ],
     },

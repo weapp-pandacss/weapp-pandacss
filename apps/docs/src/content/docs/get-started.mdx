@@ -58,7 +58,7 @@ module.exports = {
 }
 ~~~
 
-Empty options enable the complete pipeline: **import expansion → official Panda generation → mini-program adaptation**. You do not install or register a separate `postcss-import` or `@pandacss/dev/postcss`. Keep `weappPanda()` in Panda's configuration: it encodes generated JavaScript, while this PostCSS entry generates and adapts CSS. For Web/H5 use `{ target: 'web' }`. Optional rem/rpx conversion runs after this plugin and requires a separate dependency; no unit ratio is inferred. See [units and component styles](/guides/component-styles/).
+Empty options enable the complete pipeline: **import expansion → official Panda generation → mini-program adaptation**. You do not install or register a separate `postcss-import` or `@pandacss/dev/postcss`. Keep `weappPanda()` in Panda's configuration: it encodes generated JavaScript, while this PostCSS entry generates and adapts CSS. For Web/H5 use `{ target: 'web' }`. Unit conversion is a built-in optional stage, disabled by default; configure rules explicitly in `units`, with no inferred ratio. See [units and component styles](/guides/component-styles/).
 
 Keep the global Panda entry as a `.css` file. Sass/Less/Stylus component styles can use the framework's preprocessor, but the built-in importer does not compile raw preprocessor imports. Stage switches, project discovery and custom loaders are documented in [PostCSS configuration](/postcss/).
 
@@ -97,6 +97,10 @@ Adjust the relative import for the source file's location. Alternatively, config
 
 Bind `cardClass` to React's `className` or Vue/Wevu's `:class`. Native WXML needs the class string in page/component data before binding it to `class`. The framework must bundle and transpile the generated JavaScript for the target runtime. `css()` already returns portable names; do not encode its result again.
 
+Empty options preserve units (`units: false`). For mini-program dimensions that
+need rpx, author that unit directly or opt into built-in
+[unit rules](/postcss/#one-plugin-three-stages); no separate converter is needed.
+
 ## 5. Verify the complete build
 
 Build the application and inspect its final CSS/WXSS and rendered class values. A successful codegen command confirms runtime generation; it does not confirm that the application imported the CSS or selected the correct target.
@@ -104,7 +108,7 @@ Build the application and inspect its final CSS/WXSS and rendered class values. 
 | Check | Expected result |
 | --- | --- |
 | Panda configuration | `weappPanda()`, fixed presets, `polyfill: false` |
-| CSS processing | Import expansion → Panda → adapter → optional unit conversion |
+| CSS processing | Import expansion → Panda → full adapter → built-in units (opt-in) → framework |
 | Application entry | Imports the global layer stylesheet |
 | Runtime imports | Resolve to the current target's generated directory |
 | Mini-program output | Matching encoded class and WXSS selector; no original `@layer` |

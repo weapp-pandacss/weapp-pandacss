@@ -6,6 +6,7 @@ $tone: #123456;
 /* stylelint-disable-next-line at-rule-no-unknown -- Sass expands this mixin before PostCSS. */
 @mixin spacing($space) {
   padding-left: $space;
+  margin-bottom: -$space;
 }
 
 .preprocess\/sass-中文 {

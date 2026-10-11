@@ -71,7 +71,7 @@ it('installs the runtime tarball alone without Panda, PostCSS or Babel', async (
   }
   await fs.writeFile(path.join(consumer, 'consumer.mts'), 'import {encodeClassName,createPortableRuntime} from \'@weapp-pandacss/runtime\'; const result: string = encodeClassName(\'a.b\'); createPortableRuntime().encodeClassList(result);\n')
   await fs.writeFile(path.join(consumer, 'consumer.cts'), 'import api = require(\'@weapp-pandacss/runtime\'); const result: string = api.encodeClassName(\'a.b\'); api.encodeClassList(result);\n')
-  await run(process.execPath, [path.join(workspaceRoot, 'node_modules/typescript/bin/tsc'), '--noEmit', '--strict', '--module', 'node16', '--target', 'es2018', 'consumer.mts', 'consumer.cts'], { cwd: consumer })
+  await run(process.execPath, [path.join(workspaceRoot, 'node_modules/typescript/bin/tsc'), '--noEmit', '--strict', '--skipLibCheck', '--module', 'node16', '--target', 'es2018', 'consumer.mts', 'consumer.cts'], { cwd: consumer })
 }, 60_000)
 
 it('packs the adapter with an exact runtime dependency and usable compatibility types', async () => {
@@ -83,6 +83,7 @@ it('packs the adapter with an exact runtime dependency and usable compatibility 
   const adapter = JSON.parse(await fs.readFile(path.join(consumer, 'node_modules/weapp-pandacss/package.json'), 'utf8'))
   const runtime = JSON.parse(await fs.readFile(path.join(consumer, 'node_modules/@weapp-pandacss/runtime/package.json'), 'utf8'))
   expect(adapter.dependencies['@weapp-pandacss/runtime']).toBe(runtime.version)
+  expect(adapter.dependencies['postcss-rule-unit-converter']).toMatch(/^\d+\.\d+\.\d+$/)
   // Reuse the locked build-time dependencies; the extracted adapter and its
   // runtime are real tarball contents, not source links. No registry resolution
   // is needed for an unpublished package or a fresh CI metadata cache.
@@ -104,11 +105,21 @@ it('packs the adapter with an exact runtime dependency and usable compatibility 
       if (api.encodeClassName !== runtime.encodeClassName) throw new Error('Duplicated root codec');
       for (const key of Object.keys(runtime)) if (old[key] !== runtime[key]) throw new Error('Duplicated compatibility codec: ' + key);
       if (api.weappPanda().name !== 'weapp-pandacss') throw new Error('Missing Panda plugin');
+      const units = {rules:api.composeUnitRules(api.unitPresets.remToRpx({rootValue:32}))};
+      const converted = postcss([postcssPlugin({imports:false,panda:false,adapter:false,units})]).process('.a{margin:-1e2rem}',{from:undefined}).sync();
+      if (!converted.root.toString().includes('margin:-3200rpx')) throw new Error('Broken packed converter');
       postcss([postcssPlugin()]).process('.a\\\\.b {} @layer a,b; @layer b{.probe{color:blue}} @layer a{.probe{color:red}}', {from:undefined}).then(result => console.log(result.css.includes('.' + runtime.encodeClassName('a.b')) && !result.css.includes('@layer') && !result.css.includes(':not(') && result.css.indexOf('color:red') < result.css.indexOf('color:blue')));`
     const args = format === 'esm' ? ['--input-type=module', '-e', script] : ['-e', script]
     expect((await run(process.execPath, args, { cwd: consumer })).stdout.trim()).toBe('true')
   }
-  await fs.writeFile(path.join(consumer, 'consumer.mts'), 'import {encodeClassName} from \'weapp-pandacss/runtime\'; import {encodeClassList} from \'@weapp-pandacss/runtime\'; const result: string = encodeClassList(encodeClassName(\'a.b\')); import plugin from \'weapp-pandacss/postcss\'; plugin({ imports: { root: \'/app\', path: [\'styles\'], filter: (id: string) => id.endsWith(\'.css\') }, panda: { cwd: \'/app\', configPath: \'panda.config.ts\', allow: [/css/] }, adapter: true });\n')
-  await fs.writeFile(path.join(consumer, 'consumer.cts'), 'import api = require(\'weapp-pandacss/runtime\'); const result: string = api.createPortableRuntime().encodeClassName(\'a.b\'); import plugin = require(\'weapp-pandacss/postcss\'); plugin({ imports: false, panda: { outdir: \'styled-system\' }, adapter: false });\n')
-  await run(process.execPath, [path.join(workspaceRoot, 'node_modules/typescript/bin/tsc'), '--noEmit', '--strict', '--module', 'node16', '--target', 'es2018', 'consumer.mts', 'consumer.cts'], { cwd: consumer })
+  const unitTypes = 'import {unitPresets,composeUnitRules} from \'weapp-pandacss\'; import type {UnitConversionOptions,PresetFactory,RemBasedPresetOptions} from \'weapp-pandacss\'; const preset: PresetFactory<RemBasedPresetOptions> = unitPresets.remToRpx; const units: UnitConversionOptions = {rules:composeUnitRules(preset({rootValue:32}))}; plugin({imports:false,panda:false,adapter:false,units});\n'
+  await fs.writeFile(path.join(consumer, 'consumer.mts'), `import {encodeClassName} from 'weapp-pandacss/runtime'; import {encodeClassList} from '@weapp-pandacss/runtime'; const result: string = encodeClassList(encodeClassName('a.b')); import plugin from 'weapp-pandacss/postcss'; plugin({ imports: { root: '/app', path: ['styles'], filter: (id: string) => id.endsWith('.css') }, panda: { cwd: '/app', configPath: 'panda.config.ts', allow: [/css/] }, adapter: true });\n${unitTypes}`)
+  await fs.writeFile(path.join(consumer, 'consumer.cts'), `import api = require('weapp-pandacss/runtime'); const result: string = api.createPortableRuntime().encodeClassName('a.b'); import plugin = require('weapp-pandacss/postcss'); plugin({ imports: false, panda: { outdir: 'styled-system' }, adapter: false });\n${unitTypes}`)
+  try {
+    await run(process.execPath, [path.join(workspaceRoot, 'node_modules/typescript/bin/tsc'), '--noEmit', '--strict', '--skipLibCheck', '--module', 'node16', '--target', 'es2018', 'consumer.mts', 'consumer.cts'], { cwd: consumer })
+  }
+  catch (error) {
+    console.error((error as { stderr?: string }).stderr)
+    throw error
+  }
 }, 60_000)

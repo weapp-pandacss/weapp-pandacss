@@ -14,7 +14,7 @@
 3. 把 `panda codegen && weapp-panda codegen` 改为 `panda codegen`。移除
    `execFileSync`、`codegen:done` 适配 hook 和跨平台 rollback。
 4. PostCSS 仅注册 `'weapp-pandacss/postcss': {}`，默认执行 import 展开 → 官方 Panda → 小程序适配；
-   不再额外安装或注册 importer / 官方 Panda PostCSS 插件。按需 rem/rpx 转换放在其后。H5
+   不再额外安装或注册 importer / 官方 Panda PostCSS 插件。按需单位转换通过同一插件的内置 `units` 配置。H5
    使用 `{ target: 'web' }`。Panda 配置保留 `weappPanda()` 与 `polyfill: false`，全局入口保持 `.css`。把旧 adapter 配置文件里的 CSS
    选项直接移到 PostCSS 插件参数；PostCSS 不再读取该配置或修改 JS 文件。
 5. 将 `styled-system/weapp-panda/index.mjs` 的手写 class 转义导入改为
@@ -32,7 +32,7 @@ Taro 默认小程序输出位于 `dist/weapp`，开发者工具使用更新后�
 
 现有 `weapp-pandacss/postcss` 入口默认启用 `imports`、`panda`、`adapter` 三个阶段，无需新入口。
 前两项可透传上游配置对象；`{ imports: false, panda: false }` 保留纯适配能力，
-`{ adapter: false }` 只导入与生成，`disabled: true` 跳过整个流水线。已有适配参数仍位于顶层。
+`{ adapter: false }` 只跳过适配，仍导入、生成并执行显式配置的 units，`disabled: true` 跳过整个流水线。已有适配参数仍位于顶层。
 
 Panda 优先使用显式 `panda.cwd/configPath`，其次从实际 CSS 源文件上方发现最近配置，再从进程 cwd 查找；
 配置所在目录成为项目根。显式配置错误直接报告。自定义/虚拟 loader 传真实 `from` 并转发依赖与 sourcemap。
@@ -40,7 +40,7 @@ Panda 优先使用显式 `panda.cwd/configPath`，其次从实际 CSS 源文件�
 
 Sass/Less/Stylus 由框架预编译；默认 importer 不编译原始预处理文件，直接导入时明确报错。
 保持全局 Panda 入口为 `.css`，不要用 `.scss` 文件名代替官方 Panda 的 CSS 入口。
-单位换算保持项目配置，不隐含设计比例。完整参数见[双语 PostCSS 参考](https://panda.weapp.dev/zh/api/postcss-plugin/)。
+单位换算通过内置 `units` 按需配置，默认 `false`，不隐含设计比例。完整参数见[双语 PostCSS 参考](https://panda.weapp.dev/zh/api/postcss-plugin/)。
 
 ## 命名契约
 
@@ -95,9 +95,9 @@ Uni-app 示例保留 Tailwind 对比功能。`tailwind.css` 由 weapp-tailwindcs
 Tailwind generator 的 `cssEntries` 显式指向 `tailwind.css`，不再重复注册官方
 Tailwind PostCSS generator。`panda.css` 通过 Vite 虚拟入口把真实 `pandaEntry` 作为 PostCSS `from`，由默认三合一执行 import 展开、官方 Panda 与适配；
 微信在虚拟入口内提前执行 Panda adapter 完成 ordered 编译，防止 Tailwind loader 移除或重写 layer；
-后续框架使用 `{ imports: false, panda: false }` 仅适配，识别 portable 标记而不重复编码。H5 虚拟入口设置 `adapter: false`，只做 import 展开与 Panda 生成，
+虚拟入口显式 `units: false`，后续框架使用 `{ imports: false, panda: false, units: ... }` 适配并统一转换，识别 portable 标记而不重复编码。H5 虚拟入口设置 `adapter: false`，只做 import 展开与 Panda 生成，
 保留原生 layer 和 selector，在后续框架 PostCSS 才执行 Web adapter；过早的 portable 标记会让
-Tailwind 展平 H5 layer。单位转换始终最后执行，导入与生成依赖加入 Vite watch。
+Tailwind 展平 H5 layer。单位转换只在最终框架阶段执行一次；Tailwind 入口使用同一入口的 `{ imports: false, panda: false, adapter: false, units: ... }` 仅转换单位，保留自己的 class 命名。导入与生成依赖加入 Vite watch。
 
 默认 ordered 内核现由 `@weapp-tailwindcss/css-compat@0.1.1` 承担，并记录 minor 发布意图，
 不改变公开配置、命名或原 csstools legacy 路径。源码仍可使用普通 `@import`，

@@ -5,6 +5,7 @@ export function getPostcssPluginDefaults(): Required<IPostcssPluginOptions> {
     imports: true,
     panda: true,
     adapter: true,
+    units: false,
     target: 'weapp',
     cascadeLayers: { mode: 'ordered', onConflict: 'warning' },
     selectorReplacement: {

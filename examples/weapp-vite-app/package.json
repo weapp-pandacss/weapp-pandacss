@@ -44,7 +44,6 @@
     "less": "^4.9.1",
     "miniprogram-api-typings": "^5.2.3",
     "postcss": "catalog:",
-    "postcss-rem-to-responsive-pixel": "^7.0.7",
     "sass": "^1.105.1",
     "stylus": "^0.55.0",
     "typescript": "catalog:",

@@ -34,31 +34,58 @@ When distributing components, document their expected isolation and shared style
 
 ## Units and design scale
 
-Class encoding does not convert dimensions. Install a unit converter only when your design needs it:
-
-~~~sh
-pnpm add -D postcss-rem-to-responsive-pixel
-~~~
+Class encoding does not choose a dimension scale. Unit conversion is built in,
+with `units: false` by default on both targets. To opt into `1rem = 32rpx`, use:
 
 ~~~js
-// After Panda and weapp-pandacss/postcss.
-'postcss-rem-to-responsive-pixel': {
-  rootValue: 32,
-  propList: ['*'],
-  transformUnit: 'rpx',
-},
+module.exports = {
+  plugins: {
+    'weapp-pandacss/postcss': {
+      units: { rules: [{ from: 'rem', to: 'rpx', factor: 32 }] },
+    },
+  },
+}
 ~~~
 
-With these options, `1rem = 32rpx` and `0.5rem = 16rpx`. The Wevu integration test checks emitted `16rpx`. This is the configured design conversion, not the browser's root font size.
+No extra converter installation is needed. The stage runs after complete adapter
+processing and before framework postprocessing; it covers generated Panda token
+values, compiled Sass/Less/Stylus CSS and imported third-party declarations in the
+same root. The ratio is your design choice, not the browser's root font size.
 
-| Input with this converter | Mini-program `rpx` output | H5 `px` output |
+| Input with this rule | Mini-program `to: 'rpx'` | H5 `to: 'px'` |
 | --- | --- | --- |
 | `1rem` | `32rpx` | `32px` |
 | `0.5rem` | `16rpx` | `16px` |
+| `-2rem` | `-64rpx` | `-64px` |
+| `1e-3rem` | `0.032rpx` | `0.032px` |
 
-For the H5 column use `transformUnit: 'px'` with the same `rootValue`. The React Web example uses no rem converter and leaves rem values to the browser. Taro also has its own designWidth/pxtransform pipeline; decide which stage owns each input unit before adding another converter.
+For the H5 column change `to` to `px`, keeping `factor: 32`. The React Web example
+leaves conversion disabled, so the browser handles rem. Rules also support regex
+and function matchers, arbitrary length units, precision, property/selector
+filters and signed transform callbacks. Relative units such as `em`, `ch`, `vw`
+and container units require an explicit project basis; the build cannot infer
+runtime font metrics or a device's viewport.
 
-Runtime inline styles do not pass through PostCSS. If application data produces a width string, choose `rpx`, `px` or `%` there. Device width and the renderer determine the final displayed size; a matching class/WXSS test does not verify physical-device layout. See WeChat's [WXSS reference](https://developers.weixin.qq.com/miniprogram/dev/framework/view/wxss.html).
+Default token matching protects strings, URLs and identifiers, and skips the
+entire `var()` fallback at any depth. A custom-property declaration such as
+`--gap: 0.5rem` becomes `--gap: 16rpx`, while `var(--gap, 0.5rem)` keeps its fallback.
+The first matching rule wins and output is not chained in one run. Reprocessing
+can convert again; the portable class marker does not mark unit conversion.
+`exclude` uses the root-entry path, not each imported declaration's path. See
+[all options and source-aware callbacks](/api/postcss-plugin/#built-in-unit-conversion).
+
+Taro still applies its own `designWidth` / `pxtransform`, including the examples'
+NutUI per-file `designWidth` baseline. The examples convert rem first and let
+Taro own px. If custom `units` rules take over overlapping px/rpx conversion,
+disable the corresponding Taro `pxtransform` rather than converting twice.
+Uni-app's virtual Panda entry uses `units: false`, with conversion only in the
+final framework pass; its Tailwind entry uses a converter-only pass without Panda
+class encoding. See [entry isolation](/guides/build-targets/#panda-and-tailwind-entry-isolation).
+
+Runtime inline styles bypass PostCSS. Choose their intended `rpx`, `px` or `%`
+directly. Compare final declarations and rendered dimensions on the selected
+target; class/WXSS matching alone does not verify physical-device layout. See
+WeChat's [WXSS reference](https://developers.weixin.qq.com/miniprogram/dev/framework/view/wxss.html).
 
 ## Third-party styles
 

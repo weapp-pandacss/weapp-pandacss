@@ -12,7 +12,7 @@ sidebar:
 在已有 Taro Vue 应用中，adapter 声明 Node `^22.18.0 || >=24.11.0`，推荐使用 Node 22.18+ 或 24.11+ 的 LTS 版本：
 
 ~~~sh
-pnpm add -D @pandacss/dev@2.1.2 @pandacss/preset-base@2.1.2 @pandacss/preset-panda@2.1.2 weapp-pandacss@^2 postcss postcss-rem-to-responsive-pixel
+pnpm add -D @pandacss/dev@2.1.2 @pandacss/preset-base@2.1.2 @pandacss/preset-panda@2.1.2 weapp-pandacss@^2 postcss
 ~~~
 
 Taro 依赖组保持匹配版本。仅在编码原始手写 class 时，才将 `@weapp-pandacss/runtime` 安装为应用依赖。
@@ -87,11 +87,13 @@ module.exports = {
   plugins: {
     'weapp-pandacss/postcss': {
       target: process.env.TARO_ENV === 'h5' ? 'web' : 'weapp',
-    },
-    'postcss-rem-to-responsive-pixel': {
-      rootValue: 32,
-      propList: ['*'],
-      transformUnit: process.env.TARO_ENV === 'h5' ? 'px' : 'rpx',
+      units: {
+        rules: [{
+          from: 'rem',
+          to: process.env.TARO_ENV === 'h5' ? 'px' : 'rpx',
+          factor: 32,
+        }],
+      },
     },
   },
 }
@@ -103,11 +105,11 @@ module.exports = {
 @layer reset, base, tokens, recipes, utilities;
 ~~~
 
-在 `src/app.ts` 中与 Vue 的 `createApp` 一起导入 `./app.css`。三合一插件放在可选单位转换之前，并与 Taro 的 `pxtransform`、`designWidth` 协调。
+在 `src/app.ts` 中与 Vue 的 `createApp` 一起导入 `./app.css`。内置 units 在完整适配后、Taro 后处理前执行。保留 Taro `pxtransform` 与 NutUI 按文件 `designWidth`；这里 units 只处理 rem，px 由 Taro 负责。自定义 units 接管 px/rpx 时关闭对应 `pxtransform`。空配置默认不转换单位。
 
 ## 在生成前导入手写样式
 
-微信与 H5 都只注册一次 `weapp-pandacss/postcss`，由它执行 **import 展开 → Panda → 适配**，随后按需转换单位。不要再注册官方 Panda 或另一个 importer。在 `src/app.css` 顶部、样式规则前写入 `@import "./styles/shared.css";`。Importer 从真实入口相对解析并展开多级导入，让 adapter 同时收到被导入和生成的规则。
+微信与 H5 都只注册一次 `weapp-pandacss/postcss`，由它执行 **import 展开 → Panda → 完整适配 → 内置 units（启用时）**，再交给 Taro 后处理。不要再注册官方 Panda 或另一个 importer。在 `src/app.css` 顶部、样式规则前写入 `@import "./styles/shared.css";`。Importer 从真实入口相对解析并展开多级导入，让 adapter 同时收到被导入和生成的规则。
 
 被导入文件的特殊 class selector 也必须经过 adapter。例如在导入 CSS 中编写 `.custom\/active`，业务代码从 `@weapp-pandacss/runtime` 调用 `encodeClassName('custom/active')` 后绑定。不要导入已独立展平的 CSS，也不要再次编码 Panda 输出。检查目标 CSS/WXSS 的对应编码 selector 与跨文件层顺序。远程残留 import 需要本地化或前序解析器，warning 模式也不会跳过 `LAYER_IMPORT`。
 

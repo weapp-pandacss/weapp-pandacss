@@ -13,13 +13,16 @@ describe('built public entrypoints', () => {
       : `const api = require('weapp-pandacss'); const plugin = require('weapp-pandacss/postcss'); const {weappPanda} = require('weapp-pandacss/panda'); const runtime = require('weapp-pandacss/runtime'); const standalone = require('@weapp-pandacss/runtime'); const postcss = require('postcss');`
     const script = `${imports}
       const {encodeClassName} = runtime;
-      const publicNames = ['encodeClassList', 'encodeClassName', 'postcssPlugin', 'weappPanda'];
+      const publicNames = ['composeUnitRules', 'encodeClassList', 'encodeClassName', 'postcssPlugin', 'unitPresets', 'weappPanda'];
       if (JSON.stringify(Object.keys(api).sort()) !== JSON.stringify(publicNames)) throw new Error('Unexpected public API');
       if (api.weappPanda !== weappPanda || api.encodeClassName !== encodeClassName || api.postcssPlugin !== plugin) throw new Error('Mismatched public entries');
       for (const name of ['encodeClassName', 'encodeClassList', 'createPortableRuntime']) {
         if (runtime[name] !== standalone[name]) throw new Error('Mismatched runtime facade: ' + name);
       }
       if (typeof plugin !== 'function') throw new Error('Missing PostCSS factory');
+      const units = {rules: api.composeUnitRules(api.unitPresets.remToRpx({rootValue:32}))};
+      const converted = postcss([plugin({imports:false,panda:false,adapter:false,units})]).process('.a{margin:-1e2rem}',{from:undefined}).sync();
+      if (!converted.root.toString().includes('margin:-3200rpx')) throw new Error('Broken built-in converter');
       if (weappPanda().name !== 'weapp-pandacss' || encodeClassName('a.b') !== 'a_wp_2e_b') throw new Error('Missing plugin or runtime');
       (async () => {
         const disabled = await postcss([plugin({ disabled: true })]).process('.a { color: red }', { from: undefined });

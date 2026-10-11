@@ -473,9 +473,6 @@ importers:
       postcss:
         specifier: 'catalog:'
         version: 8.5.29
-      postcss-rem-to-responsive-pixel:
-        specifier: ^7.0.7
-        version: 7.0.7(postcss@8.5.29)
       react-refresh:
         specifier: ^0.14.2
         version: 0.14.2
@@ -606,9 +603,6 @@ importers:
       postcss:
         specifier: 'catalog:'
         version: 8.5.29
-      postcss-rem-to-responsive-pixel:
-        specifier: ^7.0.7
-        version: 7.0.7(postcss@8.5.29)
       sass:
         specifier: ^1.105.1
         version: 1.105.1
@@ -736,9 +730,6 @@ importers:
       postcss:
         specifier: 'catalog:'
         version: 8.5.29
-      postcss-rem-to-responsive-pixel:
-        specifier: ^7.0.7
-        version: 7.0.7(postcss@8.5.29)
       sass:
         specifier: ^1.105.1
         version: 1.105.1
@@ -809,9 +800,6 @@ importers:
       postcss:
         specifier: 'catalog:'
         version: 8.5.29
-      postcss-rem-to-responsive-pixel:
-        specifier: ^7.0.7
-        version: 7.0.7(postcss@8.5.29)
       sass:
         specifier: ^1.105.1
         version: 1.105.1
@@ -890,6 +878,9 @@ importers:
       postcss-import:
         specifier: 17.0.0
         version: 17.0.0(postcss@8.5.29)
+      postcss-rule-unit-converter:
+        specifier: 0.2.6
+        version: 0.2.6(postcss@8.5.29)
       postcss-selector-parser:
         specifier: 7.1.6
         version: 7.1.6
@@ -13725,6 +13716,11 @@ packages:
     peerDependencies:
       postcss: ^8.5.29
 
+  postcss-plugin-shared@1.2.0:
+    resolution: {integrity: sha512-59tBkBp4NPvsEdj0KigDh6jrin7Zu5pUIkn+qrnuGRlFX1NINjSTeNgrpCTgvdUv6KuDvLFsrexXB7rNu9W09Q==}
+    peerDependencies:
+      postcss: ^8.5.29
+
   postcss-preset-env@11.6.1:
     resolution: {integrity: sha512-pkd4XImJ5CapWQn06ueWhovZ8fZcE7uHyNTT3PDQ2CiZEhlt+ZC4jPmKrN1QmJ2JTFj1qxINISORVwucPFuTew==}
     engines: {node: '>=20.19.0'}
@@ -13776,6 +13772,12 @@ packages:
 
   postcss-rule-unit-converter@0.2.5:
     resolution: {integrity: sha512-0Qb/DuGbhk+gifkNqDxzGfkdGugIgiqR4opLjzWx68qLi8XAVi64SxtHbUhlN6lNtYnrXlArVqEcEEdRnXbQJA==}
+    peerDependencies:
+      postcss: ^8.5.29
+
+  postcss-rule-unit-converter@0.2.6:
+    resolution: {integrity: sha512-aw51LFWQKnyzebc4SymzGRRImx/kUiMbwYqotCf/ZwVM64zPcYxEfe4LiKYT0pgiLW7Gh1LYykYw1ecBRGsk3g==}
+    engines: {node: '>=20.19.0'}
     peerDependencies:
       postcss: ^8.5.29
 
@@ -32016,6 +32018,11 @@ snapshots:
       defu: 6.1.7
       postcss: 8.5.29
 
+  postcss-plugin-shared@1.2.0(postcss@8.5.29):
+    dependencies:
+      defu: 6.1.7
+      postcss: 8.5.29
+
   postcss-preset-env@11.6.1(postcss@8.5.29):
     dependencies:
       '@csstools/postcss-alpha-function': 2.0.16(postcss@8.5.29)
@@ -32140,6 +32147,12 @@ snapshots:
     dependencies:
       postcss: 8.5.29
       postcss-plugin-shared: 1.1.7(postcss@8.5.29)
+
+  postcss-rule-unit-converter@0.2.6(postcss@8.5.29):
+    dependencies:
+      '@csstools/css-tokenizer': 4.0.2
+      postcss: 8.5.29
+      postcss-plugin-shared: 1.2.0(postcss@8.5.29)
 
   postcss-safe-parser@7.1.0(postcss@8.5.29):
     dependencies:

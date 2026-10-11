@@ -26,17 +26,25 @@ module.exports = {
 }
 ~~~
 
-For rem/rpx conversion, install `postcss-rem-to-responsive-pixel` and append:
+Unit conversion is built in and opt-in: `units` defaults to `false`, with no ratio inferred from the target. Enable it on the same plugin when needed:
 
 ~~~js
-'postcss-rem-to-responsive-pixel': {
-  rootValue: 32,
-  propList: ['*'],
-  transformUnit: 'rpx',
+module.exports = {
+  plugins: {
+    'weapp-pandacss/postcss': {
+      units: {
+        rules: [{ from: 'rem', to: 'rpx', factor: 32 }],
+      },
+    },
+  },
 }
 ~~~
 
-`rootValue` is a project choice. The Wevu example uses `1rem = 32rpx`.
+This converts `0.5rem` to `16rpx` after complete adaptation and before framework
+postprocessing, without installing another converter. Rules accept string, regex,
+or function matchers, custom factors and signed callbacks. Supply the font,
+container, or viewport basis for relative units yourself. Empty options preserve
+source units. See [all unit options and matching boundaries](/api/postcss-plugin/#built-in-unit-conversion).
 
 ## Options
 
@@ -47,8 +55,9 @@ The table below lists common settings. The [PostCSS API reference](/api/postcss-
 | `imports` | `true` | Expands CSS imports; accepts importer options or `false` |
 | `panda` | `true` | Generates Panda CSS; accepts Panda PostCSS options or `false` |
 | `adapter` | `true` | Encodes selectors and applies the selected target transforms |
+| `units` | `false` | Built-in generic conversion via `UnitConversionOptions`; no inferred ratio |
 | `target` | `weapp` | Mini-program platform transforms; `web` preserves Web semantics |
-| `disabled` | `false` | Bypasses all three stages, including import expansion and generation |
+| `disabled` | `false` | Bypasses every stage, including imports, Panda, adaptation and units |
 | `cascadeLayers.mode` | `ordered` | Compiles layer order; explicit `legacy` retains the old pipeline |
 | `cascadeLayers.onConflict` | `warning` | Warns about potential semantic differences; `error` fails the build |
 | `selectorReplacement.root` | `page` | Replaces `:root` and `:host` |
@@ -65,6 +74,7 @@ adapter() // imports → Panda → default weapp adaptation
 adapter({ target: 'web' }) // imports → Panda → portable Web CSS
 adapter({ imports: false, panda: false }) // adapter only
 adapter({ adapter: false }) // imports → Panda, native selectors and layers
+adapter({ adapter: false, units: { rules: [{ from: 'rem', to: 'px', factor: 16 }] } }) // still converts units
 adapter({ disabled: true }) // bypass the complete pipeline
 adapter({
   imports: { skipDuplicates: false },
@@ -80,11 +90,11 @@ For custom loaders, pass the real entry path as PostCSS `from`; a virtual module
 
 ## Sass, Less and Stylus
 
-The order is **framework preprocessor → composed PostCSS plugin → optional units**. Install/configure the preprocessor through the framework. Keep the global Panda layer entry as `.css`: official Panda 2.1.2 processes CSS filenames, even when a framework has already compiled a `.scss` entry to CSS text.
+The order is **framework preprocessor → imports → Panda → full adaptation → built-in units (when enabled) → framework postprocessing**. Install/configure the preprocessor through the framework. Keep the global Panda layer entry as `.css`: official Panda 2.1.2 processes CSS filenames, even when a framework has already compiled a `.scss` entry to CSS text.
 
 Sass `@use`/`@forward`, Less variables/mixins and Stylus syntax belong to their respective compiler. The built-in importer expands CSS graphs; its default loader rejects raw `.scss`, `.sass`, `.less`, `.styl` and `.stylus` imports instead of passing uncompiled syntax into WXSS. Import their compiled CSS, let the framework resolve them first, or supply `imports.load` with a real compiler and watch integration. `imports.plugins` can apply PostCSS transformations to each imported CSS file. A custom loader is responsible for returning valid CSS and reporting its extra dependencies.
 
-A preprocessor may deliberately preserve an ordinary CSS `@import`; the internal import stage expands it afterward. If CSS nesting remains, configure a nesting transform before adaptation. This composition does not add a Sass/Less/Stylus compiler or a default unit ratio.
+A preprocessor may deliberately preserve an ordinary CSS `@import`; the internal import stage expands it afterward. If CSS nesting remains, configure a nesting transform before adaptation. The plugin adds no Sass/Less/Stylus compiler or default unit ratio. `units` converts their compiled CSS, plus Panda-generated and imported styles in the same root.
 
 ## Cascade layer compatibility
 

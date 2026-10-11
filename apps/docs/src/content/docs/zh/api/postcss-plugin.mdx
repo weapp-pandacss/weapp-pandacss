@@ -25,19 +25,20 @@ const postcssPlugin = require('weapp-pandacss/postcss')
 const plugin = postcssPlugin()
 ```
 
-无参数时，工厂组合 **CSS import 展开 → 官方 Panda 生成 → 小程序适配**。PostCSS 仅注册 `weapp-pandacss/postcss: {}`，Panda 配置保留 `weappPanda()`，应用加载全局 `.css` layer 入口；单位转换仍单独配置。项目定位和框架预处理器见[配置指南](/zh/postcss/)。独立 ordered layer 内核保持纯 AST 边界，组合插件的 importer 在此前负责文件读取。
+无参数时，工厂组合 **CSS import 展开 → 官方 Panda 生成 → 小程序适配**。PostCSS 仅注册 `weapp-pandacss/postcss: {}`，Panda 配置保留 `weappPanda()`，应用加载全局 `.css` layer 入口；单位转换通过内置 `units` 显式启用，默认不转换。项目定位和框架预处理器见[配置指南](/zh/postcss/)。独立 ordered layer 内核保持纯 AST 边界，组合插件的 importer 在此前负责文件读取。
 
 ## 完整参数
 
-所有字段可选。嵌套对象继承未填写字段的默认值；替换数组会覆盖默认数组，而非追加元素。
+所有字段可选。适配参数的嵌套对象继承未填写字段的默认值；替换数组覆盖默认数组，不会追加。`imports`、`panda` 与 `units` 直接传给对应阶段，不参与递归合并，保留正则和回调。
 
 | 字段 | 类型 | 默认值 | 作用 |
 | --- | --- | --- | --- |
 | `imports` | `boolean \| PostcssImportOptions` | `true` | 在 Panda 前展开导入，上游字段见下文 |
 | `panda` | `boolean \| PandaPostcssOptions` | `true` | 执行官方 Panda，上游字段见下文 |
 | `adapter` | `boolean` | `true` | 执行命名、标记和目标 CSS 适配 |
+| `units` | `false \| UnitConversionOptions` | `false` | 完整适配后执行通用单位转换；完整选项见下文 |
 | `target` | `'weapp' \| 'web'` | `'weapp'` | 选择平台 CSS 行为，两种目标的 class 名称一致 |
-| `disabled` | `boolean` | `false` | 跳过 import 展开、Panda 生成与全部适配转换 |
+| `disabled` | `boolean` | `false` | 跳过 import、Panda、适配与单位转换 |
 | `cascadeLayers.mode` | `'ordered' \| 'legacy'` | `'ordered'`，传入旧参数时可变为 legacy | 选择小程序 layer 编译方式 |
 | `cascadeLayers.onConflict` | `'warning' \| 'error'` | `'warning'` | ordered layer 兼容诊断的严重级别 |
 | `selectorReplacement.root` | `string \| string[]` | `'page'` | 替换小程序 CSS 的 `:root` 与 `:host` |
@@ -95,6 +96,124 @@ postcssPlugin({ imports: { skipDuplicates: false } })
 ```
 
 生成前会检查重复官方 Panda、外部 Panda 位于适配之后，以及仅依靠外部 importer 却将其置于生成/适配之后的情况。内置 importer 已展开完整图时，允许框架追加后置 importer。删除重复实例，或关闭内置阶段并把外部负责者放在剩余阶段之前。`disabled: true` 跳过整个流水线；`adapter: false` 仅跳过适配，仍展开 import 并生成 Panda CSS。`target: 'web'` 保留默认阶段，编码类名并保留原生 layer。
+
+## 内置单位转换
+
+`units?: false | UnitConversionOptions` 在微信和 Web 下均默认为 `false`。
+适配器已内置 `postcss-rule-unit-converter` 运行依赖，应用无需额外安装或注册。
+启用规则对象后，按 **import → Panda → 完整适配生命周期 → units → 框架后处理**
+执行任意 CSS 长度单位转换，不按目标推断换算比例。
+
+```js
+module.exports = {
+  plugins: {
+    'weapp-pandacss/postcss': {
+      units: {
+        rules: [{ from: 'rem', to: 'rpx', factor: 32 }],
+      },
+    },
+  },
+}
+```
+
+`0.5rem` 会变成 `16rpx`。`units: {}` 没有规则，保持原值。
+`adapter: false` 仍执行显式配置的 units，`disabled: true` 则跳过全部阶段。
+仅转换单位时，使用同一入口并设置 `imports: false`、`panda: false`、
+`adapter: false`。同步适配 / 转换需用 `imports: false, panda: false` 关闭异步的
+导入与 Panda 阶段；省略 `from` 不会关闭 importer。CSS 字符串无需伪造文件名。
+sourcemap、诊断与文件依赖保留在外层 PostCSS result，框架的 declaration visitor
+能读到换算后的值。
+
+### 全部单位选项
+
+以下是完整的上游 `UnitConversionOptions`，配置直接透传，不参与递归合并。
+比例是构建期规则；字体、容器、视口相关单位所需的换算依据由项目提供。
+
+| `units` 字段 | 类型 | 默认值 | 行为 |
+| --- | --- | --- | --- |
+| `rules` | `readonly ConversionRule[]` | `[]` | 有序规则，第一条命中即为最终选择 |
+| `unitRegex` | `RegExp` | 未设置 | 完全替换默认 CSS tokenizer |
+| `unitPrecision` | `number` | `5` | 小数舍入精度；超出 `0..100` 时不舍入 |
+| `minValue` | `number` | `0` | 源值绝对值阈值，可被单规则覆盖 |
+| `keepZeroUnit` | `boolean` | `false` | 零值保留目标单位，否则输出 `0` |
+| `selectorBlackList` | `readonly (string \| RegExp)[]` | `[]` | 跳过匹配选择器，字符串按包含关系匹配 |
+| `propList` | `readonly (string \| RegExp)[]` | `['*']` | 属性过滤，支持通配、正则与 `!` 排除 |
+| `replace` | `boolean` | `true` | 原位替换；`false` 追加 fallback，按属性、值与 `!important` 去重 |
+| `mediaQuery` | `boolean` | `false` | 同时转换 `@media` 参数 |
+| `exclude` | `readonly (string \| RegExp)[] \| ((filePath: string) => boolean)` | `[/node_modules/i]` | 跳过整个根入口，不按导入文件分别过滤 |
+| `disabled` | `boolean` | `false` | 仅关闭单位阶段；外层 `disabled` 关闭完整流水线 |
+
+### 规则、回调与辅助函数
+
+```ts
+import { composeUnitRules, unitPresets } from 'weapp-pandacss'
+import type { ConversionRule, RuleContext, UnitConversionOptions } from 'weapp-pandacss'
+
+type UnitMatcher = string | RegExp | ((unit: string) => boolean)
+// ConversionRule: { from: UnitMatcher; to?: string; factor?: number;
+//                   minValue?: number; transform?: RuleTransform }
+// RuleTransform: (value: number, context: RuleContext) =>
+//                number | { value: number; unit?: string } | undefined
+
+const units: UnitConversionOptions = {
+  rules: composeUnitRules(
+    unitPresets.remToRpx({ rootValue: 32 }),
+    { from: /^px$/, to: 'rpx', factor: 2 },
+    {
+      from: unit => unit === 'em',
+      to: 'rpx',
+      minValue: 0.25,
+      transform(value, context: RuleContext) {
+        return value * (context.prop === 'letter-spacing' ? 8 : 16)
+      },
+    },
+  ),
+}
+const rule: ConversionRule = { from: 'rem', to: 'px', factor: 16 }
+```
+
+`unitPresets` 对应上游 `presets`，`composeUnitRules(...groups)` 对应上游
+`composeRules`，按顺序展开规则与 preset group。常用 preset 包括 `remToPx`、
+`remToRpx`、`pxToRem`、`pxToRpx`、`rpxToPx`、视口换算、`unitsToPx`，以及
+`pxPresetGroup` / `rpxPresetGroup` / `viewportPresetGroup` / `webPresetGroup`。
+字体、视口等选项可按当前 PostCSS `Input` 动态求值；这个 input 是根入口，不是
+被导入文件。完整列表见[上游 preset 与 API 参考](https://github.com/icelib/postcss-plugins/blob/main/packages/postcss-rule-unit-converter/API.zh-CN.md)。
+
+根入口导出 `UnitConversionOptions`、`ConversionRule`、`ConvertedValue`、
+`RuleContext`、`RuleGroup`、`RuleTransform`、`UnitMatcher`、`UnitTransform`、
+`GlobalUnitTransform`、`UnitRule`、`UnitMap`、`NumericResolver`、`PresetOptions`、
+`PresetFactory`、`PresetGroupFactory`、`LinearPresetOptions`、`RatioOptions`、
+`RemBasedPresetOptions`、`RemToViewportPresetOptions`、
+`RemToViewportHeightPresetOptions`、`ViewportPresetOptions`、
+`ViewportHeightPresetOptions`、`UnitMapPresetOptions`、`PxPresetGroupOptions`、
+`RpxPresetGroupOptions`、`ViewportGroupOptions`。类型通过适配器运行依赖解析，
+无需额外安装转换器或类型包。
+
+### 匹配与重复处理
+
+默认按完整 CSS dimension / 百分比 token 匹配，正确解析符号与科学计数法：
+`-2rem` 向回调传入 `-2`，`1e3rem` 传入 `1000`；`minValue` 按
+`Math.abs(value)` 比较。单位先解码并转小写，再交给字符串、正则或函数 matcher；
+`context.rawUnit`、`rawValue`、`match` 保留源文本。`rem` 规则不会误改
+`2remfoo` 或 `foo2rem` 标识符。
+
+字符串、注释和 URL 保持原样，包括转义引号和大写 `URL()`。默认完整跳过任意
+深度的 `var()` 及其 fallback；`var()` 外的 `calc()`、`min()` 中长度可转换。
+Panda 自定义属性声明可换算，`var()` fallback 则保留原单位。
+
+第一条命中即为最终规则，即使回调返回 `undefined` 或数值未达到阈值，也不会继续
+尝试后续规则。单轮不把生成值交给其他规则连锁转换；再次处理仍可能转换，即使已有
+portable class 标记。该标记防止重复 class 编码，不标记单位转换。在多次处理的
+构建中，为每种输入单位明确唯一处理阶段。
+
+显式 `unitRegex` 完全绕过 tokenizer 及其保护。数字放第 1 个捕获组、单位放第 2 个；
+缺少的 `g` 标志自动补上。符号、科学计数法、token 边界及字符串 / URL / `var()`
+跳过逻辑均由该正则负责；非法捕获结构会报错，不会静默失效。
+
+`context` 还包含 `root`、根入口 `input` / `filePath`，以及当前 `decl`、`rule`、
+`prop`、`selector` 或 `atRule`。导入声明的原路径使用
+`context.decl?.source?.input.file`；`exclude` 只检查根入口。按来源保留某个值时，
+在 transform 中返回 `undefined`。媒体查询参数没有 `decl`。
 
 ## csstools 参数
 

@@ -13,6 +13,7 @@ export default defineConfig({
   forceImportExtension: true,
   theme: {
     extend: {
+      tokens: { spacing: { 'unit-fixture': { value: '1.25rem' } } },
       semanticTokens: { colors: { 'brand/主色': { value: '#0f766e' } } },
       recipes: {
         e2eButton: {
@@ -38,4 +39,5 @@ export default defineConfig({
       },
     },
   },
+  staticCss: { css: [{ properties: { paddingLeft: ['unit-fixture'] } }] },
 })

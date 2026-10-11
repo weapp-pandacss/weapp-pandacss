@@ -8,6 +8,7 @@ import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 import postcss from 'postcss'
 import postcssImport from 'postcss-import'
+import convertUnits from 'postcss-rule-unit-converter'
 import { namingMarker, portableCssMarker } from '@/constants'
 
 const pluginName = 'weapp-pandacss-pipeline'
@@ -60,25 +61,26 @@ export async function resolvePandaOptions(options: PandaPostcssOptions, from: st
 function assertPluginOrder(result: Result, options: Required<IPostcssPluginOptions>, self: Plugin) {
   const plugins = result.processor.plugins
   const position = plugins.indexOf(self)
+  const transforms = options.adapter || options.units !== false
   for (const [index, plugin] of plugins.entries()) {
     const name = typeof plugin === 'object' ? plugin.postcssPlugin : undefined
     if (name === 'pandacss') {
       if (options.panda !== false) {
         throw result.root.error('Panda is registered twice. Remove the official Panda PostCSS plugin, or set panda: false in weapp-pandacss/postcss.', { plugin: pluginName })
       }
-      if (options.adapter && index > position) {
+      if (transforms && index > position) {
         throw result.root.error('The official Panda PostCSS plugin must run before weapp-pandacss/postcss. Move it earlier, or enable the built-in panda stage.', { plugin: pluginName })
       }
       const imports = result.root.nodes.some(node => node.type === 'atrule' && node.name === 'import')
       const earlierImporter = plugins.slice(0, index).some(candidate => typeof candidate === 'object' && candidate.postcssPlugin === 'postcss-import')
-      if (index < position && imports && !earlierImporter && (options.imports !== false || options.adapter)) {
+      if (index < position && imports && !earlierImporter && (options.imports !== false || transforms)) {
         throw result.root.error('CSS imports must be expanded before the external Panda PostCSS plugin. Place postcss-import before Panda and set imports: false, or remove the external Panda plugin and enable the built-in panda stage.', { plugin: pluginName })
       }
     }
     // Taro appends its own importer after project plugins. It is harmless
     // when our importer already expanded the graph; external-only imports
     // must still precede both generation and adaptation.
-    if (name === 'postcss-import' && index > position && options.imports === false && (options.panda !== false || options.adapter)) {
+    if (name === 'postcss-import' && index > position && options.imports === false && (options.panda !== false || transforms)) {
       throw result.root.error('postcss-import must run before Panda and the adapter. Remove the later importer and use the built-in imports stage, or move it earlier and set imports: false.', { plugin: pluginName })
     }
   }
@@ -122,7 +124,9 @@ function createImporter(root: Root, options: PostcssImportOptions, from?: string
   }) as Plugin
 }
 
-async function runStages(root: Root, result: Result, stages: Plugin[], from?: string) {
+function runStages(root: Root, result: Result, stages: Plugin[], from?: string): Promise<void>
+function runStages(root: Root, result: Result, stages: Plugin[], from: string | undefined, synchronous: true): void
+function runStages(root: Root, result: Result, stages: Plugin[], from?: string, synchronous = false): void | Promise<void> {
   let stageResult!: Result
   const capture: Plugin = {
     postcssPlugin: 'weapp-pandacss-stage-result',
@@ -131,21 +135,27 @@ async function runStages(root: Root, result: Result, stages: Plugin[], from?: st
       return {}
     },
   }
-  try {
-    // Child processors run the real lifecycle on the same AST. The outer
-    // processor owns the final map; sources and every stage message survive.
-    // annotation:false is essential: even map:false removes sourceMappingURL
-    // comments while stringifying. Discard the child map and preserve the AST
-    // for the outer processor's final map and annotation policy.
-    const stageOptions = { ...result.opts, from, map: { annotation: false, inline: false, sourcesContent: false }, css: undefined }
-    await postcss([capture, ...stages]).process(root, stageOptions)
+  // Child processors run the real lifecycle on the same AST. The outer
+  // processor owns the final map; sources and every stage message survive.
+  // annotation:false is essential: even map:false removes sourceMappingURL
+  // comments while stringifying. Discard the child map and preserve the AST
+  // for the outer processor's final map and annotation policy.
+  const stageOptions = { ...result.opts, from, map: { annotation: false, inline: false, sourcesContent: false }, css: undefined }
+  const child = postcss([capture, ...stages]).process(root, stageOptions)
+  const forwardMessages = () => result.messages.push(...stageResult.messages)
+  if (synchronous) {
+    try {
+      child.sync()
+    }
+    finally {
+      forwardMessages()
+    }
+    return
   }
-  finally {
-    result.messages.push(...stageResult.messages)
-  }
+  return child.then(() => {}).finally(forwardMessages)
 }
 
-export function pipelinePlugin(optionsRef: Ref<Required<IPostcssPluginOptions>>): Plugin {
+export function pipelinePlugin(optionsRef: Ref<Required<IPostcssPluginOptions>>, adapterPlugins: Plugin[]): Plugin {
   const plugin: Plugin = {
     postcssPlugin: pluginName,
     prepare(result) {
@@ -198,9 +208,26 @@ export function pipelinePlugin(optionsRef: Ref<Required<IPostcssPluginOptions>>)
               },
             })
           }
-          if (stages.length) {
-            return runStages(root, result, stages, from)
+          function finish() {
+            try {
+              if (adapterPlugins.length) {
+                runStages(root, result, adapterPlugins, from, true)
+              }
+              if (options.units !== false) {
+                runStages(root, result, [convertUnits(options.units) as Plugin], from, true)
+              }
+            }
+            finally {
+              // Starting a native processor resets every traversal mark. With
+              // no visitors it leaves all nodes available to the framework,
+              // even clean children below parents dirtied by an exit hook.
+              runStages(root, result, [{ postcssPlugin: 'weapp-pandacss-resume-framework' }], from, true)
+            }
           }
+          if (stages.length) {
+            return runStages(root, result, stages, from).then(finish)
+          }
+          finish()
         },
       }
     },

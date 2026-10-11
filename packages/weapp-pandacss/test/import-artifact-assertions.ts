@@ -11,6 +11,7 @@ export function expectImportedArtifacts(css: string, target: 'web' | 'weapp', op
     'import-unlayered',
     'import-same-layer',
     'import-nested',
+    'import-units',
     'import/中文',
     'import_wp_2f_中文',
     'import.a',
@@ -54,7 +55,7 @@ export function expectImportedArtifacts(css: string, target: 'web' | 'weapp', op
   const pixelScale = options.pixelScale ?? 1
   function expectLength(name: string, property: string, number: number, unit: string) {
     const lengths = values(name, property).map((value) => {
-      const match = /^(-?(?:\d*\.)?\d+)([a-z]+)$/.exec(value)
+      const match = /^([+-]?(?:\d*\.)?\d+(?:e[+-]?\d+)?)([a-z]+)$/i.exec(value)
       return match ? { number: Number(match[1]), unit: match[2] } : value
     })
     expect(lengths).toContainEqual({ number: Number(number.toFixed(10)), unit })
@@ -66,6 +67,11 @@ export function expectImportedArtifacts(css: string, target: 'web' | 'weapp', op
   expectLength('import/中文', 'padding-left', 16 * pixelScale, unit)
   expectLength('import_wp_2f_中文', 'padding-left', 24 * pixelScale, unit)
   expectLength('import-nested', 'margin-left', 8 * pixelScale, unit)
+  expectLength('import-units', 'margin-top', -16 * pixelScale, unit)
+  expectLength('import-units', 'padding-top', 0.032 * pixelScale, unit)
+  expectLength('import-units', 'margin-bottom', -64 * pixelScale, unit)
+  expectLength('import-units', 'width', 320 * pixelScale, unit)
+  expectLength('import-units', '--import-unit-space', 40 * pixelScale, unit)
   if (target === 'weapp') {
     // Native layer order has been compiled into source order, including reversal
     // for important declarations and the position of unlayered declarations.
@@ -124,6 +130,10 @@ export function expectPreprocessedArtifacts(css: string, options: { remUnit: 'px
     const match = /^([\d.]+)([a-z]+)$/.exec(padding ?? '')
     expect(match?.[2], `${language} mixin unit`).toBe(options.remUnit)
     expect(Number(match?.[1]), `${language} mixin value`).toBeCloseTo(space * options.remScale)
+    const margin = declarations.find(declaration => declaration.property === 'margin-bottom')?.value
+    const marginMatch = /^(-?[\d.]+)([a-z]+)$/.exec(margin ?? '')
+    expect(marginMatch?.[2], `${language} negative mixin unit`).toBe(options.remUnit)
+    expect(Number(marginMatch?.[1]), `${language} negative mixin value`).toBeCloseTo(-space * options.remScale)
     const opacity = declarations.find(declaration => declaration.property === 'opacity' && declaration.active)
     expect(Number(opacity?.value), `${language} compiled nesting`).toBe(0.75)
     expect(importedValues, `${language} CSS import expansion`).toContainEqual({ property: 'white-space', value: 'nowrap' })
@@ -132,4 +142,21 @@ export function expectPreprocessedArtifacts(css: string, options: { remUnit: 'px
     expect(borderMatch?.[2]).toBe(options.remUnit)
     expect(Number(borderMatch?.[1])).toBeCloseTo(0.125 * options.remScale)
   }
+}
+
+/** Panda emits the token once; framework processing must preserve its scale. */
+export function expectUnitToken(css: string, options: { unit: 'px' | 'rpx' | 'rem', scale: number, variable: string }) {
+  const tokens: string[] = []
+  const name = options.variable.slice(4, -1)
+  expect(options.variable).toMatch(/^var\(--[\w-]+\)$/)
+  postcss.parse(css).walkDecls(name, (declaration) => {
+    tokens.push(declaration.value)
+  })
+  expect(tokens.length, 'Missing generated Panda spacing token').toBeGreaterThan(0)
+  for (const token of tokens) {
+    const match = /^([\d.]+)([a-z]+)$/.exec(token)
+    expect(match?.[2]).toBe(options.unit)
+    expect(Number(match?.[1])).toBeCloseTo(1.25 * options.scale)
+  }
+  expect(css).toContain(options.variable)
 }

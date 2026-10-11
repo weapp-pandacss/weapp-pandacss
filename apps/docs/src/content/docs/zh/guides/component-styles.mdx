@@ -34,31 +34,50 @@ Component({
 
 ## 单位与设计比例
 
-Class 编码不转换尺寸。设计需要单位换算时，再安装转换器：
-
-~~~sh
-pnpm add -D postcss-rem-to-responsive-pixel
-~~~
+class 编码不决定尺寸比例。单位转换已内置，微信与 Web 都默认 `units: false`。
+需要 `1rem = 32rpx` 时，在同一插件中显式启用：
 
 ~~~js
-// 位于 Panda 和 weapp-pandacss/postcss 之后。
-'postcss-rem-to-responsive-pixel': {
-  rootValue: 32,
-  propList: ['*'],
-  transformUnit: 'rpx',
-},
+module.exports = {
+  plugins: {
+    'weapp-pandacss/postcss': {
+      units: { rules: [{ from: 'rem', to: 'rpx', factor: 32 }] },
+    },
+  },
+}
 ~~~
 
-这组设置中 `1rem = 32rpx`，`0.5rem = 16rpx`，Wevu 集成测试会检查产物中的 `16rpx`。这是配置的设计比例，不等同于浏览器根字号。
+无需另装转换器。单位阶段在完整适配后、框架后处理前运行，覆盖同一 root 中 Panda
+生成的 token 值、Sass/Less/Stylus 编译后的 CSS 和导入的第三方声明。比例由项目
+设计决定，与浏览器根字号无关。
 
-| 使用该转换器的输入 | 小程序 `rpx` 输出 | H5 `px` 输出 |
+| 使用此规则的输入 | 小程序 `to: 'rpx'` | H5 `to: 'px'` |
 | --- | --- | --- |
 | `1rem` | `32rpx` | `32px` |
 | `0.5rem` | `16rpx` | `16px` |
+| `-2rem` | `-64rpx` | `-64px` |
+| `1e-3rem` | `0.032rpx` | `0.032px` |
 
-H5 列使用相同 `rootValue` 与 `transformUnit: 'px'`。React Web 示例没有 rem 转换器，rem 由浏览器处理。Taro 另有 designWidth/pxtransform 流程，加入转换器前先明确每种输入单位由哪个阶段处理。
+H5 列将 `to` 改为 `px`，保留 `factor: 32`。React Web 示例保持单位转换关闭，
+由浏览器处理 rem。规则还支持正则与函数 matcher、任意长度单位、精度、属性 /
+选择器过滤和带符号回调。`em`、`ch`、`vw`、容器单位等需要显式换算依据；构建期
+无法推断运行时字体指标或设备视口。
 
-运行时内联样式不经过 PostCSS，业务数据生成宽度字符串时，应直接选择 `rpx`、`px` 或 `%`。最终尺寸取决于设备宽度与渲染器，class/WXSS 匹配测试不能代替实体设备布局验收。详见微信 [WXSS 参考](https://developers.weixin.qq.com/miniprogram/dev/framework/view/wxss.html)。
+默认 token 匹配保护字符串、URL 和标识符，并完整跳过任意深度的 `var()` fallback。
+`--gap: 0.5rem` 可转为 `--gap: 16rpx`，`var(--gap, 0.5rem)` 的 fallback 则保留。
+第一条命中即为最终规则，单轮不连锁；重复处理仍可能再次换算，portable class
+标记不标记单位转换。`exclude` 检查根入口路径，不按导入声明的原文件过滤。详见
+[全部选项与按来源回调](/zh/api/postcss-plugin/#内置单位转换)。
+
+Taro 继续执行自己的 `designWidth` / `pxtransform`，包括示例中 NutUI 按文件设置的
+`designWidth`。示例先转换 rem，px 交给 Taro；如果自定义 `units` 接管重叠的
+px/rpx 换算，需关闭对应 Taro `pxtransform`，避免重复处理。Uni-app 虚拟 Panda
+入口设置 `units: false`，只在最终框架阶段换算；Tailwind 入口仅转换单位，不执行
+Panda class 编码。详见[入口隔离](/zh/guides/build-targets/#panda-与-tailwind-入口隔离)。
+
+运行时内联 style 不经过 PostCSS，需直接选择预期 `rpx`、`px` 或 `%`。
+在目标渲染器对照最终声明与显示尺寸，class/WXSS 匹配不能证明真机布局。参见微信
+[WXSS 文档](https://developers.weixin.qq.com/miniprogram/dev/framework/view/wxss.html)。
 
 ## 第三方样式
 

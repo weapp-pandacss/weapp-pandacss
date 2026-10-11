@@ -19,8 +19,9 @@ export default defineConfig({
 
   // Useful for theme customization
   theme: {
-    extend: {},
+    extend: { tokens: { spacing: { 'unit-fixture': { value: '1.25rem' } } } },
   },
+  staticCss: { css: [{ properties: { paddingLeft: ['unit-fixture'] } }] },
 
   // The output directory for your css system
   outdir: `styled-system/${process.env.TARO_ENV || 'weapp'}`,

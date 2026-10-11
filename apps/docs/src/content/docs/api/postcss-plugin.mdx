@@ -25,19 +25,20 @@ const postcssPlugin = require('weapp-pandacss/postcss')
 const plugin = postcssPlugin()
 ```
 
-With no options, the factory composes **CSS import expansion → official Panda generation → mini-program adaptation**. Register only `weapp-pandacss/postcss: {}` in PostCSS, retain `weappPanda()` in Panda's config, and load a global `.css` layer entry. Unit conversion remains separate. See the [configuration guide](/postcss/) for project discovery and framework preprocessors. The independent ordered layer core keeps a pure AST boundary; the composed plugin's importer owns file reads before it.
+With no options, the factory composes **CSS import expansion → official Panda generation → mini-program adaptation**. Register only `weapp-pandacss/postcss: {}` in PostCSS, retain `weappPanda()` in Panda's config, and load a global `.css` layer entry. Unit conversion is built in through opt-in `units`, disabled by default. See the [configuration guide](/postcss/) for project discovery and framework preprocessors. The independent ordered layer core keeps a pure AST boundary; the composed plugin's importer owns file reads before it.
 
 ## Complete options
 
-All fields are optional. Nested objects inherit omitted defaults; replacement arrays replace the default array rather than appending to it.
+All fields are optional. Nested adaptation objects inherit omitted defaults; replacement arrays replace the default array rather than appending to it. `imports`, `panda` and `units` are forwarded without recursive merging, preserving regexes and callbacks.
 
 | Field | Type | Default | Effect |
 | --- | --- | --- | --- |
 | `imports` | `boolean \| PostcssImportOptions` | `true` | Expands imports before Panda; upstream fields below |
 | `panda` | `boolean \| PandaPostcssOptions` | `true` | Runs official Panda; upstream fields below |
 | `adapter` | `boolean` | `true` | Runs naming, markers and target CSS adaptation |
+| `units` | `false \| UnitConversionOptions` | `false` | Runs generic unit conversion after complete adaptation; all fields below |
 | `target` | `'weapp' \| 'web'` | `'weapp'` | Selects platform CSS behavior; class names match in both targets |
-| `disabled` | `boolean` | `false` | Bypasses import expansion, Panda generation and all adapter transformations |
+| `disabled` | `boolean` | `false` | Bypasses imports, Panda, adaptation and unit conversion |
 | `cascadeLayers.mode` | `'ordered' \| 'legacy'` | `'ordered'` unless legacy options are passed | Chooses mini-program layer compilation |
 | `cascadeLayers.onConflict` | `'warning' \| 'error'` | `'warning'` | Severity of ordered-layer compatibility diagnostics |
 | `selectorReplacement.root` | `string \| string[]` | `'page'` | Replaces `:root` and `:host` in mini-program CSS |
@@ -94,7 +95,134 @@ postcssPlugin({ panda: { cwd: '/workspace/app' } })
 postcssPlugin({ imports: { skipDuplicates: false } })
 ```
 
-Before generation, the plugin reports duplicate official Panda registration and incorrect external stage order. External Panda must precede adaptation; an external-only importer must precede generation and adaptation. A trailing framework importer is allowed when the built-in importer has already expanded the graph. Remove the duplicate or disable the internal stage and place its external owner before the remaining stages. `disabled: true` bypasses the entire pipeline; `adapter: false` only skips adaptation and still expands imports/generates Panda CSS. `target: 'web'` retains both defaults and adapts class names while preserving native layers.
+Before generation, the plugin reports duplicate official Panda registration and incorrect external stage order. External Panda must precede adaptation; an external-only importer must precede generation and adaptation. A trailing framework importer is allowed when the built-in importer has already expanded the graph. Remove the duplicate or disable the internal stage and place its external owner before the remaining stages. `disabled: true` bypasses the entire pipeline; `adapter: false` only skips adaptation and still expands imports, generates Panda CSS and runs explicitly configured `units`. `target: 'web'` retains both defaults and adapts class names while preserving native layers.
+
+## Built-in unit conversion
+
+`units?: false | UnitConversionOptions` defaults to `false` for both targets.
+The adapter includes `postcss-rule-unit-converter` as a runtime dependency;
+applications do not install or register it separately. Enable a rule object to
+convert arbitrary CSS length units after imports, Panda and the **full adapter
+lifecycle**, before framework postprocessing. No target implies a ratio.
+
+```js
+module.exports = {
+  plugins: {
+    'weapp-pandacss/postcss': {
+      units: {
+        rules: [{ from: 'rem', to: 'rpx', factor: 32 }],
+      },
+    },
+  },
+}
+```
+
+`0.5rem` becomes `16rpx`. `units: {}` has no rules and leaves values unchanged.
+`adapter: false` still runs configured units; `disabled: true` bypasses everything.
+For conversion alone, use the same entry with `imports: false`, `panda: false`
+and `adapter: false`. Synchronous adaptation/conversion requires disabling the
+asynchronous import/Panda stages with `imports: false, panda: false`; omitting
+`from` does not disable the importer. A CSS string needs no fabricated filename.
+Source maps, diagnostics and file dependencies remain in
+the outer PostCSS result, and framework declaration visitors see converted values.
+
+### Complete unit options
+
+These are the full upstream `UnitConversionOptions`; supplied objects are
+forwarded without recursive merging. Ratios are build-time rules: conversions of
+font-, container- or viewport-relative units require the project's own basis.
+
+| `units` field | Type | Default | Behavior |
+| --- | --- | --- | --- |
+| `rules` | `readonly ConversionRule[]` | `[]` | Ordered rules; first matching rule wins |
+| `unitRegex` | `RegExp` | Unset | Replaces default CSS tokenization entirely |
+| `unitPrecision` | `number` | `5` | Decimal rounding; values outside `0..100` skip rounding |
+| `minValue` | `number` | `0` | Minimum absolute source magnitude; rules can override it |
+| `keepZeroUnit` | `boolean` | `false` | Keep the target unit on zero instead of emitting `0` |
+| `selectorBlackList` | `readonly (string \| RegExp)[]` | `[]` | Skip matching selectors; string entries match substrings |
+| `propList` | `readonly (string \| RegExp)[]` | `['*']` | Property filter with wildcards, regex and `!` exclusions |
+| `replace` | `boolean` | `true` | Replace values; `false` appends fallback declarations, deduplicated by property, value and `!important` |
+| `mediaQuery` | `boolean` | `false` | Also convert lengths in `@media` parameters |
+| `exclude` | `readonly (string \| RegExp)[] \| ((filePath: string) => boolean)` | `[/node_modules/i]` | Skip the entire root entry, not each imported source |
+| `disabled` | `boolean` | `false` | Disable only conversion; outer `disabled` disables the whole pipeline |
+
+### Rules, callbacks and helpers
+
+```ts
+import { composeUnitRules, unitPresets } from 'weapp-pandacss'
+import type { ConversionRule, RuleContext, UnitConversionOptions } from 'weapp-pandacss'
+
+type UnitMatcher = string | RegExp | ((unit: string) => boolean)
+// ConversionRule: { from: UnitMatcher; to?: string; factor?: number;
+//                   minValue?: number; transform?: RuleTransform }
+// RuleTransform: (value: number, context: RuleContext) =>
+//                number | { value: number; unit?: string } | undefined
+
+const units: UnitConversionOptions = {
+  rules: composeUnitRules(
+    unitPresets.remToRpx({ rootValue: 32 }),
+    { from: /^px$/, to: 'rpx', factor: 2 },
+    {
+      from: unit => unit === 'em',
+      to: 'rpx',
+      minValue: 0.25,
+      transform(value, context: RuleContext) {
+        return value * (context.prop === 'letter-spacing' ? 8 : 16)
+      },
+    },
+  ),
+}
+const rule: ConversionRule = { from: 'rem', to: 'px', factor: 16 }
+```
+
+`unitPresets` is the upstream `presets` object; `composeUnitRules(...groups)` is
+upstream `composeRules`, flattening rules and preset groups in order. Common
+presets include `remToPx`, `remToRpx`, `pxToRem`, `pxToRpx`, `rpxToPx`, viewport
+conversions, `unitsToPx`, and `pxPresetGroup` / `rpxPresetGroup` /
+`viewportPresetGroup` / `webPresetGroup`. Font or viewport options can be resolved
+from the current PostCSS `Input`; this is the root entry, not an imported file.
+See the [upstream preset and API reference](https://github.com/icelib/postcss-plugins/blob/main/packages/postcss-rule-unit-converter/API.md).
+
+The root exports `UnitConversionOptions`, `ConversionRule`, `ConvertedValue`,
+`RuleContext`, `RuleGroup`, `RuleTransform`, `UnitMatcher`, `UnitTransform`,
+`GlobalUnitTransform`, `UnitRule`, `UnitMap`, `NumericResolver`, `PresetOptions`,
+`PresetFactory`, `PresetGroupFactory`, `LinearPresetOptions`, `RatioOptions`,
+`RemBasedPresetOptions`, `RemToViewportPresetOptions`,
+`RemToViewportHeightPresetOptions`, `ViewportPresetOptions`,
+`ViewportHeightPresetOptions`, `UnitMapPresetOptions`, `PxPresetGroupOptions`,
+`RpxPresetGroupOptions` and `ViewportGroupOptions`. Types resolve through the
+adapter's runtime dependency; no extra converter or type installation is needed.
+
+### Matching and repeated processing
+
+Default matching uses complete CSS dimension/percentage tokens. Signed and
+scientific values are parsed correctly: `-2rem` passes `-2` to callbacks and
+`1e3rem` passes `1000`. `minValue` compares `Math.abs(value)`. Unit names are
+decoded and lowercased before string, regex or function matching, while
+`context.rawUnit`, `rawValue` and `match` preserve source spelling. A `rem` rule
+leaves `2remfoo` and the identifier `foo2rem` unchanged.
+
+Strings, comments and URLs are protected, including escaped quotes and uppercase
+`URL()`. The entire `var()` function and its fallback are skipped at every nesting
+depth; dimensions in `calc()` and `min()` outside `var()` can convert. Panda
+custom-property declarations can convert, but `var()` fallbacks remain native.
+
+The first matching rule is final even if its callback returns `undefined` or its
+threshold is not met. Generated values do not chain into later rules in the same
+run. Processing again may convert them, including when the portable class marker
+is present: that marker prevents repeated class encoding, not unit conversion.
+Assign one owner per input unit in multi-pass builds.
+
+An explicit `unitRegex` bypasses tokenization and all its protections. Capture the
+number in group 1 and unit in group 2; a missing `g` flag is added. The custom
+regex owns signs, scientific notation, token boundaries and string/URL/`var()`
+skipping. Invalid capture structure throws instead of silently doing nothing.
+
+`context` also includes `root`, root-entry `input` / `filePath`, and the current
+`decl`, `rule`, `prop`, `selector` or `atRule`. Use
+`context.decl?.source?.input.file` for an imported declaration's original path;
+`exclude` is evaluated only against the root entry. Return `undefined` from a
+transform to retain a per-source value. Media parameters have no `decl`.
 
 ## csstools options
 

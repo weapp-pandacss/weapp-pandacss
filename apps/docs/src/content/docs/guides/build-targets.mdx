@@ -104,14 +104,14 @@ To recover, stop the processes writing the affected target, remove that target's
 The Uni-app comparison example uses separate entries:
 
 ~~~text
-Panda WeChat → virtual entry (default composed plugin) → idempotent framework adapter → units
-Panda H5 → virtual entry (adapter: false, native layers) → framework Web adapter → units
-tailwind.css → weapp-tailwindcss's dedicated pipeline → its matching class runtime
+Panda WeChat → virtual entry (units: false) → framework adapter + units → Uni postprocessing
+Panda H5 → virtual entry (adapter: false, units: false) → Web adapter + units → Uni postprocessing
+tailwind.css → weapp-tailwindcss pipeline → units only → Uni postprocessing; paired class runtime
 ~~~
 
 The Panda entry always expands imports from its real source path before generation. The mini-program virtual entry adapts it early because Tailwind's generator can remove or rewrite native layers; the later framework pass uses the portable marker to avoid repeated encoding. H5 instead leaves layers and selectors native in the virtual entry and runs the Web adapter only in framework PostCSS. An early Web adapter produces a marker that can make Tailwind flatten H5 layers, so preserve this target-specific boundary. The virtual entry registers both imported-file and Panda file/directory dependencies with Vite watch and forwards its source map. Imported-file changes must invalidate and regenerate that virtual entry rather than return cached CSS.
 
-The example's [panda-postcss.cjs](https://github.com/weapp-pandacss/weapp-pandacss/blob/main/examples/uni-app-vue3/panda-postcss.cjs) skips `tailwind.css` while adapting Panda and authored CSS. `WeappTailwindcss` receives an explicit Tailwind `cssEntries` path. Do not also register a second Tailwind generator or pass its already adapted CSS through Panda's codec. This is an example integration, not a new adapter option.
+The example's [panda-postcss.cjs](https://github.com/weapp-pandacss/weapp-pandacss/blob/main/examples/uni-app-vue3/panda-postcss.cjs) runs final adaptation and units on Panda/authored CSS. Virtual entries explicitly set `units: false`, so conversion runs once at the final stage. Tailwind uses the same plugin with `{ imports: false, panda: false, adapter: false, units: ... }` for units alone, preserving its namespace. `WeappTailwindcss` receives an explicit Tailwind `cssEntries` path. Do not also register a second Tailwind generator or pass its already adapted CSS through Panda's codec. This is an example integration, not a new adapter option.
 
 ## Acceptance by target
 

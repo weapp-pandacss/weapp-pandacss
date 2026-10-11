@@ -247,9 +247,6 @@ registry TLS 在本次执行中恢复，已取得 `pnpm audit --json` 的实际�
 | only-allow                           | root                                      | ^1.2.2                       | ^1.2.2                 | 已处于稳定且兼容的版本范围，保留           |
 | postcss                              | adapter, React, Taro React, Taro Vue, Uni | catalog:                     | catalog:               | 共享 catalog                               |
 | postcss                              | Wevu                                      | 新增                         | catalog:               | 共享 catalog                               |
-| postcss-rem-to-responsive-pixel      | React                                     | ^6.0.1                       | 移除                   | 未启用的构建/样式工具，移除                |
-| postcss-rem-to-responsive-pixel      | Taro React, Taro Vue, Uni                 | ^6.0.1                       | ^7.0.7                 | 升级到当前稳定且兼容的版本                 |
-| postcss-rem-to-responsive-pixel      | Wevu                                      | 新增                         | ^7.0.7                 | 升级到当前稳定且兼容的版本                 |
 | postcss-selector-parser              | adapter                                   | ^7.1.6                       | ^7.1.6                 | 已处于稳定且兼容的版本范围，保留           |
 | ramda                                | Taro React                                | ^0.30.1                      | 移除                   | 无源代码引用或由现有工具替代，移除         |
 | react                                | React                                     | ^18.2.0                      | ^19.3.0                | 升级到当前稳定且兼容的版本                 |

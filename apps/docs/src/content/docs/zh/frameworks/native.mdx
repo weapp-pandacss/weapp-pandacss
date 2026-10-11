@@ -14,7 +14,7 @@ sidebar:
 adapter 声明 Node `^22.18.0 || >=24.11.0`，推荐 Node 22.18+ 或 24.11+ 的 LTS 版本，在包含 `package.json` 的项目目录执行：
 
 ~~~sh
-pnpm add -D @pandacss/dev@2.1.2 @pandacss/preset-base@2.1.2 @pandacss/preset-panda@2.1.2 weapp-pandacss@^2 postcss postcss-cli postcss-rem-to-responsive-pixel
+pnpm add -D @pandacss/dev@2.1.2 @pandacss/preset-base@2.1.2 @pandacss/preset-panda@2.1.2 weapp-pandacss@^2 postcss postcss-cli
 ~~~
 
 以下路径假设原生应用位于 `miniprogram/`。如果 `project.config.json` 的 `miniprogramRoot` 不同，应一起调整。
@@ -56,24 +56,21 @@ Panda 扫描样式编写模块，不扫描 WXML 模板或生成 class 模块。�
 // postcss.config.cjs
 module.exports = {
   plugins: {
-    'weapp-pandacss/postcss': {},
-    'postcss-rem-to-responsive-pixel': {
-      rootValue: 32,
-      propList: ['*'],
-      transformUnit: 'rpx',
+    'weapp-pandacss/postcss': {
+      units: { rules: [{ from: 'rem', to: 'rpx', factor: 32 }] },
     },
   },
 }
 ~~~
 
-单个 PostCSS 插件执行 import 展开 → Panda → 适配，随后按需转换单位。可以在 layer 声明前写 `@import "./shared.css";`，importer 从 `styles/app.css` 展开完整导入图，让导入的分层与未分层规则参与同一顺序。残留远程导入会使 ordered 编译失败，应放到本地或在前序解析，不能删除规则绕过校验。
+单个 PostCSS 插件执行 import 展开 → Panda → 完整适配 → 配置的内置 units。可以在 layer 声明前写 `@import "./shared.css";`，importer 从 `styles/app.css` 展开完整导入图，让导入的分层与未分层规则参与同一顺序。残留远程导入会使 ordered 编译失败，应放到本地或在前序解析，不能删除规则绕过校验。
 
 ~~~css
 /* styles/app.css */
 @layer reset, base, tokens, recipes, utilities;
 ~~~
 
-手写应用 CSS 追加到这份源码中，或在适配前合并 layer 输入。下面的构建会覆盖 `miniprogram/app.wxss`，应以 `styles/app.css` 为源文件。单位转换可选，换算比例由设计决定。
+手写应用 CSS 追加到这份源码中，或在适配前合并 layer 输入。下面的构建会覆盖 `miniprogram/app.wxss`，应以 `styles/app.css` 为源文件。单位转换已内置并且可选；上述规则将 `0.5rem` 转为 `16rpx`，比例由设计决定。省略 `units` 默认保留原单位，无需另装转换器。
 
 ## 声明全部所需状态
 

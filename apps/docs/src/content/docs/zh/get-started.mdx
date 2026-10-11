@@ -58,7 +58,7 @@ module.exports = {
 }
 ~~~
 
-空配置默认执行完整流水线：**import 展开 → 官方 Panda 生成 → 小程序适配**。无需单独安装或注册 `postcss-import`、`@pandacss/dev/postcss`。Panda 配置中的 `weappPanda()` 仍需保留：它编码生成的 JavaScript，这个 PostCSS 入口负责生成并适配 CSS。Web/H5 使用 `{ target: 'web' }`。按需使用的 rem/rpx 转换位于此插件之后，需要单独安装依赖；不会隐含换算比例。详见[单位与组件样式](/zh/guides/component-styles/)。
+空配置默认执行完整流水线：**import 展开 → 官方 Panda 生成 → 小程序适配**。无需单独安装或注册 `postcss-import`、`@pandacss/dev/postcss`。Panda 配置中的 `weappPanda()` 仍需保留：它编码生成的 JavaScript，这个 PostCSS 入口负责生成并适配 CSS。Web/H5 使用 `{ target: 'web' }`。单位转换是此插件内置的可选阶段，默认关闭；在 `units` 中显式配置规则，不会隐含换算比例。详见[单位与组件样式](/zh/guides/component-styles/)。
 
 全局 Panda 入口保持 `.css`。Sass/Less/Stylus 组件样式由框架预编译，内置 importer 不编译原始预处理文件。阶段开关、项目定位及自定义 loader 见 [PostCSS 配置](/zh/postcss/)。
 
@@ -97,6 +97,9 @@ const cardClass = css({
 
 React 把 `cardClass` 绑定到 `className`，Vue/Wevu 绑定到 `:class`。原生 WXML 需要先把 class 字符串放到页面或组件 data，再绑定到 `class`。框架负责打包并将生成的 JavaScript 转译到目标运行时。`css()` 已返回适配后的名称，不要再次编码。
 
+空配置保留原单位（`units: false`）。小程序尺寸需要 rpx 时，可直接编写该单位，
+或按需启用内置[单位规则](/zh/postcss/#一个插件三个阶段)，无需另装转换器。
+
 ## 5. 验证完整构建
 
 构建应用后核对最终 CSS/WXSS 与节点的 class。codegen 成功只表示 runtime 已生成，不能证明应用已导入 CSS 或选对目标。
@@ -104,7 +107,7 @@ React 把 `cardClass` 绑定到 `className`，Vue/Wevu 绑定到 `:class`。原�
 | 检查项 | 预期结果 |
 | --- | --- |
 | Panda 配置 | 注册 `weappPanda()`，固定 preset，设置 `polyfill: false` |
-| CSS 处理 | Import 展开 → Panda → adapter → 按需单位转换 |
+| CSS 处理 | Import 展开 → Panda → 完整 adapter → 内置 units（按需）→ 框架 |
 | 应用入口 | 导入全局 layer 样式 |
 | Runtime 导入 | 指向当前目标的生成目录 |
 | 小程序产物 | class 与 WXSS selector 匹配，不残留原始 `@layer` |

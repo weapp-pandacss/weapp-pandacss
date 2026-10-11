@@ -1,6 +1,7 @@
 import type { Page } from '@playwright/test'
 import fs from 'node:fs/promises'
 import path from 'node:path'
+import { pathToFileURL } from 'node:url'
 import { expect, test } from '@playwright/test'
 import postcss from 'postcss'
 import { encodeClassName } from '../../packages/runtime/src/index.js'
@@ -8,8 +9,8 @@ import { encodeClassName } from '../../packages/runtime/src/index.js'
 import adapter from '../../packages/weapp-pandacss/dist/postcss.js'
 
 const importRoot = path.resolve(import.meta.dirname, '../../examples/react-app/src/imports')
-const names = ['import-normal', 'import-important', 'import-unlayered', 'import-same-layer', 'import-nested', 'import/中文', 'import_wp_2f_中文', 'import.a', 'import_wp_2e_a']
-const properties = ['color', 'background-color', 'padding-left', 'margin-left', 'margin-right']
+const names = ['import-normal', 'import-important', 'import-unlayered', 'import-same-layer', 'import-nested', 'import/中文', 'import_wp_2f_中文', 'import.a', 'import_wp_2e_a', 'import-units']
+const properties = ['color', 'background-color', 'padding-left', 'margin-left', 'margin-right', 'margin-top', 'padding-top', 'margin-bottom', 'width', '--import-unit-space']
 
 async function values(page: Page) {
   return page.locator('[data-import-probe]').evaluateAll((elements, properties) => elements.map((element) => {
@@ -40,6 +41,14 @@ test('cross-file imports preserve native cascade and portable names in the produ
   expect(actual[6]!['padding-left']).toBe('12px')
   expect(actual[7]!['margin-right']).toBe('7px')
   expect(actual[8]!['margin-right']).toBe('11px')
+  expect(actual[9]!['margin-top']).toBe('-8px')
+  expect(actual[9]!['padding-top']).toBe('0.016px')
+  expect(actual[9]!['margin-bottom']).toBe('-32px')
+  expect(actual[9]!.width).toBe('160px')
+  expect(actual[9]!['--import-unit-space'].trim()).toBe('1.25rem')
+  const { token } = await import(pathToFileURL(path.resolve(importRoot, '../../styled-system/tokens/index.mjs')).href)
+  const tokenValue = await page.evaluate(name => getComputedStyle(document.documentElement).getPropertyValue(name).trim(), token.var('spacing.unit-fixture').slice(4, -1))
+  expect(tokenValue).toBe('1.25rem')
 })
 
 test('ordered imported WXSS matches browser-native multi-file layers', async ({ page, baseURL }) => {
@@ -60,6 +69,31 @@ test('ordered imported WXSS matches browser-native multi-file layers', async ({ 
     const native = await values(page)
     await page.setContent(`<style>${output.css}</style>${probes(true)}`)
     expect(await values(page)).toEqual(native)
+  }
+})
+
+test('explicit built-in units preserve imported computed lengths with a supplied root scale', async ({ page, baseURL }) => {
+  const source = '@import "./entry.css";'
+  const output = await postcss([adapter({
+    panda: false,
+    target: 'web',
+    units: { rules: [{ from: 'rem', to: 'px', factor: 20 }] },
+  })]).process(source, { from: path.join(importRoot, 'browser-units.css') })
+  expect(output.css).not.toMatch(/@import\b/)
+  expect(output.css).toContain('--import-unit-space: 25px')
+  await page.route('**/__import-units/**', async (route) => {
+    const name = path.basename(new URL(route.request().url()).pathname)
+    const body = name === 'main.css' ? source : await fs.readFile(path.join(importRoot, name), 'utf8')
+    await route.fulfill({ contentType: 'text/css', body })
+  })
+  const href = new URL('/__import-units/main.css', baseURL).href
+  const lengths = async () => (await values(page)).map(({ '--import-unit-space': _unit, ...computed }) => computed)
+  for (const width of [390, 1000]) {
+    await page.setViewportSize({ width, height: 844 })
+    await page.setContent(`<style>:root{font-size:20px}</style><link rel="stylesheet" href="${href}">${probes(false)}`, { waitUntil: 'load' })
+    const native = await lengths()
+    await page.setContent(`<style>:root{font-size:20px}${output.css}</style>${probes(true)}`)
+    expect(await lengths()).toEqual(native)
   }
 })
 
@@ -109,6 +143,7 @@ test('framework Sass, Less and Stylus preserve variables, mixins, nesting and im
     const probe = page.getByTestId(`preprocess-${language}`)
     await expect(probe).toHaveCSS('color', color)
     await expect(probe).toHaveCSS('padding-left', padding)
+    await expect(probe).toHaveCSS('margin-bottom', `-${padding}`)
     await expect(probe).toHaveCSS('opacity', '0.75')
     await expect(probe).toHaveCSS('white-space', 'nowrap')
     await expect(probe).toHaveCSS('letter-spacing', '2px')
