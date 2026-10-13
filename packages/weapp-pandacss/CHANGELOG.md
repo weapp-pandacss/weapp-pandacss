@@ -1,5 +1,16 @@
 # weapp-pandacss
 
+## 2.3.0
+
+### Minor Changes
+
+- 将 Panda CSS 最低版本设为 2.1.2，接受后续稳定版本并保留生成产物的 AST 结构校验；默认使用 2.2.0，新增 2.1.2 与 2.2.0 的真实解包消费者离线兼容测试。
+
+### Patch Changes
+
+- Updated dependencies:
+  - @weapp-pandacss/runtime@1.0.1
+
 ## 2.2.0
 
 ### Minor Changes

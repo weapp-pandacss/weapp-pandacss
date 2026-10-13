@@ -2,6 +2,10 @@
   dir: packages/runtime
   intents:
     - itchy-kids-rest
+"@weapp-pandacss/runtime@1.0.1":
+  dir: packages/runtime
+  intents:
+    - mighty-clocks-share
 weapp-pandacss@2.0.0:
   dir: packages/weapp-pandacss
   intents:
@@ -24,3 +28,7 @@ weapp-pandacss@2.2.0:
     - lucky-seas-relax
     - new-birds-build
     - soft-melons-glow
+weapp-pandacss@2.3.0:
+  dir: packages/weapp-pandacss
+  intents:
+    - nice-kids-train
