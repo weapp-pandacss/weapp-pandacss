@@ -6,7 +6,7 @@ sidebar:
   order: 0
 ---
 
-**weapp-pandacss** connects Panda CSS **2.1.2** to mini-program builds. Use Panda's styles, recipes and tokens in Taro, Uni-app or Weapp Vite; keep the same class naming on Web/H5.
+**weapp-pandacss** connects Panda CSS **2.2.0** to mini-program builds. Use Panda's styles, recipes and tokens in Taro, Uni-app or Weapp Vite; keep the same class naming on Web/H5.
 
 Register one PostCSS plugin with empty options; it expands imports, generates Panda CSS and adapts the result:
 
@@ -97,7 +97,7 @@ The shown class and declaration are checked against real Panda codegen and CSS e
 
 ## Compatibility and migration
 
-The adapter requires Panda **2.1.2** and JavaScript runtime artifacts (`.js` or `.mjs`). Its package entries support ESM, CommonJS and TypeScript declarations. Application code can import the dependency-free [standalone runtime](/api/runtime/).
+The adapter accepts stable Panda releases from **2.1.2** onward (`>=2.1.2`); these examples use **2.2.0**. Real consumer tests cover **2.1.2** and **2.2.0**, and AST checks reject incompatible generated artifacts. It requires JavaScript runtime artifacts (`.js` or `.mjs`). Its package entries support ESM, CommonJS and TypeScript declarations. Application code can import the dependency-free [standalone runtime](/api/runtime/).
 
 The [framework matrix](/frameworks/) distinguishes verified build artifacts, browser interactions and mini-program runtime checks. For an existing v1 setup, follow the [2.0 migration guide](/migration/).
 

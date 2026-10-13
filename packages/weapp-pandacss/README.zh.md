@@ -2,19 +2,19 @@
 
 文档：[简体中文](https://panda.weapp.dev/zh/) · [English](https://panda.weapp.dev/)。
 
-在小程序和 Web 中使用 Panda CSS 2.1.2，并保持 runtime class 与 CSS selector 一致。
+在小程序和 Web 中使用 Panda CSS 2.2.0，并保持 runtime class 与 CSS selector 一致。
 适配分成 Panda 生成期插件和 PostCSS 插件：前者通过受控 AST 转换生成产物，
 由 Panda 负责写入；后者转换选择器和小程序平台 CSS。正常构建只执行 Panda
 命令，无需适配 CLI、runtime 备份或 rollback。
 
-> **发布状态：** 零选项三合一是仓库中准备随下一个 minor 发布的实现。当前 npm 已发布版本仍使用原默认值，升级前保留独立 import/Panda/adapter 配置，升级后再采用下方写法。新版本号由发布流程确定。
+> **发布状态：** 零选项三合一和 Panda 2.2.0 支持是仓库中准备随下一个 minor 发布的实现。升级前继续使用 Panda 2.1.2 和当前已发布包的独立 import/Panda/adapter 配置，升级后再采用下方写法。新版本号由发布流程确定。
 
 ## 安装
 
 使用 Node.js 22.18+ 或 24.11+。
 
 ```bash
-pnpm add -D @pandacss/dev@2.1.2 @pandacss/preset-base@2.1.2 @pandacss/preset-panda@2.1.2 weapp-pandacss postcss
+pnpm add -D @pandacss/dev@2.2.0 @pandacss/preset-base@2.2.0 @pandacss/preset-panda@2.2.0 weapp-pandacss postcss
 ```
 
 Panda 2 的两个 preset 需要显式安装和注册。
@@ -153,8 +153,8 @@ Panda 生成，adapter 不再替换变量名。小程序中手写变量必须使
 
 ## 兼容与迁移
 
-本版本验收基线仅为 Panda CSS 2.1.2；支持 `.js` 与 `.mjs`，不支持仅 TypeScript
-runtime。缺少 runtime、结构变更或不支持的版本会抛出诊断。适配器使用现有 Panda
+本版本接受 Panda CSS 2.1.2 及后续稳定版本（`>=2.1.2`，不设版本上限），新安装默认使用 2.2.0，`@pandacss/dev` 与两个 preset 保持同一受支持版本。真实离线消费者测试覆盖 2.1.2 和 2.2.0，后续版本仍需通过 AST 结构校验。支持 `.js` 与 `.mjs`，不支持仅 TypeScript
+runtime。缺少 Panda、低于最低版本、预发布版本或不兼容的生成结构会抛出诊断。适配器使用现有 Panda
 接口，不修改上游或维护 fork。绕过 runtime、直接内联原始 class 的 Panda 源码
 优化流程暂不支持。
 

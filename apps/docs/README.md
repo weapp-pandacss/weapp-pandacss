@@ -70,7 +70,7 @@ pnpm lint
 pnpm typecheck
 ```
 
-`check:examples` executes the homepage example with Panda 2.1.2 and checks runtime/CSS
+`check:examples` executes the homepage example with Panda 2.2.0 and checks runtime/CSS
 matching in a temporary fixture; it does not validate every framework or every snippet.
 The adapter build includes its standalone runtime dependency. Root lint/typecheck are also
 the repository's pre-push gates. Browser checks use the built site, run headlessly and own
@@ -83,7 +83,7 @@ Inspect `/llms.txt`, `/zh/llms.txt`, `/llms-full.txt` and the new pages' `/index
 `/index.mdx`; important content must remain present without interactive controls.
 
 New MDX components belong in `src/components.ts`; information-bearing components also
-need a Markdown conversion in `astro.config.ts`. Keep authored styles under `src/styles/`.
+need a Markdown conversion in `src/lib/markdown-components.ts`. Keep authored styles under `src/styles/`.
 Translation parity and Nimbus link checks are required before publishing a new page.
 
 首页示例由 `check:examples` 实际执行，完整站点在生产构建后验收搜索和交互。

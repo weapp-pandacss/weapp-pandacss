@@ -89,7 +89,7 @@ const plugin = adapter({ panda: { cwd: import.meta.dirname } })
 
 显式覆盖使用真实应用目录；无效 `cwd`/`configPath` 直接报错，不会静默选中其他项目。Import 展开还需要 PostCSS `from` 指向真实源码样式文件，虚拟 ID 不能作为解析基准。Ordered 编译前完整 import 图应合并到单 root。没有真实文件的 CSS 字符串仍可适配，但 Panda 生成会跳过；需要解析相对 import 时显式设置 importer root。
 
-示例流程先执行初始 codegen，再启动框架 dev/watch。Panda PostCSS 会记录提取依赖，让 bundler 能重建样式。独立流程需要监视 runtime 生成时，Panda 2.1.2 也提供 `panda codegen --watch`，CSS 仍需要经过 PostCSS。每个生成目录指定一个写入负责人。
+示例流程先执行初始 codegen，再启动框架 dev/watch。Panda PostCSS 会记录提取依赖，让 bundler 能重建样式。独立流程需要监视 runtime 生成时，Panda 2.2.0 也提供 `panda codegen --watch`，CSS 仍需要经过 PostCSS。每个生成目录指定一个写入负责人。
 
 修改 recipe、token、`include` 或 hash 后，确认 runtime 与 CSS 都已重新生成。环境、alias、TypeScript 配置变化可能需要重启框架进程。生成标记只避免重复 class 编码，不避免单位再次转换，也不能让并发写入安全。
 

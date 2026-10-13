@@ -5,14 +5,14 @@ sidebar:
   order: 5
 ---
 
-[React Web 示例](https://github.com/weapp-pandacss/weapp-pandacss/tree/main/examples/react-app)使用 **React 19**、**Vite 8** 和 Panda CSS **2.1.2**。Web 保留原生 cascade layers 和选择器语义，仍保留 `weappPanda()` 与单个三合一 PostCSS 插件，保证 portable runtime 与 CSS 匹配。
+[React Web 示例](https://github.com/weapp-pandacss/weapp-pandacss/tree/main/examples/react-app)使用 **React 19**、**Vite 8** 和 Panda CSS **2.2.0**。Web 保留原生 cascade layers 和选择器语义，仍保留 `weappPanda()` 与单个三合一 PostCSS 插件，保证 portable runtime 与 CSS 匹配。
 
 ## 安装依赖
 
 在已有 Vite + React 应用中，adapter 声明 Node `^22.18.0 || >=24.11.0`，推荐使用 Node 22.18+ 或 24.11+ 的 LTS 版本：
 
 ~~~sh
-pnpm add -D @pandacss/dev@2.1.2 @pandacss/preset-base@2.1.2 @pandacss/preset-panda@2.1.2 weapp-pandacss@^2 postcss
+pnpm add -D @pandacss/dev@2.2.0 @pandacss/preset-base@2.2.0 @pandacss/preset-panda@2.2.0 weapp-pandacss@^2 postcss
 ~~~
 
 手写特殊 class 可安装 `pnpm add @weapp-pandacss/runtime`。不要在浏览器组件中导入 Panda 或 PostCSS 的构建期包入口。

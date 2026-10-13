@@ -1,24 +1,7 @@
-import { execFile } from 'node:child_process'
 import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
-import { promisify } from 'node:util'
-
-const run = promisify(execFile)
-const adapterRoot = path.resolve(import.meta.dirname, '..')
-const runtimeRoot = path.resolve(adapterRoot, '../runtime')
-const workspaceRoot = path.resolve(adapterRoot, '../..')
-
-// pnpm 12 can expose a native binary; older pnpm installations expose JS.
-async function pnpm(args: string[], cwd: string) {
-  const cli = process.env['npm_execpath']
-  if (!cli) {
-    throw new Error('Run packaged-consumer tests through pnpm.')
-  }
-  return /\.[cm]?js$/.test(cli)
-    ? run(process.execPath, [cli, ...args], { cwd, timeout: 60_000 })
-    : run(cli, args, { cwd, timeout: 60_000 })
-}
+import { linkDependency, packPackages, pnpm, run, unpackPackage, workspaceRoot } from './packed-consumer'
 
 async function install(root: string, dependencies: Record<string, string>) {
   await fs.mkdir(root)
@@ -33,13 +16,9 @@ let adapterTarball: string
 
 beforeAll(async () => {
   root = await fs.mkdtemp(path.join(os.tmpdir(), 'panda-packed-runtime-'))
-  const pack = async (cwd: string) => {
-    const packed = JSON.parse((await pnpm(['pack', '--json', '--pack-destination', root], cwd)).stdout) as { filename: string, files: { path: string }[] }
-    expect(packed.files.every(file => /^(?:dist\/|package\.json$|LICENSE$|README(?:\.zh)?\.md$)/.test(file.path))).toBe(true)
-    return packed.filename
-  }
-  runtimeTarball = await pack(runtimeRoot)
-  adapterTarball = await pack(adapterRoot)
+  const packages = await packPackages(root)
+  runtimeTarball = packages.runtime
+  adapterTarball = packages.adapter
 }, 60_000)
 
 afterAll(async () => {
@@ -77,9 +56,7 @@ it('installs the runtime tarball alone without Panda, PostCSS or Babel', async (
 it('packs the adapter with an exact runtime dependency and usable compatibility types', async () => {
   const consumer = path.join(root, 'adapter')
   await install(consumer, { '@weapp-pandacss/runtime': `file:${runtimeTarball}` })
-  await run('tar', ['-xzf', adapterTarball, '-C', consumer])
-  const installedAdapter = path.join(consumer, 'node_modules/weapp-pandacss')
-  await fs.rename(path.join(consumer, 'package'), installedAdapter)
+  const installedAdapter = await unpackPackage(consumer, 'weapp-pandacss', adapterTarball)
   const adapter = JSON.parse(await fs.readFile(path.join(consumer, 'node_modules/weapp-pandacss/package.json'), 'utf8'))
   const runtime = JSON.parse(await fs.readFile(path.join(consumer, 'node_modules/@weapp-pandacss/runtime/package.json'), 'utf8'))
   expect(adapter.dependencies['@weapp-pandacss/runtime']).toBe(runtime.version)
@@ -94,12 +71,9 @@ it('packs the adapter with an exact runtime dependency and usable compatibility 
     if (name === '@weapp-pandacss/runtime') {
       continue
     }
-    const destination = path.join(installedAdapter, 'node_modules', name)
-    await fs.mkdir(path.dirname(destination), { recursive: true })
-    await fs.symlink(await fs.realpath(path.join(adapterRoot, 'node_modules', name)), destination, process.platform === 'win32' ? 'junction' : 'dir')
+    await linkDependency(installedAdapter, name)
   }
-  const postcssLink = path.join(consumer, 'node_modules/postcss')
-  await fs.symlink(await fs.realpath(path.join(adapterRoot, 'node_modules/postcss')), postcssLink, process.platform === 'win32' ? 'junction' : 'dir')
+  await linkDependency(consumer, 'postcss')
   for (const format of ['esm', 'cjs']) {
     const script = `${format === 'esm' ? 'import * as api from \'weapp-pandacss\'; import * as old from \'weapp-pandacss/runtime\'; import * as runtime from \'@weapp-pandacss/runtime\'; import postcssPlugin from \'weapp-pandacss/postcss\'; import postcss from \'postcss\';' : 'const api = require(\'weapp-pandacss\'); const old = require(\'weapp-pandacss/runtime\'); const runtime = require(\'@weapp-pandacss/runtime\'); const postcssPlugin = require(\'weapp-pandacss/postcss\'); const postcss = require(\'postcss\');'}
       if (api.encodeClassName !== runtime.encodeClassName) throw new Error('Duplicated root codec');
@@ -115,11 +89,5 @@ it('packs the adapter with an exact runtime dependency and usable compatibility 
   const unitTypes = 'import {unitPresets,composeUnitRules} from \'weapp-pandacss\'; import type {UnitConversionOptions,PresetFactory,RemBasedPresetOptions} from \'weapp-pandacss\'; const preset: PresetFactory<RemBasedPresetOptions> = unitPresets.remToRpx; const units: UnitConversionOptions = {rules:composeUnitRules(preset({rootValue:32}))}; plugin({imports:false,panda:false,adapter:false,units});\n'
   await fs.writeFile(path.join(consumer, 'consumer.mts'), `import {encodeClassName} from 'weapp-pandacss/runtime'; import {encodeClassList} from '@weapp-pandacss/runtime'; const result: string = encodeClassList(encodeClassName('a.b')); import plugin from 'weapp-pandacss/postcss'; plugin({ imports: { root: '/app', path: ['styles'], filter: (id: string) => id.endsWith('.css') }, panda: { cwd: '/app', configPath: 'panda.config.ts', allow: [/css/] }, adapter: true });\n${unitTypes}`)
   await fs.writeFile(path.join(consumer, 'consumer.cts'), `import api = require('weapp-pandacss/runtime'); const result: string = api.createPortableRuntime().encodeClassName('a.b'); import plugin = require('weapp-pandacss/postcss'); plugin({ imports: false, panda: { outdir: 'styled-system' }, adapter: false });\n${unitTypes}`)
-  try {
-    await run(process.execPath, [path.join(workspaceRoot, 'node_modules/typescript/bin/tsc'), '--noEmit', '--strict', '--skipLibCheck', '--module', 'node16', '--target', 'es2018', 'consumer.mts', 'consumer.cts'], { cwd: consumer })
-  }
-  catch (error) {
-    console.error((error as { stderr?: string }).stderr)
-    throw error
-  }
+  await run(process.execPath, [path.join(workspaceRoot, 'node_modules/typescript/bin/tsc'), '--noEmit', '--strict', '--skipLibCheck', '--module', 'node16', '--target', 'es2018', 'consumer.mts', 'consumer.cts'], { cwd: consumer })
 }, 60_000)

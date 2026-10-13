@@ -43,7 +43,7 @@ describe('artifact contract and diagnostics', () => {
   })
 
   it.each(['const createSerializeCss = () => {};', 'export function createCss() {}', 'export function createSerializeCss() {}'])('rejects unsupported helper declarations: %s', (helpers) => {
-    expect(() => transformArtifacts(batch(helpers))).toThrow('Unsupported Panda 2.1.2 runtime: missing')
+    expect(() => transformArtifacts(batch(helpers))).toThrow('Unsupported Panda runtime: missing')
   })
 
   it.each([
@@ -52,7 +52,7 @@ describe('artifact contract and diagnostics', () => {
     'classNameMap.root = "raw";',
     'classNameMap.root = recipe.other;',
   ])('rejects changed slot producers: %s', (slots) => {
-    expect(() => transformArtifacts(batch(undefined, slots))).toThrow('Unsupported Panda 2.1.2 sva')
+    expect(() => transformArtifacts(batch(undefined, slots))).toThrow('Unsupported Panda sva')
   })
 
   it('ignores unrelated assignments when locating the slot producer', () => {

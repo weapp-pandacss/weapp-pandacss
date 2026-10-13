@@ -22,3 +22,12 @@ project-local `skills/` folder, and owns no conflicting discovery routes. The
 are framework-generated; the existing robots policy and project-owned UI stay
 in place. `nimbus-docs migrate --yes --json` records the reviewed baseline.
 The project-owned Shiki styles remain necessary for both system themes.
+
+On 2026-10-13, the project reviewed Nimbus `0.18.0`. The migration dry-run
+reported no required source migrations and eight optional reviews. The site
+keeps its project-owned bilingual components and static `docsCollection()`
+routes; it does not enable image zoom, math, heading attributes, nested llms
+scopes or a version switcher. Existing discovery routes are framework-owned.
+`nimbus-docs migrate --yes --json` recorded the new reviewed baseline after
+that review. Build, discovery, search and language switching are covered by
+the workspace validation recorded in `docs/dependency-review-2026-10-13.md`.

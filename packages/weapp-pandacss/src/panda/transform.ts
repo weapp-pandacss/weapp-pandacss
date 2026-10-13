@@ -9,7 +9,7 @@ function appendWrapper(program: t.Program, name: string, factory: boolean) {
   const found = program.body.some(node => (t.isFunctionDeclaration(node) && node.id?.name === name)
     || (t.isExportNamedDeclaration(node) && t.isFunctionDeclaration(node.declaration) && node.declaration.id?.name === name))
   if (!found) {
-    throw new Error(`Unsupported Panda 2.1.2 runtime: missing ${name}.`)
+    throw new Error(`Unsupported Panda runtime: missing ${name}.`)
   }
   const original = `__weappPandaPortable_${name}`
   const body = factory
@@ -41,7 +41,7 @@ function transformSlots(code: string, extension: string) {
     AssignmentExpression({ node }: { node: t.AssignmentExpression }) {
       if (t.isMemberExpression(node.left) && t.isIdentifier(node.left.object, { name: 'classNameMap' })) {
         if (!t.isMemberExpression(node.right) || !t.isIdentifier(node.right.property, { name: 'className' })) {
-          throw new Error('Unsupported Panda 2.1.2 sva classNameMap structure.')
+          throw new Error('Unsupported Panda sva classNameMap structure.')
         }
         node.right = t.callExpression(t.identifier('encodeClassName'), [node.right])
         count++
@@ -49,7 +49,7 @@ function transformSlots(code: string, extension: string) {
     },
   })
   if (count !== 1) {
-    throw new Error('Unsupported Panda 2.1.2 sva runtime: expected one slot classNameMap producer.')
+    throw new Error('Unsupported Panda sva runtime: expected one slot classNameMap producer.')
   }
   addImport(ast.program, `../weapp-panda/runtime.${extension}`, 'encodeClassName')
   return generate(ast).code
@@ -68,7 +68,7 @@ export function transformArtifacts(artifacts: CodegenPrepareArtifact[]): Codegen
   }
   const slot = runtimeFiles.find(file => file.path === `css/sva.${extension}`)
   if (!slot) {
-    throw new Error('Unsupported Panda 2.1.2 artifacts: missing css/sva runtime.')
+    throw new Error('Unsupported Panda artifacts: missing css/sva runtime.')
   }
   const marked = [helper, slot].filter(file => file.code.includes(`// ${portableMarker}`))
   const modulePath = `weapp-panda/runtime.${extension}`

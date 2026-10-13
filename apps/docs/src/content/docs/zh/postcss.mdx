@@ -12,7 +12,7 @@ sidebar:
 `weapp-pandacss/postcss` 无参数默认执行 **CSS import 展开 → 官方 Panda 生成 → 适配**。安装 Panda、其显式 preset 和适配器；importer 已作为适配器运行依赖内置：
 
 ~~~sh
-pnpm add -D @pandacss/dev@2.1.2 @pandacss/preset-base@2.1.2 @pandacss/preset-panda@2.1.2 weapp-pandacss@^2 postcss
+pnpm add -D @pandacss/dev@2.2.0 @pandacss/preset-base@2.2.0 @pandacss/preset-panda@2.2.0 weapp-pandacss@^2 postcss
 ~~~
 
 `panda.config.ts` 保留 `weappPanda()` 和 `polyfill: false`，应用导入全局 `.css` layer 入口，构建前运行 Panda codegen。零选项简化的是 PostCSS 注册，Panda 提取与生成 runtime 的配置仍需保留。PostCSS 集成也会重新生成样式。不要重复注册 `@pandacss/dev/postcss` 或另一个 `postcss-import`；重复 Panda 和错误的外部阶段顺序会在生成前报错。
@@ -89,7 +89,7 @@ Panda 配置优先使用显式 `panda.cwd` / `panda.configPath`，其次从实�
 
 ## Sass、Less 与 Stylus
 
-顺序为 **框架预处理器 → import → Panda → 完整适配 → 内置 units（启用时）→ 框架后处理**。预处理器通过框架安装并配置。全局 Panda layer 入口保持 `.css`：官方 Panda 2.1.2 按 CSS 文件名处理，即使框架已把 `.scss` 入口编译成 CSS 文本也不例外。
+顺序为 **框架预处理器 → import → Panda → 完整适配 → 内置 units（启用时）→ 框架后处理**。预处理器通过框架安装并配置。全局 Panda layer 入口保持 `.css`：官方 Panda 2.2.0 按 CSS 文件名处理，即使框架已把 `.scss` 入口编译成 CSS 文本也不例外。
 
 Sass `@use`/`@forward`、Less 变量与 mixin、Stylus 语法由各自编译器负责。内置 importer 展开 CSS 图，其默认 loader 遇到原始 `.scss`、`.sass`、`.less`、`.styl`、`.stylus` 导入会明确报错，避免把未编译语法传入 WXSS。可以导入预编译 CSS、先由框架处理，或通过 `imports.load` 提供真实编译器及 watch 集成。`imports.plugins` 可对每个导入的 CSS 文件执行 PostCSS 转换；自定义 loader 负责返回合法 CSS 并报告额外依赖。
 

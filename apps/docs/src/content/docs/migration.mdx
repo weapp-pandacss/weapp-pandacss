@@ -10,7 +10,7 @@ This page covers the original 2.0 migration and the shared ordered-compiler upda
 ## Upgrade sequence
 
 1. Stop the project's build/watch processes that write the generated directory. Remove its old `styled-system` output, including helper backups and weapp-panda patch files.
-2. Pin `@pandacss/dev`, `@pandacss/preset-base` and `@pandacss/preset-panda` to **2.1.2**. Register `weappPanda()`, set `polyfill: false`, and use supported `.js` or `.mjs` runtime output.
+2. Pin `@pandacss/dev`, `@pandacss/preset-base` and `@pandacss/preset-panda` to **2.2.0** for new installations. The minimum is **2.1.2**, and later stable releases are accepted with no upper version bound when all three packages match. Real consumer tests cover **2.1.2** and **2.2.0**; AST structure checks remain in place. Register `weappPanda()`, set `polyfill: false`, and use supported `.js` or `.mjs` runtime output.
 3. Replace `panda codegen && weapp-panda codegen` with `panda codegen`. Remove adapter subprocesses, `codegen:done` patch hooks and platform rollback scripts.
 4. Register only `weapp-pandacss/postcss: {}` for import expansion → Panda → adaptation. Optional unit conversion is configured with built-in `units` on that same plugin. Move CSS options from the old adapter configuration file into this plugin's arguments.
 5. Update authored-class helpers to `@weapp-pandacss/runtime`. Encode raw authored names once, leaving `css()`, recipe, pattern and `cx()` results intact.
@@ -104,7 +104,7 @@ module.exports = {
 }
 ~~~
 
-Keep `panda.config`, `weappPanda()`, `polyfill: false`, explicit Panda 2.1.2 presets, the global `.css` layer entry and codegen scripts. H5 uses `{ target: 'web' }`; unit conversion is opt-in through built-in `units`. Custom pipelines can retain external stages by disabling the matching internal `imports`/`panda` stage, or use `{ imports: false, panda: false }` for adapter-only processing. `disabled: true` now bypasses the complete composed pipeline, while `adapter: false` still imports, generates CSS and runs configured units.
+Keep `panda.config`, `weappPanda()`, `polyfill: false`, explicit presets matching the supported Panda version, the global `.css` layer entry and codegen scripts. H5 uses `{ target: 'web' }`; unit conversion is opt-in through built-in `units`. Custom pipelines can retain external stages by disabling the matching internal `imports`/`panda` stage, or use `{ imports: false, panda: false }` for adapter-only processing. `disabled: true` now bypasses the complete composed pipeline, while `adapter: false` still imports, generates CSS and runs configured units.
 
 Panda discovers the config nearest the real source file before process-cwd fallback; explicit overrides belong under `panda`. Use the real `from` for custom loaders and forward dependency messages. Sass/Less/Stylus remain framework preprocessing steps, with a `.css` Panda entry. The default importer rejects raw preprocessor imports; no compiler or unit ratio is inferred. Rebuild each target and verify watch updates, class/selector matching and native H5 layers. See [the complete interface](/api/postcss-plugin/).
 
@@ -151,7 +151,7 @@ The Uni-app Tailwind comparison uses separate Panda and Tailwind pipelines; the 
 
 | Capability | Boundary |
 | --- | --- |
-| Panda generation | Exactly **2.1.2**, codegen and PostCSS automatic generation |
+| Panda generation | Stable releases **>=2.1.2**, codegen and PostCSS automatic generation; real consumer tests cover **2.1.2** and **2.2.0** |
 | Generated runtime extension | `.js` / `.mjs`; TS-only and unknown/incomplete structures are rejected |
 | Portable producer coverage | `css`, `cva`, `sva`, named/slot recipes, compounds, patterns and styled metadata |
 | Runtime behavior | `cx` remains joining; raw style objects and metadata retain Panda semantics |

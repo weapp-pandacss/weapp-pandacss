@@ -21,11 +21,11 @@ sidebar:
 
 ## Panda 版本或 runtime 不支持
 
-**症状：** 出现 `weappPanda requires Panda CSS 2.1.2`、不支持的 runtime、缺少 helpers/sva 或 TS-only 输出诊断。
+**症状：** 出现 `weappPanda requires Panda CSS >=2.1.2`、不支持的 runtime、缺少 helpers/sva 或 TS-only 输出诊断。
 
-**根因：** 插件依赖已验收的 Panda 产物结构，不同版本、不支持的扩展名或不完整生成不能安全适配。
+**根因：** 版本门禁要求 Panda 稳定版本 >=2.1.2，插件还会检查生成产物的 AST 结构；不支持的扩展名、变更的 runtime 结构或不完整生成不能安全适配。
 
-**修复：** 固定 `@pandacss/dev`、`@pandacss/preset-base` 与 `@pandacss/preset-panda` 为 **2.1.2**。使用 `outExtension: 'mjs'` 与 `forceImportExtension: true`，也可使用支持的 `.js` 输出。注册 `weappPanda()` 后完整重新生成，旧备份/补丁 hook 按[迁移步骤](/zh/migration/)移除。
+**修复：** 固定 `@pandacss/dev`、`@pandacss/preset-base` 与 `@pandacss/preset-panda` 为同一稳定版本 **>=2.1.2**。新安装使用 **2.2.0**，真实消费者测试覆盖 **2.1.2** 和 **2.2.0**。若后续版本未通过 AST 结构校验，先使用已测试版本并反馈不兼容产物。使用 `outExtension: 'mjs'` 与 `forceImportExtension: true`，也可使用支持的 `.js` 输出。注册 `weappPanda()` 后完整重新生成，旧备份/补丁 hook 按[迁移步骤](/zh/migration/)移除。
 
 **验证：** 重复 codegen 成功，helpers 与 slot runtime 带有 portable 生成标记，不依赖旧 helper 备份。不要吞掉诊断，也不要只修改一个生成文件而保留另一轮产物。
 
@@ -143,7 +143,7 @@ transform 读取 `context.decl?.source?.input.file` 并返回 `undefined`。为�
 
 **症状：** 原始 `.scss`、`.less`、`.styl` 导入在内置 importer 中失败，或预处理全局入口保留 Panda layer 声明却没有生成样式。
 
-**根因：** Importer 读取 CSS，不编译其他语言。官方 Panda 2.1.2 也按 `.css` 源文件名过滤；框架编译后的 `.scss` 文本仍保留原文件名。虚拟或无文件输入也可能缺少真实 CSS 生成上下文。
+**根因：** Importer 读取 CSS，不编译其他语言。官方 Panda 2.2.0 也按 `.css` 源文件名过滤；框架编译后的 `.scss` 文本仍保留原文件名。虚拟或无文件输入也可能缺少真实 CSS 生成上下文。
 
 **修复：** 全局 Panda layer 入口保持 `.css`，组件 Sass/Less/Stylus 先由框架编译。导入已编译 CSS、使用框架导入处理，或提供带编译器和依赖的 `imports.load`。自定义虚拟 loader 用真实 `.css` 入口作为 `from`；纯字符串适配可有意跳过生成。显式 Panda 配置错误应修复对应路径，不通过回退隐藏。
 

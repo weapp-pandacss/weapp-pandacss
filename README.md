@@ -2,7 +2,7 @@
 
 <img src="./assets/brand/logo.svg" alt="weapp-pandacss logo" width="128" height="128">
 
-Use Panda CSS 2.1.2 in WeChat and other mini-program runtimes.
+Use Panda CSS 2.2.0 in WeChat and other mini-program runtimes. The adapter accepts stable Panda releases from 2.1.2 onward (`>=2.1.2`); the examples use 2.2.0. Real consumer tests cover 2.1.2 and 2.2.0, and AST checks reject incompatible generated artifacts.
 
 Documentation: [English](https://panda.weapp.dev/) · [简体中文](https://panda.weapp.dev/zh/).
 
@@ -82,7 +82,7 @@ Use `pnpm exec repo doctor` and `pnpm exec repo check` to validate workspace hea
 
 Run `pnpm --filter @weapp-pandacss/docs dev` to edit the bilingual site. See [the documentation workspace](./apps/docs/README.md) for build, validation and Cloudflare deployment commands.
 
-See the [2.0 plugin migration guide](./docs/panda-plugin-migration.md), [dependency compatibility notes](./docs/dependency-upgrade.md) for framework version cohorts and [the Wevu example guide](./examples/weapp-vite-app/README.md) for its development workflow.
+See the [2.0 plugin migration guide](./docs/panda-plugin-migration.md), [current dependency review](./docs/dependency-review-2026-10-13.md) for framework version cohorts and [the Wevu example guide](./examples/weapp-vite-app/README.md) for its development workflow. The [earlier dependency notes](./docs/dependency-upgrade.md) remain as upgrade history.
 
 ## Testing
 

@@ -115,8 +115,12 @@
       "groupName": "Weapp Vite and Wevu integration"
     },
     {
-      "matchFileNames": ["examples/weapp-vite-app/**"],
-      "matchPackageNames": ["vue"],
+      "matchFileNames": [
+        "examples/weapp-vite-app/**"
+      ],
+      "matchPackageNames": [
+        "vue"
+      ],
       "groupName": "Weapp Vite and Wevu integration"
     },
     {
@@ -129,6 +133,15 @@
         "weapp-tailwindcss"
       ],
       "groupName": "Uni-app Tailwind CSS integration"
+    },
+    {
+      "matchDepNames": [
+        "@pandacss/dev-2-1-2",
+        "@pandacss/preset-base-2-1-2",
+        "@pandacss/preset-panda-2-1-2"
+      ],
+      "enabled": false,
+      "description": "Keep the Panda 2.1.2 compatibility test cohort locked; upgrade default Panda dependencies separately."
     }
   ],
   "ignorePaths": [

@@ -1,6 +1,6 @@
 # Weapp Vite + Wevu + Panda CSS
 
-微信小程序示例，使用 weapp-vite 7.4.0、wevu 7.4.0 和 Panda CSS 2.1.2。
+微信小程序示例，使用 weapp-vite 7.5.0、wevu 7.5.0 和 Panda CSS 2.2.0。
 手写 class 使用 `@weapp-pandacss/runtime`；Panda 与 PostCSS 配置继续使用主包。
 页面展示 `css()`、特殊字符类名、`cva()` 按钮变体及响应式切换。
 
@@ -37,6 +37,6 @@ pnpm --filter @weapp-pandacss/weapp-vite-app typecheck
 pnpm --filter @weapp-pandacss/weapp-vite-app test
 ```
 
-测试通过 mpcore 执行真实编译后的页面与组件，检查交互后的类名、WXSS 选择器
+测试通过 mpcore 1.0.0 执行真实编译后的页面与组件，检查交互后的类名、WXSS 选择器
 和重复生成的 runtime。它不验证像素布局；微信开发者工具用于视觉检查。
 `styled-system`、`.weapp-vite` 和 `dist` 是生成文件，不提交到仓库。

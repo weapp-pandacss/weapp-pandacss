@@ -2,19 +2,21 @@
 
 The gate measures **all owned `packages/*/src/**/*.ts`** at 100% statements, branches, functions and lines, per file, including unimported source. No library implementation is excluded or annotated to inflate coverage. Generated framework bundles, examples and test runners are separate integration subjects. Complete code coverage does not mean every input, device or rendering behavior has been exhausted.
 
-| Layer               | Contract                                                                                                                                                           |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Runtime             | ASCII, Unicode planes and surrogate code units, leading characters, whitespace, reserved markers, injectivity and independent decoding                             |
-| Configuration / AST | Immutable configuration, real Babel interop, version and malformed-artifact diagnostics, repeat generation, descriptors/symbols and `.raw`                         |
-| PostCSS             | Both targets, CSS variables, layers/pseudos, selector context and Cartesian expansion, disabled lifecycle                                                          |
-| Real Panda 2.1.2    | `.js`/`.mjs`, hashing, regeneration/config reload, css/cva/sva, named/slot/compound recipes, patterns, styled, cx and tokens                                       |
-| Published consumers | Isolated offline tarballs, ESM/CJS, public types, compatible entry identity, zero-dependency runtime and serialized factory                                        |
-| Framework artifacts | Matching runtime names and final Taro React/Vue WXSS and Uni-app mini-program/H5 CSS                                                                               |
-| Mini-program E2E    | Actual compiled Wevu WXML, component registration, taps, changing classes, WXSS matching, state isolation and fresh launches through mpcore                        |
-| Browser E2E         | Production React, Chromium/Firefox/WebKit computed styles, hover, compounds/slots, repeated toggles, reload, narrow viewport, manual collisions and runtime errors |
-| Real WeChat         | Opt-in IDE rendering, changing styles, WXSS matching, reLaunch reset and screenshots                                                                               |
+| Layer                    | Contract                                                                                                                                                           |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Runtime                  | ASCII, Unicode planes and surrogate code units, leading characters, whitespace, reserved markers, injectivity and independent decoding                             |
+| Configuration / AST      | Immutable configuration, real Babel interop, version and malformed-artifact diagnostics, repeat generation, descriptors/symbols and `.raw`                         |
+| PostCSS                  | Both targets, CSS variables, layers/pseudos, selector context and Cartesian expansion, disabled lifecycle                                                          |
+| Real Panda 2.1.2 / 2.2.0 | `.js`/`.mjs`, hashing, regeneration/config reload, css/cva/sva, named/slot/compound recipes, patterns, styled, cx and tokens                                       |
+| Published consumers      | Isolated offline tarballs, ESM/CJS, public types, compatible entry identity, zero-dependency runtime and serialized factory                                        |
+| Framework artifacts      | Matching runtime names and final Taro React/Vue WXSS and Uni-app mini-program/H5 CSS                                                                               |
+| Mini-program E2E         | Actual compiled Wevu WXML, component registration, taps, changing classes, WXSS matching, state isolation and fresh launches through mpcore                        |
+| Browser E2E              | Production React, Chromium/Firefox/WebKit computed styles, hover, compounds/slots, repeated toggles, reload, narrow viewport, manual collisions and runtime errors |
+| Real WeChat              | Opt-in IDE rendering, changing styles, WXSS matching, reLaunch reset and screenshots                                                                               |
 
-mpcore tests real emitted artifacts but does not emulate WeChat CSS layout. Artifact checks do not claim framework interaction coverage. Real IDE/device acceptance remains a distinct layer.
+The adapter's minimum Panda version is 2.1.2, with later stable releases accepted without an upper version bound. Version-gate tests cover older, invalid and prerelease versions as well as later stable releases; AST checks remain responsible for rejecting incompatible generated structures. Panda compatibility fixtures unpack the adapter into isolated consumers for exactly 2.1.2 and 2.2.0, using lockfile-pinned packages offline. These are the real tested cohorts, rather than an exhaustive test of every version in the supported range. Each consumer resolves its own Panda and matching presets; a workspace-wide import must not substitute the default 2.2.0 installation.
+
+mpcore 1.0.0 tests real emitted artifacts but does not emulate WeChat CSS layout. Artifact checks do not claim framework interaction coverage. Real IDE/device acceptance remains a distinct layer.
 
 ```sh
 pnpm install --frozen-lockfile

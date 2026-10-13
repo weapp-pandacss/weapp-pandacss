@@ -89,7 +89,7 @@ const plugin = adapter({ panda: { cwd: import.meta.dirname } })
 
 Use the actual application directory for an explicit override. Invalid explicit `cwd`/`configPath` fails rather than silently selecting another project. Import expansion also needs PostCSS `from` to identify the real source stylesheet; virtual IDs are not file-resolution bases. Keep the full import graph in one root before ordered compilation. A CSS string without a real file can still be adapted, but Panda generation skips it; use an explicit importer root when relative imports need resolution.
 
-The standard example flow runs initial codegen and then starts the framework's dev/watch process. Panda's PostCSS integration records extraction dependencies so the bundler can rebuild styles. If a standalone workflow needs runtime-generation watch, Panda 2.1.2 also offers `panda codegen --watch`; CSS still needs the PostCSS pipeline. Assign one owner to each generated directory.
+The standard example flow runs initial codegen and then starts the framework's dev/watch process. Panda's PostCSS integration records extraction dependencies so the bundler can rebuild styles. If a standalone workflow needs runtime-generation watch, Panda 2.2.0 also offers `panda codegen --watch`; CSS still needs the PostCSS pipeline. Assign one owner to each generated directory.
 
 After changing a recipe, token, `include` or hash configuration, confirm both runtime and CSS regenerated. A framework may require a restart after environment, alias or TypeScript configuration changes. Repeated processing is safe when generation markers survive; it does not make competing writes safe.
 

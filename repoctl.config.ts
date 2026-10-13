@@ -27,10 +27,18 @@ export default {
     deps: {
       groups: [
         {
+          name: 'panda-2-1-2-compat',
+          workspaces: ['packages/weapp-pandacss'],
+          dependencies: ['@pandacss/dev-2-1-2', '@pandacss/preset-base-2-1-2', '@pandacss/preset-panda-2-1-2'],
+          sections: ['devDependencies'],
+          ignore: true,
+          reason: 'Lock Panda 2.1.2 aliases for offline published-consumer compatibility tests; the default cohort is 2.2.0.',
+        },
+        {
           name: 'wevu-vue3',
           workspaces: ['examples/weapp-vite-app'],
           dependencies: ['vue'],
-          reason: 'Pin the integration fixture to the tested Weapp Vite / Wevu 7.4.0 Vue cohort.',
+          reason: 'Pin the integration fixture to the tested Weapp Vite / Wevu 7.5.0 Vue cohort.',
         },
         {
           name: 'taro-react18',

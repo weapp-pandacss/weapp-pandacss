@@ -96,7 +96,7 @@
     "tsd": "tsd --files \"test-d/*.test-d.*\""
   },
   "peerDependencies": {
-    "@pandacss/dev": "2.1.2",
+    "@pandacss/dev": ">=2.1.2",
     "postcss": "catalog:"
   },
   "dependencies": {
@@ -106,7 +106,7 @@
     "@babel/types": "^8.0.6",
     "@csstools/postcss-cascade-layers": "^6.0.2",
     "@csstools/postcss-is-pseudo-class": "^6.0.3",
-    "@pandacss/types": "2.1.2",
+    "@pandacss/types": "2.2.0",
     "@types/postcss-import": "14.0.3",
     "@weapp-pandacss/runtime": "workspace:*",
     "@weapp-tailwindcss/css-compat": "0.1.1",
@@ -115,13 +115,17 @@
     "postcss-import": "17.0.0",
     "postcss-rule-unit-converter": "0.2.6",
     "postcss-selector-parser": "^7.1.6",
-    "postcss-value-parser": "^4.2.0"
+    "postcss-value-parser": "^4.2.0",
+    "verkit": "^0.5.0"
   },
   "devDependencies": {
-    "@pandacss/dev": "2.1.2",
-    "@pandacss/preset-base": "2.1.2",
-    "@pandacss/preset-panda": "2.1.2",
-    "tsdown": "0.23.0"
+    "@pandacss/dev": "2.2.0",
+    "@pandacss/dev-2-1-2": "npm:@pandacss/dev@2.1.2",
+    "@pandacss/preset-base": "2.2.0",
+    "@pandacss/preset-base-2-1-2": "npm:@pandacss/preset-base@2.1.2",
+    "@pandacss/preset-panda": "2.2.0",
+    "@pandacss/preset-panda-2-1-2": "npm:@pandacss/preset-panda@2.1.2",
+    "tsdown": "0.23.1"
   },
   "publishConfig": {
     "access": "public",
