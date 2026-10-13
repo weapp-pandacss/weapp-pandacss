@@ -1,6 +1,6 @@
 {
   "name": "@weapp-pandacss/uni-app-vue3",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "private": true,
   "scripts": {
     "dev": "npm run dev:mp-weixin",
