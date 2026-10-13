@@ -150,8 +150,10 @@ async function main() {
       }
     }
     miniProgram.on('exception', error => errors.push(error))
-    miniProgram.on('console', message => consoleMessages.push(message))
     const systemInfo = await miniProgram.systemInfo()
+    // The SDK enables logs without awaiting that request. Complete an awaited
+    // AppService handshake before subscribing so startup failures reach finally.
+    miniProgram.on('console', message => consoleMessages.push(message))
     assert.equal(systemInfo.SDKVersion, config.libVersion, 'The connected runtime must use the fixture\'s pinned formal base-library release.')
     await fs.writeFile(path.join(evidence, 'environment.json'), JSON.stringify({
       provider: 'devtools',
@@ -270,13 +272,15 @@ async function main() {
       assert(page, 'Runtime acceptance route must launch')
       await expectStatus(page, 'neutral', 'acceptance-status')
       const pageSize = await page.size()
+      const viewportWidth = systemInfo.windowWidth
       // The pinned WebView renderer truncates positive rpx dimensions to CSS
       // pixels. Negative token calc() negates the already resolved dimension.
-      const rpx = (value: number) => Math.floor(value * Number(pageSize.width) / 750)
+      // page.size() includes overflowing content; rpx uses the window viewport.
+      const rpx = (value: number) => Math.floor(value * viewportWidth / 750)
       const atomicNode = await page.$('#atomic')
       assert(atomicNode)
       await fs.writeFile(path.join(evidence, 'viewport.json'), JSON.stringify({ systemWidth: systemInfo.windowWidth, pageSize, atomic: { fontSize: await atomicNode.style('font-size'), padding: await atomicNode.style('padding-top'), width: await atomicNode.style('width') } }, null, 2))
-      await probe(page, 'atomic', { 'color': 'rgb(220, 38, 38)', 'font-size': rpx(48), 'padding-top': rpx(16), 'width': (Number(pageSize.width) - 2 * rpx(16)) / 2 })
+      await probe(page, 'atomic', { 'color': 'rgb(220, 38, 38)', 'font-size': rpx(48), 'padding-top': rpx(16), 'width': (viewportWidth - 2 * rpx(16)) / 2 })
       await probe(page, 'variable-token', { 'padding-top': rpx(4) })
       await probe(page, 'value-token', { 'padding-top': rpx(4) })
       await probe(page, 'semantic-token', { 'color': 'rgb(15, 118, 110)', 'margin-left': -rpx(4) })

@@ -3,7 +3,7 @@
   "path": ".github/ISSUE_TEMPLATE/config.yml",
   "source": {
     "package": "@icebreakers/monorepo-templates",
-    "version": "2.3.1",
+    "version": "2.3.3",
     "assetPath": ".github/ISSUE_TEMPLATE/config.yml",
     "hash": "6191f3e8c471588e0ec014de51d858c4610db59c3b6d34202962f3a522334e19"
   },

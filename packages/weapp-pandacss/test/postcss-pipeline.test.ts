@@ -31,11 +31,16 @@ async function write(file: string, content: string) {
 }
 
 async function project(directory = 'app', color = '#0f766e') {
-  for (const name of ['@pandacss/preset-base', '@pandacss/preset-panda']) {
+  const devDependencies: Record<string, string> = {}
+  // Panda 2.2 bundles local config imports into node_modules/.panda. Give
+  // that real consumer the required dev peer as well as its explicit presets.
+  for (const name of ['@pandacss/dev', '@pandacss/preset-base', '@pandacss/preset-panda']) {
     const destination = path.join(fixture, directory, 'node_modules', name)
     await fs.mkdir(path.dirname(destination), { recursive: true })
     await fs.symlink(await fs.realpath(path.resolve(import.meta.dirname, '../node_modules', name)), destination, process.platform === 'win32' ? 'junction' : 'dir')
+    devDependencies[name] = JSON.parse(await fs.readFile(path.join(destination, 'package.json'), 'utf8')).version
   }
+  await write(`${directory}/package.json`, JSON.stringify({ private: true, type: 'module', devDependencies }))
   const config = await write(`${directory}/panda.config.mjs`, `
     import { weappPanda } from ${JSON.stringify(pandaPlugin)};
     export default {
@@ -59,7 +64,7 @@ async function processFile(from: string, options: Parameters<typeof plugin>[0] =
   })
 }
 
-it('runs the zero-option import → real Panda 2.1.2 → adapter pipeline with complete dependencies and maps', async () => {
+it('runs the zero-option import → real Panda → adapter pipeline with complete dependencies and maps', async () => {
   const app = await project()
   const result = await processFile(app.entry)
   expect(result.css).toContain('.c__wp_23_0f766e')

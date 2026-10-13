@@ -72,7 +72,7 @@ try {
       assert.ok(match.some(found => found.nodes.some(node => node.type === 'decl' && node.prop === declaration.prop && node.value === declaration.value)), 'The documented declaration must match Panda output.')
     })
   })
-  console.log('Homepage examples verified: zero-option import/Panda/adapter pipeline, Panda 2.1.2 runtime, source map and WXSS agree in both locales.')
+  console.log('Homepage examples verified: zero-option import/Panda/adapter pipeline, Panda 2.2.0 runtime, source map and WXSS agree in both locales.')
 }
 finally {
   await fs.rm(fixture, { recursive: true, force: true })

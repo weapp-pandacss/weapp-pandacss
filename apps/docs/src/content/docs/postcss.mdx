@@ -12,7 +12,7 @@ sidebar:
 `weapp-pandacss/postcss` enables **CSS import expansion → official Panda generation → adaptation** without options. Install Panda, its explicit presets and the adapter; the importer is an adapter runtime dependency:
 
 ~~~sh
-pnpm add -D @pandacss/dev@2.1.2 @pandacss/preset-base@2.1.2 @pandacss/preset-panda@2.1.2 weapp-pandacss@^2 postcss
+pnpm add -D @pandacss/dev@2.2.0 @pandacss/preset-base@2.2.0 @pandacss/preset-panda@2.2.0 weapp-pandacss@^2 postcss
 ~~~
 
 Keep `weappPanda()` and `polyfill: false` in `panda.config.ts`, import a global `.css` layer entry, and run Panda codegen before your build. Zero options simplify PostCSS registration; Panda's extraction and generated runtime setup still apply. The PostCSS integration also regenerates styles. Do not also register `@pandacss/dev/postcss` or a second `postcss-import`; duplicate Panda and incorrect external stage order are reported before generation.
@@ -90,7 +90,7 @@ For custom loaders, pass the real entry path as PostCSS `from`; a virtual module
 
 ## Sass, Less and Stylus
 
-The order is **framework preprocessor → imports → Panda → full adaptation → built-in units (when enabled) → framework postprocessing**. Install/configure the preprocessor through the framework. Keep the global Panda layer entry as `.css`: official Panda 2.1.2 processes CSS filenames, even when a framework has already compiled a `.scss` entry to CSS text.
+The order is **framework preprocessor → imports → Panda → full adaptation → built-in units (when enabled) → framework postprocessing**. Install/configure the preprocessor through the framework. Keep the global Panda layer entry as `.css`: official Panda 2.2.0 processes CSS filenames, even when a framework has already compiled a `.scss` entry to CSS text.
 
 Sass `@use`/`@forward`, Less variables/mixins and Stylus syntax belong to their respective compiler. The built-in importer expands CSS graphs; its default loader rejects raw `.scss`, `.sass`, `.less`, `.styl` and `.stylus` imports instead of passing uncompiled syntax into WXSS. Import their compiled CSS, let the framework resolve them first, or supply `imports.load` with a real compiler and watch integration. `imports.plugins` can apply PostCSS transformations to each imported CSS file. A custom loader is responsible for returning valid CSS and reporting its extra dependencies.
 

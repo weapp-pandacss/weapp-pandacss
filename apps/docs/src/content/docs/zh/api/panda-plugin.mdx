@@ -49,12 +49,12 @@ module.exports = { plugins: [weappPanda()], polyfill: false }
 
 | 要求 | 支持值 |
 | --- | --- |
-| `@pandacss/dev` | 精确 `2.1.2`，调用 `weappPanda()` 时检查 |
-| 示例使用的 presets | `@pandacss/preset-base@2.1.2`、`@pandacss/preset-panda@2.1.2` |
+| `@pandacss/dev` | 精确 `2.1.2` 或 `2.2.0`（`2.1.2 \|\| 2.2.0`），调用 `weappPanda()` 时检查 |
+| 示例使用的 presets | `@pandacss/preset-base@2.2.0`、`@pandacss/preset-panda@2.2.0`；Panda 2.1.2 搭配 2.1.2 preset |
 | 适配器 Node.js engine | `^22.18.0 \|\| >=24.11.0` |
 | 生成的 runtime 扩展名 | `js` 或 `mjs` |
 
-未安装 Panda 或版本不匹配时，抛出 `weappPanda requires Panda CSS 2.1.2`。使用已验证的版本，不要绕过检查。Node engine 支持 22.x 中的 22.18 及以上版本，以及 24.11 及以上版本，不包含 Node 23 和低于 24.11 的 24.x。
+未安装 Panda 或版本不匹配时，抛出 `weappPanda requires Panda CSS 2.1.2 or 2.2.0`。使用已验证的版本，不要绕过检查。Node engine 支持 22.x 中的 22.18 及以上版本，以及 24.11 及以上版本，不包含 Node 23 和低于 24.11 的 24.x。
 
 ## 配置调整
 

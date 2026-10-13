@@ -9,8 +9,8 @@
    `_helpers.backup.js` / `.mjs` 和 `weapp-panda` 备份/补丁文件）。不要用 rollback
    恢复旧产物再接入新插件。
 2. 固定 `@pandacss/dev`、`@pandacss/preset-base`、`@pandacss/preset-panda` 到
-   `2.1.2`。在 Panda 配置注册 `weappPanda()`，使用 `.js` 或 `.mjs`；建议
-   `outExtension: 'mjs'` 和 `forceImportExtension: true`。
+   `2.2.0`；已有 `2.1.2` 项目仍受支持，三个包保持同一版本。
+   在 Panda 配置注册 `weappPanda()`，使用 `.js` 或 `.mjs`；建议 `outExtension: 'mjs'` 和 `forceImportExtension: true`。
 3. 把 `panda codegen && weapp-panda codegen` 改为 `panda codegen`。移除
    `execFileSync`、`codegen:done` 适配 hook 和跨平台 rollback。
 4. PostCSS 仅注册 `'weapp-pandacss/postcss': {}`，默认执行 import 展开 → 官方 Panda → 小程序适配；
@@ -52,7 +52,7 @@ parse/serialize 保留；不要把已经编码的 CSS 混入未编码的源码�
 Panda 原生 `hash.cssVar` 强制启用；`hash.className` 保留用户设置。字符串
 prefix 的普通 class 前缀保留，变量前缀规范化；对象 prefix 的两项独立处理。
 数字/连字符开头或包含保留标记的配置 class prefix、recipe className 先规范化，
-再参加最终编码，以避开 Panda 2.1.2 的数字 CSS 转义歧义。
+再参加最终编码，以避开 Panda 的数字 CSS 转义歧义。
 小程序手写变量采用 ASCII 名称，adapter 遇到不支持的名称会报错。
 `token()`、`token.var()`、负值和语义 token 继续通过 Panda 原生实现统一生成。
 
@@ -60,7 +60,7 @@ prefix 的普通 class 前缀保留，变量前缀规范化；对象 prefix 的�
 
 | 流程                                                    | 支持情况                                    |
 | ------------------------------------------------------- | ------------------------------------------- |
-| Panda 2.1.2 codegen / PostCSS 自动生成                  | 支持，同步转换 artifacts，由 Panda 写入     |
+| Panda 2.1.2 / 2.2.0 codegen / PostCSS 自动生成          | 支持，同步转换 artifacts，由 Panda 写入     |
 | runtime `.js` / `.mjs`                                  | 支持；TS-only 或未知结构报错                |
 | `css` / `cva` / `sva` / named、slot recipes / compounds | runtime 与 selector 统一编码                |
 | patterns / styled / `cx`                                | 支持；`cx` 保持拼接语义                     |
@@ -70,7 +70,7 @@ prefix 的普通 class 前缀保留，变量前缀规范化；对象 prefix 的�
 | Panda 0.x 或其他 2.x                                    | 不在本版验收范围                            |
 | 包入口 ESM / CJS                                        | 支持，包括 `/panda`、`/runtime`、`/postcss` |
 
-`weappPanda()` 生成 hook 仍使用受控 AST 改写生成内容，依赖已验证的 Panda 2.1.2 结构。它不执行
+`weappPanda()` 生成 hook 仍使用受控 AST 改写生成内容，依赖已验证的 Panda 2.1.2 / 2.2.0 结构。它不执行
 适配子进程、不自行重复加载 Panda 配置、不自行覆盖 helper、不创建 backup。组合 PostCSS 阶段交给官方 Panda 读取配置并生成 CSS。
 
 ## 删除的 v1 接口

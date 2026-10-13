@@ -1,32 +1,40 @@
-import { execFile } from 'node:child_process'
+import type { PackedPackages, PandaVersion } from './packed-consumer'
 import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { promisify } from 'node:util'
 import postcss from 'postcss'
 import selectorParser from 'postcss-selector-parser'
 import { transformArtifacts } from '@/panda/transform'
-import plugin from '@/postcss'
 import { encodeClassName } from '@/runtime'
+import { adapterRoot, linkDependency, packedConsumer, packPackages, pandaVersions, run } from './packed-consumer'
 
-const run = promisify(execFile)
-const packageRoot = path.resolve(import.meta.dirname, '..')
-const exampleRoot = path.resolve(packageRoot, '../../examples/react-app')
-const pandaBin = path.join(packageRoot, 'node_modules/@pandacss/dev/bin.js')
+const exampleRoot = path.resolve(adapterRoot, '../../examples/react-app')
+let packedRoot: string
+let packages: PackedPackages
 
-async function fixture(extension: string, hash = false, prefix?: string | { className: string, cssVar: string }) {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'panda-plugin-'))
+beforeAll(async () => {
+  packedRoot = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), 'panda-packed-cohorts-')))
+  packages = await packPackages(packedRoot)
+}, 60_000)
+
+afterAll(async () => {
+  if (packedRoot) {
+    await fs.rm(packedRoot, { recursive: true, force: true })
+  }
+})
+
+function pandaBin(root: string) {
+  return path.join(root, 'node_modules/@pandacss/dev/bin.js')
+}
+
+async function fixture(version: PandaVersion, extension: string, hash = false, prefix?: string | { className: string, cssVar: string }) {
+  const root = await fs.mkdtemp(path.join(packedRoot, `panda-${version}-`))
   try {
-    // Resolve pnpm's links before linking packages into the isolated fixture.
-    // A junction to the whole node_modules directory leaves relative package
-    // links pointing outside the fixture on Windows during native ESM loading.
-    for (const name of ['@pandacss/dev', '@pandacss/preset-base', '@pandacss/preset-panda', 'weapp-pandacss', 'react', 'react-dom']) {
-      const destination = path.join(root, 'node_modules', name)
-      await fs.mkdir(path.dirname(destination), { recursive: true })
-      await fs.symlink(await fs.realpath(path.join(exampleRoot, 'node_modules', name)), destination, process.platform === 'win32' ? 'junction' : 'dir')
+    await packedConsumer(root, packages, version)
+    for (const name of ['react', 'react-dom']) {
+      await linkDependency(root, name, name, exampleRoot)
     }
-    await fs.writeFile(path.join(root, 'package.json'), '{"type":"module"}')
     await fs.writeFile(path.join(root, 'panda.config.mjs'), `import { weappPanda } from 'weapp-pandacss/panda'; import fs from 'node:fs';
       export default {
         plugins: [{name:'capture',hooks:{'codegen:prepare':({artifacts})=>{fs.writeFileSync(${JSON.stringify(path.join(root, 'artifacts.json'))},JSON.stringify(artifacts))}}},weappPanda()],
@@ -82,11 +90,11 @@ function collectClasses(css: string) {
   return classes
 }
 
-describe('Panda generation plugin', () => {
+describe.each(pandaVersions)('packed Panda %s generation plugin', (version) => {
   it.each([['js', false], ['mjs', false], ['js', true], ['mjs', true]] as const)('generates matching %s runtime with class hash=%s', async (extension, hash) => {
-    const root = await fixture(extension, hash)
+    const root = await fixture(version, extension, hash)
     try {
-      await run(process.execPath, [pandaBin, 'codegen'], { cwd: root })
+      await run(process.execPath, [pandaBin(root), 'codegen'], { cwd: root })
       const helper = path.join(root, `styled-system/helpers.${extension}`)
       const generated = await fs.readFile(helper, 'utf8')
       const portable = await fs.readFile(path.join(root, `styled-system/weapp-panda/runtime.${extension}`), 'utf8')
@@ -97,12 +105,16 @@ describe('Panda generation plugin', () => {
       expect(JSON.stringify(artifacts)).not.toContain('weapp-pandacss:portable-v1')
       expect(generated).toContain('// weapp-pandacss:portable-v1')
       expect(await fs.readdir(path.join(root, 'styled-system'))).not.toContain(`_helpers.backup.${extension}`)
-      await run(process.execPath, [pandaBin, 'codegen'], { cwd: root })
+      await run(process.execPath, [pandaBin(root), 'codegen'], { cwd: root })
       expect(await fs.readFile(helper, 'utf8')).toBe(generated)
-      await run(process.execPath, [pandaBin, 'cssgen', '--outfile', 'raw.css'], { cwd: root })
-      const raw = await fs.readFile(path.join(root, 'raw.css'), 'utf8')
-      const weapp = (await postcss([plugin()]).process(raw, { from: undefined })).css
-      const web = (await postcss([plugin({ target: 'web' })]).process(raw, { from: undefined })).css
+      await run(process.execPath, [pandaBin(root), 'cssgen', '--outfile', 'raw.css'], { cwd: root })
+      const { weapp, web } = JSON.parse((await run(process.execPath, ['--input-type=module', '-e', `
+        import fs from 'node:fs/promises'; import postcss from 'postcss'; import plugin from 'weapp-pandacss/postcss';
+        const raw = await fs.readFile('raw.css', 'utf8');
+        const weapp = (await postcss([plugin()]).process(raw, {from:undefined})).css;
+        const web = (await postcss([plugin({target:'web'})]).process(raw, {from:undefined})).css;
+        console.log(JSON.stringify({weapp,web}));
+      `], { cwd: root })).stdout)
       const classes = collectClasses(weapp)
       expect(collectClasses(web)).toEqual(classes)
       const entry = pathToFileURL(path.join(root, 'styled-system')).href
@@ -158,11 +170,14 @@ describe('Panda generation plugin', () => {
   })
 
   it.each(['-中文/wp_', { className: '2demo/wp_', cssVar: '-中文/wp_' }])('normalizes CSS variable prefix %j while preserving class prefixes', async (prefix) => {
-    const root = await fixture('mjs', true, prefix)
+    const root = await fixture(version, 'mjs', true, prefix)
     try {
-      await run(process.execPath, [pandaBin, 'codegen'], { cwd: root })
-      await run(process.execPath, [pandaBin, 'cssgen', '--outfile', 'raw.css'], { cwd: root })
-      const css = (await postcss([plugin()]).process(await fs.readFile(path.join(root, 'raw.css'), 'utf8'), { from: undefined })).css
+      await run(process.execPath, [pandaBin(root), 'codegen'], { cwd: root })
+      await run(process.execPath, [pandaBin(root), 'cssgen', '--outfile', 'raw.css'], { cwd: root })
+      const css = (await run(process.execPath, ['--input-type=module', '-e', `
+        import fs from 'node:fs/promises'; import postcss from 'postcss'; import plugin from 'weapp-pandacss/postcss';
+        console.log((await postcss([plugin()]).process(await fs.readFile('raw.css','utf8'), {from:undefined})).css);
+      `], { cwd: root })).stdout
       const entry = pathToFileURL(path.join(root, 'styled-system')).href
       const script = `const {css}=await import(process.argv[1]+'/css/index.mjs'); const {token}=await import(process.argv[1]+'/tokens/index.mjs'); console.log(JSON.stringify({className:css({color:'red.500'}),variable:token.var('colors.red.500')}));`
       const values = JSON.parse((await run(process.execPath, ['--input-type=module', '-e', script, entry], { cwd: root })).stdout)
@@ -177,18 +192,37 @@ describe('Panda generation plugin', () => {
     }
   })
 
-  it('handles PostCSS codegen and configuration reload without writing backups', async () => {
-    const root = await fixture('mjs')
+  it('runs the packed import/Panda/adapter pipeline with source maps and config reload', async () => {
+    const root = await fixture(version, 'mjs')
     try {
-      const plugins = [plugin({ panda: { cwd: root } })]
-      const from = path.join(root, 'src/app.css')
-      const input = '@layer reset, base, tokens, recipes, utilities;'
-      await postcss(plugins).process(input, { from })
+      await fs.writeFile(path.join(root, 'src/authored.css'), '@layer base { .authored\\/中文 { color: tomato; } }')
+      const result = JSON.parse((await run(process.execPath, ['--input-type=module', '-e', `
+        import fs from 'node:fs/promises'; import path from 'node:path';
+        import postcss from 'postcss'; import plugin from 'weapp-pandacss/postcss';
+        const root = process.cwd(); const from = path.join(root,'src/app.css');
+        const input = '@layer reset,base,tokens,recipes,utilities;\\n@import "./authored.css";';
+        const processor = postcss([plugin()]);
+        const compile = () => processor.process(input, {from,to:path.join(root,'output.wxss'),map:{inline:false}});
+        const first = await compile();
+        const helper = path.join(root,'styled-system/helpers.mjs');
+        const before = await fs.readFile(helper,'utf8');
+        const config = path.join(root,'panda.config.mjs'); const previous = await fs.stat(config);
+        await fs.writeFile(config,(await fs.readFile(config,'utf8')).replace('className: false','className: true'));
+        await fs.utimes(config,previous.atime,new Date(previous.mtimeMs+2000));
+        const second = await compile();
+        console.log(JSON.stringify({css:first.css,messages:first.messages,sources:first.map.toJSON().sourcesContent,before,second:second.css}));
+      `], { cwd: root })).stdout)
       const helper = path.join(root, 'styled-system/helpers.mjs')
-      expect(await fs.readFile(helper, 'utf8')).toContain('weapp-pandacss:portable-v1')
-      const config = path.join(root, 'panda.config.mjs')
-      await fs.writeFile(config, (await fs.readFile(config, 'utf8')).replace('className: false', 'className: true'))
-      await postcss(plugins).process(input, { from })
+      expect(result.css).toContain(`.${encodeClassName('authored/中文')}`)
+      expect(result.css).not.toMatch(/@layer|@import|:not\(n\)/)
+      expect(result.sources).toContain('@layer base { .authored\\/中文 { color: tomato; } }')
+      expect(result.messages).toEqual(expect.arrayContaining([
+        expect.objectContaining({ type: 'dependency', file: path.join(root, 'panda.config.mjs'), plugin: 'pandacss' }),
+        expect.objectContaining({ type: 'dependency', file: path.join(root, 'src/authored.css'), plugin: 'postcss-import' }),
+        expect.objectContaining({ type: 'dir-dependency', plugin: 'pandacss' }),
+      ]))
+      expect(result.before).toContain('weapp-pandacss:portable-v1')
+      expect(collectClasses(result.second)).not.toEqual(collectClasses(result.css))
       expect(await fs.readFile(path.join(root, 'styled-system/css/css.mjs'), 'utf8')).toContain('hash: true')
       expect(await fs.readFile(helper, 'utf8')).toContain('weapp-pandacss:portable-v1')
       expect(await fs.readdir(path.join(root, 'styled-system'))).not.toContain('_helpers.backup.mjs')

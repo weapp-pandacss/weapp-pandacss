@@ -49,12 +49,12 @@ The plugin adapts generated JavaScript names. CSS must also pass through [weapp-
 
 | Requirement | Supported value |
 | --- | --- |
-| `@pandacss/dev` | Exactly `2.1.2`; checked when `weappPanda()` is called |
-| Presets used in the examples | `@pandacss/preset-base@2.1.2`, `@pandacss/preset-panda@2.1.2` |
+| `@pandacss/dev` | Exactly `2.1.2` or `2.2.0` (`2.1.2 \|\| 2.2.0`); checked when `weappPanda()` is called |
+| Presets used in the examples | `@pandacss/preset-base@2.2.0`, `@pandacss/preset-panda@2.2.0`; use 2.1.2 presets with Panda 2.1.2 |
 | Adapter Node.js engine | `^22.18.0 \|\| >=24.11.0` |
 | Generated runtime extension | `js` or `mjs` |
 
-Missing Panda or another Panda version throws `weappPanda requires Panda CSS 2.1.2`. Keep the verified version instead of bypassing the check. The Node engine permits 22.x from 22.18 and versions from 24.11; it excludes Node 23 and earlier 24.x releases.
+Missing Panda or another Panda version throws `weappPanda requires Panda CSS 2.1.2 or 2.2.0`. Keep the verified version instead of bypassing the check. The Node engine permits 22.x from 22.18 and versions from 24.11; it excludes Node 23 and earlier 24.x releases.
 
 ## Configuration changes
 

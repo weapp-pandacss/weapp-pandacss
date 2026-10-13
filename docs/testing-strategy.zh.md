@@ -4,19 +4,21 @@
 
 ## 测试分层
 
-| 层             | 验证内容                                                                                                                                    | 入口                           |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
-| 编码契约       | ASCII、Unicode 各平面、代理码元、前导数字/连字符、空白、保留标记、碰撞、独立解码往返                                                        | runtime Vitest                 |
-| 配置与 AST     | 配置不变性、Babel ESM/CJS 互操作、版本诊断、损坏/不完整产物、重复处理、属性描述符、symbol 和 `.raw`                                         | adapter Vitest                 |
-| CSS            | Web/weapp 目标、变量校验、cascade layer、`:where`、`:not`、选择器上下文、多个替换的组合、disabled 生命周期                                  | adapter Vitest/快照            |
-| 真实 Panda     | 2.1.2 的 `.js`/`.mjs`、class hash、codegen/PostCSS 自动生成与配置重载；css/cva/sva、named/slot recipe、compound、pattern、styled、cx、token | Panda 集成测试                 |
-| 发布消费       | 两包 tarball、离线隔离安装、ESM/CJS、类型解析、入口函数身份、runtime 无依赖、自包含工厂                                                     | packed-runtime/entrypoints/tsd |
-| 框架产物       | Taro React/Vue、Uni-app 小程序/H5 的最终 WXSS/CSS 与实际生成 runtime 类名匹配                                                               | taro-artifacts/uni-artifacts   |
-| 小程序逻辑 E2E | 真实 Wevu 编译产物、组件注册/渲染、点击、class 更新、WXSS 匹配、独立运行时状态隔离与重启                                                    | mpcore integration             |
-| 浏览器 E2E     | React **生产构建**，三引擎 computed style、hover、compound/slot 切换、重复交互、reload、窄屏、手写碰撞名、控制台错误                        | Playwright                     |
-| 真实微信验收   | 真实 IDE 的 AppService、样式变化、WXSS 匹配、reLaunch 状态重置和截图                                                                        | 可选 DevTools 入口             |
+| 层             | 验证内容                                                                                                                                            | 入口                           |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
+| 编码契约       | ASCII、Unicode 各平面、代理码元、前导数字/连字符、空白、保留标记、碰撞、独立解码往返                                                                | runtime Vitest                 |
+| 配置与 AST     | 配置不变性、Babel ESM/CJS 互操作、版本诊断、损坏/不完整产物、重复处理、属性描述符、symbol 和 `.raw`                                                 | adapter Vitest                 |
+| CSS            | Web/weapp 目标、变量校验、cascade layer、`:where`、`:not`、选择器上下文、多个替换的组合、disabled 生命周期                                          | adapter Vitest/快照            |
+| 真实 Panda     | 2.1.2 / 2.2.0 的 `.js`/`.mjs`、class hash、codegen/PostCSS 自动生成与配置重载；css/cva/sva、named/slot recipe、compound、pattern、styled、cx、token | Panda 集成测试                 |
+| 发布消费       | 两包 tarball、离线隔离安装、ESM/CJS、类型解析、入口函数身份、runtime 无依赖、自包含工厂                                                             | packed-runtime/entrypoints/tsd |
+| 框架产物       | Taro React/Vue、Uni-app 小程序/H5 的最终 WXSS/CSS 与实际生成 runtime 类名匹配                                                                       | taro-artifacts/uni-artifacts   |
+| 小程序逻辑 E2E | 真实 Wevu 编译产物、组件注册/渲染、点击、class 更新、WXSS 匹配、独立运行时状态隔离与重启                                                            | mpcore integration             |
+| 浏览器 E2E     | React **生产构建**，三引擎 computed style、hover、compound/slot 切换、重复交互、reload、窄屏、手写碰撞名、控制台错误                                | Playwright                     |
+| 真实微信验收   | 真实 IDE 的 AppService、样式变化、WXSS 匹配、reLaunch 状态重置和截图                                                                                | 可选 DevTools 入口             |
 
-小程序逻辑 E2E 使用 `@mpcore/weapp-vite` 构建真实应用，再由 `@mpcore/test` 运行 WXML。它不模拟微信 CSS 排版，也不替代真实开发者工具或手机验收。Taro/Uni 的产物测试保证输出匹配，不宣称验证了这些框架的真实点击交互。
+Panda 兼容 fixture 在隔离消费者中解包适配器，分别使用锁文件固定的 2.1.2 和 2.2.0 包，全程离线。每个消费者解析自己的 Panda 与同版本 preset，不能通过工作区导入偷用默认的 2.2.0 安装。
+
+小程序逻辑 E2E 使用 1.0.0 的 `@mpcore/weapp-vite` 构建真实应用，再由 `@mpcore/test` 运行 WXML。它不模拟微信 CSS 排版，也不替代真实开发者工具或手机验收。Taro/Uni 的产物测试保证输出匹配，不宣称验证了这些框架的真实点击交互。
 
 ## 本地与 CI
 

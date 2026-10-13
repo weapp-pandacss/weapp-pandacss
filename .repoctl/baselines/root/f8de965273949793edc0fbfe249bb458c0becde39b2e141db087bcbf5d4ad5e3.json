@@ -3,7 +3,7 @@
   "path": "turbo.json",
   "source": {
     "package": "@icebreakers/monorepo-templates",
-    "version": "2.3.1",
+    "version": "2.3.3",
     "assetPath": "turbo.json",
     "hash": "ee1cd3c0c2f16b42d54996b797a8e7df44d6d614281c8d3c06551ddc6a1e42b6"
   },

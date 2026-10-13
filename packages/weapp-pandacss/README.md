@@ -2,16 +2,16 @@
 
 Documentation: [English](https://panda.weapp.dev/) · [简体中文](https://panda.weapp.dev/zh/).
 
-Use [Panda CSS 2.1.2](https://panda-css.com/) in mini-programs and Web with matching, portable class names. The Panda plugin transforms generated runtime artifacts through ASTs before Panda writes them. The PostCSS plugin converts the CSS using the same naming contract.
+Use [Panda CSS 2.2.0](https://panda-css.com/) in mini-programs and Web with matching, portable class names. The Panda plugin transforms generated runtime artifacts through ASTs before Panda writes them. The PostCSS plugin converts the CSS using the same naming contract.
 
-> **Release availability:** Zero-option composition is the repository implementation for the upcoming minor release. The currently published npm package retains its previous defaults; keep its separate import/Panda/adapter configuration until upgrading, then use the setup below. Release automation determines the version number.
+> **Release availability:** Zero-option composition and Panda 2.2.0 support are repository implementations for the upcoming minor release. Until upgrading, keep Panda 2.1.2 and the published package's separate import/Panda/adapter configuration; then use the setup below. Release automation determines the version number.
 
 ## Install and configure
 
 Use Node.js 22.18+ or 24.11+.
 
 ```bash
-pnpm add -D @pandacss/dev@2.1.2 @pandacss/preset-base@2.1.2 @pandacss/preset-panda@2.1.2 weapp-pandacss postcss
+pnpm add -D @pandacss/dev@2.2.0 @pandacss/preset-base@2.2.0 @pandacss/preset-panda@2.2.0 weapp-pandacss postcss
 ```
 
 ```ts
@@ -97,7 +97,7 @@ The plugin enables Panda's native `hash.cssVar` and normalizes its variable pref
 
 `weapp-pandacss/panda`, `/postcss` and `/runtime` provide ESM and CJS entries with declarations. The root entry exports `weappPanda`, `postcssPlugin`, `encodeClassName`, `encodeClassList`, `unitPresets`, `composeUnitRules`, and complete option/rule/context/preset types. Version 2 removes the old file-patching/configuration APIs, both adapter CLI names and the PostCSS `naming` option. PostCSS options are passed directly to the plugin.
 
-Panda 2.1.2 with `.js` or `.mjs` output is supported. Panda source-transform optimizations that inline raw classes and bypass runtime are outside this release's scope. See the [Chinese guide](./README.zh.md) and [2.0 migration guide](../../docs/panda-plugin-migration.md) for configuration and breaking changes.
+Exactly Panda 2.1.2 and 2.2.0 with `.js` or `.mjs` output are supported (`2.1.2 || 2.2.0`); new installations use 2.2.0. Keep `@pandacss/dev` and both presets at the same supported version. Missing Panda, other versions and incompatible generated structures fail with a diagnostic. Panda source-transform optimizations that inline raw classes and bypass runtime are outside this release's scope. See the [Chinese guide](./README.zh.md) and [2.0 migration guide](../../docs/panda-plugin-migration.md) for configuration and breaking changes.
 
 The repository includes [Taro React, Taro Vue, Uni-app Vue, React Web and Weapp Vite + Wevu](../../examples/). The Wevu example runs `wv prepare` before Panda codegen on a clean checkout.
 

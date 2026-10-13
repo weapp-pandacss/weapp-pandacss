@@ -5,14 +5,14 @@ sidebar:
   order: 1
 ---
 
-> **Release availability:** This page documents the upcoming minor release and the repository implementation. The currently published npm package still uses its previous PostCSS defaults. Keep its separate import/Panda/adapter chain until upgrading to the new minor, then follow the [migration steps](/migration/#upgrade-to-the-zero-option-postcss-pipeline).
+> **Release availability:** This page documents the upcoming minor release and the repository implementation. Panda 2.2.0 support and the new PostCSS defaults require that minor; keep Panda 2.1.2 and the published package's separate import/Panda/adapter chain until upgrading, then follow the [migration steps](/migration/#upgrade-to-the-zero-option-postcss-pipeline).
 
 ## Requirements
 
-The adapter declares Node.js `^22.18.0 || >=24.11.0`. The repository CI checks Node 22 and 24; use a supported release satisfying that range. Panda and both presets must use the verified **2.1.2** version. The adapter checks Panda's installed version and rejects other versions.
+The adapter declares Node.js `^22.18.0 || >=24.11.0`. The repository CI checks Node 22 and 24; use a supported release satisfying that range. The adapter supports exactly **2.1.2** and **2.2.0** (`2.1.2 || 2.2.0`); new installations use **2.2.0**. Keep Panda and both presets at the same supported version. The adapter checks Panda's installed version and rejects missing Panda or any other version.
 
 ~~~sh
-pnpm add -D @pandacss/dev@2.1.2 @pandacss/preset-base@2.1.2 @pandacss/preset-panda@2.1.2 weapp-pandacss@^2 postcss
+pnpm add -D @pandacss/dev@2.2.0 @pandacss/preset-base@2.2.0 @pandacss/preset-panda@2.2.0 weapp-pandacss@^2 postcss
 ~~~
 
 Panda 2 requires explicit preset installation and registration. Add the separate runtime only when application code needs to encode authored class names:

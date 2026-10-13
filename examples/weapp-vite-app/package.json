@@ -30,26 +30,26 @@
   "dependencies": {
     "@weapp-pandacss/runtime": "workspace:*",
     "vue": "3.5.43",
-    "wevu": "7.4.0"
+    "wevu": "7.5.0"
   },
   "devDependencies": {
     "@babel/core": "^8.0.7",
-    "@mpcore/test": "0.1.15",
-    "@mpcore/vitest": "0.2.7",
-    "@mpcore/weapp-vite": "0.1.29",
-    "@pandacss/dev": "2.1.2",
-    "@pandacss/preset-base": "2.1.2",
-    "@pandacss/preset-panda": "2.1.2",
-    "@types/node": "^26.6.4",
+    "@mpcore/test": "1.0.0",
+    "@mpcore/vitest": "1.0.0",
+    "@mpcore/weapp-vite": "1.0.0",
+    "@pandacss/dev": "2.2.0",
+    "@pandacss/preset-base": "2.2.0",
+    "@pandacss/preset-panda": "2.2.0",
+    "@types/node": "^26.6.5",
     "less": "^4.9.1",
     "miniprogram-api-typings": "^5.2.3",
     "postcss": "catalog:",
     "sass": "^1.105.1",
-    "stylus": "^0.55.0",
+    "stylus": "^0.64.0",
     "typescript": "catalog:",
     "vitest": "catalog:",
-    "vue-tsc": "^3.3.12",
+    "vue-tsc": "^3.3.13",
     "weapp-pandacss": "workspace:*",
-    "weapp-vite": "7.4.0"
+    "weapp-vite": "7.5.0"
   }
 }

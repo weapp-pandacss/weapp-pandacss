@@ -50,9 +50,14 @@ it('registers a synchronous generation hook that rejects invalid artifacts', () 
   expect(() => hook({ artifacts: [] } as never)).toThrow('Cannot find Panda helpers')
 })
 
-it.each(['2.1.3', undefined])('rejects unverified Panda version %s', (version) => {
+it.each(['2.1.2', '2.2.0'])('accepts the verified Panda version %s', (version) => {
   vi.mocked(getPandaVersion).mockReturnValue(version)
-  expect(() => weappPanda()).toThrow('requires Panda CSS 2.1.2')
+  expect(weappPanda().name).toBe('weapp-pandacss')
+})
+
+it.each(['2.1.3', '2.2.1', '3.0.0', undefined])('rejects unverified Panda version %s', (version) => {
+  vi.mocked(getPandaVersion).mockReturnValue(version)
+  expect(() => weappPanda()).toThrow(`requires Panda CSS 2.1.2 or 2.2.0; found ${version ?? 'no installed Panda'}`)
 })
 
 it.each([false, true, { className: true, cssVar: false }])('preserves class hash %j and enables native CSS variable hashing', async (hash) => {

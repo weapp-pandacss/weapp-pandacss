@@ -3,7 +3,7 @@ import { transformArtifacts } from './panda/transform'
 import { getPandaVersion } from './panda/version'
 import { encodeClassName } from './runtime'
 
-// Panda 2.1.2 can emit ambiguous hexadecimal CSS escapes for numeric heads.
+// Panda can emit ambiguous hexadecimal CSS escapes for numeric heads.
 // Canonicalize configured identifiers before that escape step; the final runtime
 // and CSS encoding then treat the canonical identifier as their shared input.
 function normalizeClassIdentifier(value: string) {
@@ -28,11 +28,11 @@ function normalizeTheme<T extends {
   }
 }
 
-/** Panda 2.1.2 generation plugin. CSS must also pass through weapp-pandacss/postcss. */
+/** Panda 2.1.2 and 2.2.0 generation plugin. CSS must also pass through weapp-pandacss/postcss. */
 export function weappPanda(): PandaPlugin {
   const version = getPandaVersion()
-  if (version !== '2.1.2') {
-    throw new Error(`weappPanda requires Panda CSS 2.1.2; found ${version ?? 'no installed Panda'}.`)
+  if (version !== '2.1.2' && version !== '2.2.0') {
+    throw new Error(`weappPanda requires Panda CSS 2.1.2 or 2.2.0; found ${version ?? 'no installed Panda'}.`)
   }
   return {
     name: 'weapp-pandacss',

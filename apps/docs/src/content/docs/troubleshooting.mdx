@@ -21,11 +21,11 @@ Follow the chain: source style → Panda extraction → generated runtime → Po
 
 ## Unsupported Panda version or runtime
 
-**Symptom:** `weappPanda requires Panda CSS 2.1.2`, unsupported runtime, missing helpers/sva or TS-only output.
+**Symptom:** `weappPanda requires Panda CSS 2.1.2 or 2.2.0`, unsupported runtime, missing helpers/sva or TS-only output.
 
 **Cause:** The plugin depends on the verified Panda artifact structure. A different version, unsupported extension or incomplete generation cannot be safely adapted.
 
-**Fix:** Pin `@pandacss/dev`, `@pandacss/preset-base` and `@pandacss/preset-panda` to **2.1.2**. Use `outExtension: 'mjs'` and `forceImportExtension: true`, or supported `.js` output. Register `weappPanda()` and regenerate the complete directory. Remove old generated backups/patch hooks through the [migration steps](/migration/).
+**Fix:** Pin `@pandacss/dev`, `@pandacss/preset-base` and `@pandacss/preset-panda` to the same supported version: **2.2.0** for new installations, or exactly **2.1.2** for existing projects. Use `outExtension: 'mjs'` and `forceImportExtension: true`, or supported `.js` output. Register `weappPanda()` and regenerate the complete directory. Remove old generated backups/patch hooks through the [migration steps](/migration/).
 
 **Verify:** Repeated codegen succeeds, helpers and slot runtime contain the portable generation marker, and no old helper backup is needed. Do not suppress the diagnostic or patch one generated file while retaining another generation.
 
@@ -148,7 +148,7 @@ See [unit matching and options](/api/postcss-plugin/#built-in-unit-conversion).
 
 **Symptom:** A raw `.scss`, `.less` or `.styl` import fails in the built-in importer, or a preprocessed global entry retains the Panda layer declaration without generated styles.
 
-**Cause:** The importer reads CSS rather than compiling another language. Official Panda 2.1.2 also filters by `.css` source filenames; framework-compiled `.scss` text retains its original filename. A virtual/no-file input can likewise lack a genuine CSS generation context.
+**Cause:** The importer reads CSS rather than compiling another language. Official Panda 2.2.0 also filters by `.css` source filenames; framework-compiled `.scss` text retains its original filename. A virtual/no-file input can likewise lack a genuine CSS generation context.
 
 **Fix:** Keep the global Panda layer entry as `.css` and compile component Sass/Less/Stylus through the framework first. Import compiled CSS, use framework import processing, or provide a compiler-backed `imports.load` with dependencies. Custom virtual loaders pass the real `.css` entry as `from`; pure string adaptation may intentionally skip generation. Explicit Panda config errors should be fixed at that path rather than hidden by fallback.
 

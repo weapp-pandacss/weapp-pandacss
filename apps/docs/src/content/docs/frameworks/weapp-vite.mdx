@@ -5,14 +5,14 @@ sidebar:
   order: 1
 ---
 
-This guide follows [examples/weapp-vite-app](https://github.com/weapp-pandacss/weapp-pandacss/tree/main/examples/weapp-vite-app): weapp-vite **7.4.0**, Wevu **7.4.0** and Panda CSS **2.1.2**, targeting WeChat. Add styling to an existing Weapp Vite + Wevu application.
+This guide follows [examples/weapp-vite-app](https://github.com/weapp-pandacss/weapp-pandacss/tree/main/examples/weapp-vite-app): weapp-vite **7.5.0**, Wevu **7.5.0** and Panda CSS **2.2.0**, targeting WeChat. Add styling to an existing Weapp Vite + Wevu application.
 
 ## Install
 
 The adapter engine is `^22.18.0 || >=24.11.0`; Node 22.18+ or 24.11+ on their LTS lines is recommended. In the application directory:
 
 ~~~sh
-pnpm add -D @pandacss/dev@2.1.2 @pandacss/preset-base@2.1.2 @pandacss/preset-panda@2.1.2 weapp-pandacss@^2 postcss
+pnpm add -D @pandacss/dev@2.2.0 @pandacss/preset-base@2.2.0 @pandacss/preset-panda@2.2.0 weapp-pandacss@^2 postcss
 ~~~
 
 Add `@weapp-pandacss/runtime` as an application dependency only when encoding hand-written special class names. Panda-generated classes do not need this extra import.
@@ -142,4 +142,4 @@ pnpm --filter @weapp-pandacss/weapp-vite-app lint
 pnpm --filter @weapp-pandacss/weapp-vite-app test
 ~~~
 
-mpcore checks actual compiled WXML/WXSS and class changes after taps. It does not check pixel layout; use the target IDE/device for rendering. Other Weapp Vite platforms and its Web runtime need separate acceptance. Ignore `.weapp-vite/`, `styled-system/` and `dist/` in Git.
+mpcore 1.0.0 checks actual compiled WXML/WXSS and class changes after taps. It does not check pixel layout; use the target IDE/device for rendering. Other Weapp Vite platforms and its Web runtime need separate acceptance. Ignore `.weapp-vite/`, `styled-system/` and `dist/` in Git.

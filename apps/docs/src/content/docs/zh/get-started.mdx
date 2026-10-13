@@ -5,14 +5,14 @@ sidebar:
   order: 1
 ---
 
-> **发布状态：** 本页对应即将发布的 minor 与仓库实现，当前 npm 已发布版本仍使用原有 PostCSS 默认行为。升级到新 minor 前，保留已安装版本所需的独立 import/Panda/adapter 流水线；升级后按[迁移步骤](/zh/migration/#升级到零选项-postcss-流水线)改为三合一。
+> **发布状态：** 本页对应即将发布的 minor 与仓库实现，Panda 2.2.0 支持与新的 PostCSS 默认行为需要该 minor。升级前继续使用 Panda 2.1.2 和当前已发布包所需的独立 import/Panda/adapter 流水线；升级后按[迁移步骤](/zh/migration/#升级到零选项-postcss-流水线)改为三合一。
 
 ## 环境要求
 
-适配器声明的 Node.js 范围为 `^22.18.0 || >=24.11.0`。仓库 CI 验证 Node 22 与 24，建议使用满足该范围的受支持版本。Panda 与两个 preset 必须使用已验收的 **2.1.2**；适配器会检查实际安装的 Panda 版本，其他版本会报错。
+适配器声明的 Node.js 范围为 `^22.18.0 || >=24.11.0`。仓库 CI 验证 Node 22 与 24，建议使用满足该范围的受支持版本。适配器精确支持 **2.1.2** 和 **2.2.0**（`2.1.2 || 2.2.0`），新安装默认使用 **2.2.0**。Panda 与两个 preset 保持同一受支持版本；适配器检查实际安装的 Panda，未安装或其他版本会报错。
 
 ~~~sh
-pnpm add -D @pandacss/dev@2.1.2 @pandacss/preset-base@2.1.2 @pandacss/preset-panda@2.1.2 weapp-pandacss@^2 postcss
+pnpm add -D @pandacss/dev@2.2.0 @pandacss/preset-base@2.2.0 @pandacss/preset-panda@2.2.0 weapp-pandacss@^2 postcss
 ~~~
 
 Panda 2 需要显式安装并注册 preset。仅当业务代码需要编码手写 class 时，再安装独立 runtime：

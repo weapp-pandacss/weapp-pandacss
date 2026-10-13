@@ -10,7 +10,7 @@ sidebar:
 ## 升级顺序
 
 1. 停止项目中写入生成目录的 build/watch 进程，删除旧 `styled-system` 产物，包括 helper 备份与 weapp-panda 补丁文件。
-2. 固定 `@pandacss/dev`、`@pandacss/preset-base`、`@pandacss/preset-panda` 为 **2.1.2**。注册 `weappPanda()`，设置 `polyfill: false`，使用支持的 `.js` 或 `.mjs` runtime 输出。
+2. 固定 `@pandacss/dev`、`@pandacss/preset-base`、`@pandacss/preset-panda` 为 **2.2.0**；已有项目也可继续使用 **2.1.2**，三个包保持同一版本。注册 `weappPanda()`，设置 `polyfill: false`，使用支持的 `.js` 或 `.mjs` runtime 输出。
 3. 将 `panda codegen && weapp-panda codegen` 改为 `panda codegen`，移除 adapter 子进程、`codegen:done` 补丁 hook 和跨平台 rollback 脚本。
 4. 仅注册 `weapp-pandacss/postcss: {}`，由它执行 import 展开 → Panda → 适配，按需单位规则配置在同一插件的 `units` 中。旧 adapter 配置文件的 CSS 选项移到此插件参数。
 5. 手写 class helper 改用 `@weapp-pandacss/runtime`，只编码原始手写名称一次，保留 `css()`、recipe、pattern 与 `cx()` 结果。
@@ -104,7 +104,7 @@ module.exports = {
 }
 ~~~
 
-保留 `panda.config`、`weappPanda()`、`polyfill: false`、显式 Panda 2.1.2 preset、全局 `.css` layer 入口与 codegen 脚本。H5 使用 `{ target: 'web' }`，单位转换通过内置 `units` 按需启用。自定义流程可关闭对应内置 `imports`/`panda` 阶段后保留外置插件，或用 `{ imports: false, panda: false }` 仅执行适配。`disabled: true` 现在跳过整个组合流水线，`adapter: false` 则仍导入、生成 CSS 并执行显式配置的 units。
+保留 `panda.config`、`weappPanda()`、`polyfill: false`、与受支持 Panda 版本一致的显式 preset、全局 `.css` layer 入口与 codegen 脚本。H5 使用 `{ target: 'web' }`，单位转换通过内置 `units` 按需启用。自定义流程可关闭对应内置 `imports`/`panda` 阶段后保留外置插件，或用 `{ imports: false, panda: false }` 仅执行适配。`disabled: true` 现在跳过整个组合流水线，`adapter: false` 则仍导入、生成 CSS 并执行显式配置的 units。
 
 Panda 先发现真实源文件附近最近配置，再从进程 cwd 回退；显式覆盖放在 `panda` 下。自定义 loader 使用真实 `from` 并转发依赖消息。Sass/Less/Stylus 仍由框架预处理，Panda 入口保持 `.css`。默认 importer 拒绝原始预处理文件导入，不推断编译器或单位比例。重新构建各目标，验证 watch 更新、class/selector 匹配和 H5 原生 layer，详见[完整接口](/zh/api/postcss-plugin/)。
 
@@ -147,7 +147,7 @@ Uni-app Tailwind 对比示例分开维护 Panda/Tailwind 流程，新 portable �
 
 | 能力 | 边界 |
 | --- | --- |
-| Panda 生成 | 仅 **2.1.2**，覆盖 codegen 与 PostCSS 自动生成 |
+| Panda 生成 | 精确 **2.1.2** 或 **2.2.0**，覆盖 codegen 与 PostCSS 自动生成 |
 | 生成 runtime 扩展名 | `.js` / `.mjs`，拒绝 TS-only、未知或不完整结构 |
 | Portable 生成范围 | `css`、`cva`、`sva`、命名/slot recipes、compounds、patterns 与 styled 元数据 |
 | Runtime 行为 | `cx` 保持拼接，原始样式对象与元数据保留 Panda 语义 |

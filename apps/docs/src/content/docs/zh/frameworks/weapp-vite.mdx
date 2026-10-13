@@ -5,14 +5,14 @@ sidebar:
   order: 1
 ---
 
-本指南依据 [examples/weapp-vite-app](https://github.com/weapp-pandacss/weapp-pandacss/tree/main/examples/weapp-vite-app)：weapp-vite **7.4.0**、Wevu **7.4.0** 和 Panda CSS **2.1.2**，构建目标为微信。在已有 Weapp Vite + Wevu 应用中添加样式。
+本指南依据 [examples/weapp-vite-app](https://github.com/weapp-pandacss/weapp-pandacss/tree/main/examples/weapp-vite-app)：weapp-vite **7.5.0**、Wevu **7.5.0** 和 Panda CSS **2.2.0**，构建目标为微信。在已有 Weapp Vite + Wevu 应用中添加样式。
 
 ## 安装依赖
 
 adapter 声明 Node `^22.18.0 || >=24.11.0`，推荐 Node 22.18+ 或 24.11+ 的 LTS 版本，在应用目录执行：
 
 ~~~sh
-pnpm add -D @pandacss/dev@2.1.2 @pandacss/preset-base@2.1.2 @pandacss/preset-panda@2.1.2 weapp-pandacss@^2 postcss
+pnpm add -D @pandacss/dev@2.2.0 @pandacss/preset-base@2.2.0 @pandacss/preset-panda@2.2.0 weapp-pandacss@^2 postcss
 ~~~
 
 只有手写特殊 class 需要编码时，才把 `@weapp-pandacss/runtime` 安装为应用依赖。Panda 生成的 class 无需额外导入它。
@@ -142,4 +142,4 @@ pnpm --filter @weapp-pandacss/weapp-vite-app lint
 pnpm --filter @weapp-pandacss/weapp-vite-app test
 ~~~
 
-mpcore 检查真实编译的 WXML/WXSS 与点击后的 class 更新，不验收像素布局；渲染需要目标 IDE/真机验证。其他 Weapp Vite 平台及 Web runtime 需要各自验收。Git 忽略 `.weapp-vite/`、`styled-system/` 和 `dist/`。
+mpcore 1.0.0 检查真实编译的 WXML/WXSS 与点击后的 class 更新，不验收像素布局；渲染需要目标 IDE/真机验证。其他 Weapp Vite 平台及 Web runtime 需要各自验收。Git 忽略 `.weapp-vite/`、`styled-system/` 和 `dist/`。
