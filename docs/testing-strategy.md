@@ -14,7 +14,7 @@ The gate measures **all owned `packages/*/src/**/*.ts`** at 100% statements, bra
 | Browser E2E              | Production React, Chromium/Firefox/WebKit computed styles, hover, compounds/slots, repeated toggles, reload, narrow viewport, manual collisions and runtime errors |
 | Real WeChat              | Opt-in IDE rendering, changing styles, WXSS matching, reLaunch reset and screenshots                                                                               |
 
-Panda compatibility fixtures unpack the adapter into isolated consumers for exactly 2.1.2 and 2.2.0, using lockfile-pinned packages offline. Each consumer resolves its own Panda and matching presets; a workspace-wide import must not substitute the default 2.2.0 installation.
+The adapter's minimum Panda version is 2.1.2, with later stable releases accepted without an upper version bound. Version-gate tests cover older, invalid and prerelease versions as well as later stable releases; AST checks remain responsible for rejecting incompatible generated structures. Panda compatibility fixtures unpack the adapter into isolated consumers for exactly 2.1.2 and 2.2.0, using lockfile-pinned packages offline. These are the real tested cohorts, rather than an exhaustive test of every version in the supported range. Each consumer resolves its own Panda and matching presets; a workspace-wide import must not substitute the default 2.2.0 installation.
 
 mpcore 1.0.0 tests real emitted artifacts but does not emulate WeChat CSS layout. Artifact checks do not claim framework interaction coverage. Real IDE/device acceptance remains a distinct layer.
 

@@ -153,8 +153,8 @@ Panda 生成，adapter 不再替换变量名。小程序中手写变量必须使
 
 ## 兼容与迁移
 
-本版本精确支持 Panda CSS 2.1.2 和 2.2.0（`2.1.2 || 2.2.0`），新安装默认使用 2.2.0，`@pandacss/dev` 与两个 preset 保持同一受支持版本。支持 `.js` 与 `.mjs`，不支持仅 TypeScript
-runtime。缺少 runtime、结构变更或不支持的版本会抛出诊断。适配器使用现有 Panda
+本版本接受 Panda CSS 2.1.2 及后续稳定版本（`>=2.1.2`，不设版本上限），新安装默认使用 2.2.0，`@pandacss/dev` 与两个 preset 保持同一受支持版本。真实离线消费者测试覆盖 2.1.2 和 2.2.0，后续版本仍需通过 AST 结构校验。支持 `.js` 与 `.mjs`，不支持仅 TypeScript
+runtime。缺少 Panda、低于最低版本、预发布版本或不兼容的生成结构会抛出诊断。适配器使用现有 Panda
 接口，不修改上游或维护 fork。绕过 runtime、直接内联原始 class 的 Panda 源码
 优化流程暂不支持。
 

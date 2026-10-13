@@ -1,4 +1,5 @@
 import type { PandaPlugin } from '@pandacss/types'
+import { satisfies } from 'verkit'
 import { transformArtifacts } from './panda/transform'
 import { getPandaVersion } from './panda/version'
 import { encodeClassName } from './runtime'
@@ -28,11 +29,13 @@ function normalizeTheme<T extends {
   }
 }
 
-/** Panda 2.1.2 and 2.2.0 generation plugin. CSS must also pass through weapp-pandacss/postcss. */
+const pandaVersionRange = '>=2.1.2'
+
+/** Panda 2.1.2+ generation plugin. CSS must also pass through weapp-pandacss/postcss. */
 export function weappPanda(): PandaPlugin {
   const version = getPandaVersion()
-  if (version !== '2.1.2' && version !== '2.2.0') {
-    throw new Error(`weappPanda requires Panda CSS 2.1.2 or 2.2.0; found ${version ?? 'no installed Panda'}.`)
+  if (!version || !satisfies(version, pandaVersionRange)) {
+    throw new Error(`weappPanda requires Panda CSS ${pandaVersionRange}; found ${version ?? 'no installed Panda'}.`)
   }
   return {
     name: 'weapp-pandacss',

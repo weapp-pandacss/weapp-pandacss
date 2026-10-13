@@ -20,6 +20,7 @@
 | Stylus                                             | 0.64.0   | 五个活跃示例统一                                                              |
 | @pandacss/dev / preset-base / preset-panda / types | 2.2.0    | 默认安装与生成工具；发布 types 升级                                           |
 | Panda 旧版本兼容别名                               | 2.1.2    | 三个精确 npm alias，仅 adapter 的离线兼容测试使用                             |
+| verkit                                             | 0.5.0    | adapter 的 SemVer 最低版本校验；内置类型，不提高 Node 最低版本要求            |
 | actions/create-github-app-token                    | 3.3.0    | 两处固定 SHA：`64ab729a6294000f5aa4a4bc0b73d1f32bc45510`                      |
 
 `packageManager` 的完整 integrity 保存在根 manifest。三个批次均重建锁文件并通过 `pnpm install --frozen-lockfile`；最后又为 Stylelint 的 PostCSS 8.5.29 → 8.5.30 兼容补丁重建并验证 frozen install。该定向补丁消除了 `postcss-sorting@10.0.0` 新出现的 PostCSS peer 不匹配。
@@ -41,11 +42,11 @@
 
 ## 实现与受管配置
 
-- adapter 的 peer 及运行时白名单精确为 `2.1.2 || 2.2.0`。缺失安装、2.1.3、2.2.1 和 3.0.0 均被拒绝；原 AST 结构校验保留，错误改为与具体版本无关的结构诊断。
+- adapter 的 peer 及运行时最低版本为 `>=2.1.2`，接受后续稳定版本且不设上限。缺失安装、无效版本、低于 2.1.2 或预发布版本会被拒绝；2.1.3、2.2.1 及未来稳定主版本不会仅因版本号被拒绝。真实离线消费者验收仍固定为 2.1.2 和 2.2.0，后续版本的生成产物须通过保留的 AST 结构校验，不兼容结构仍会报错。
 - 三个旧 alias 是 `@pandacss/dev-2-1-2`、`@pandacss/preset-base-2-1-2`、`@pandacss/preset-panda-2-1-2`，均精确指向 2.1.2。repoctl 兼容 cohort 将其登记为明确例外；Renovate 的 `matchDepNames` 仅禁用这三个 alias，不锁住默认 Panda 依赖。
 - 双版本测试解包真实 adapter/runtime tarball，链接锁文件中已经安装的精确依赖。adapter 自身的 `node_modules/@pandacss/dev` 与消费者的 canonical 名称均对应所选 cohort，并断言实际解析版本及真实解包路径。测试不运行安装、不访问 registry；避免把 workspace 源码 symlink 误当成双版本消费验证。
 - 验证 js/mjs、hash、非法/Unicode prefix、recipes/slots/tokens、重复生成、runtime-selector 一致性，以及真实 packed PostCSS 导入、source map 和配置重载。源码 PostCSS 管线测试继续覆盖 watch、跨项目隔离和完整错误分支。
-- Panda 2.2 使用 Rolldown 打包本地配置导入，旧 PostCSS fixture 仅链接 presets 不足以代表真实消费者。fixture 现显式声明并链接 dev peer，版本门禁未放宽。
+- Panda 2.2 使用 Rolldown 打包本地配置导入，旧 PostCSS fixture 仅链接 presets 不足以代表真实消费者。fixture 现显式声明并链接 dev peer；这项修正与版本门禁独立，未绕过实际依赖解析。
 - `mpcoreTest` 从 `@mpcore/vitest/config` 导入；其 `/config` 不再携带 matcher 类型声明，故 node tsconfig 显式加载 `@mpcore/vitest` 的 matcher augmentation。真实产物构建、独立 runtime、交互断言及 close 生命周期保留。
 - 真实 IDE 发现原验收脚本用包含溢出内容的 `page.size().width` 计算 rpx，现改用窗口视口 `systemInfo.windowWidth`；保留页面尺寸诊断。390px 视口下独立预期仍是 48rpx → 24px、16rpx → 8px、50% 内容宽度 187px。另将 console 监听放到已等待的 AppService 握手之后，避免 SDK 未等待的日志启用请求在启动时产生未处理拒绝；断言和 scoped teardown 保留。
 - repoctl 根 upgrade 方案无 blocker，更新受管 baselines 到模板 2.3.3 并保留本地 Vitest 定制。token action 的定制通过另一个审阅后的 upgrade plan 应用；上游 baseline 保留，后续三方合并仍能区分项目定制。
@@ -62,9 +63,9 @@
 | 第一批两个发布包构建                                            | 通过                                                                                  |
 | 第二批 Wevu 编译/交互测试                                       | 2 文件 / 6 测试通过                                                                   |
 | 第二批 Nimbus build / locale parity                             | 54 页面 / 27 对语言页面通过                                                           |
-| 双版本 Panda 针对性测试                                         | 5 文件 / 60 测试通过                                                                  |
+| 双版本 Panda 针对性测试                                         | 首轮 5 文件 / 60 测试通过；最低版本调整后再次包含于完整测试通过                       |
 | `pnpm exec repo check --full`                                   | lint、typecheck、test、build 全部通过，退出码 0                                       |
-| 完整 Vitest / 覆盖率                                            | 28 文件 / 291 测试；逐文件 statements、branches、functions、lines 均 100%             |
+| 完整 Vitest / 覆盖率                                            | 28 文件 / 305 测试；逐文件 statements、branches、functions、lines 均 100%             |
 | `pnpm tsd` 与根 `test:types`                                    | 两个发布包通过                                                                        |
 | Taro React/Vue：微信 + H5 真实产物                              | 四个构建及 CSS/runtime/preprocessor 断言通过，包含于完整测试                          |
 | Uni：微信 + H5 真实产物                                         | 两个构建及 CSS/Tailwind/preprocessor 断言通过，包含于完整测试                         |
@@ -82,7 +83,9 @@
 | `repo doctor --json`                                            | 87 pass / 59 warn / 0 fail                                                            |
 | `pnpm change check`、`git diff --check`                         | 通过                                                                                  |
 
-覆盖率明细为 370 statements、334 branches、102 functions、340 lines 全部覆盖；11 个含代码文件完全覆盖，4 个空 barrel 文件没有可执行语句。未修改任何覆盖率阈值。
+覆盖率明细为 371 statements、334 branches、102 functions、341 lines 全部覆盖；11 个含代码文件完全覆盖，4 个空 barrel 文件没有可执行语句。未修改任何覆盖率阈值。
+
+按最终兼容策略将 Panda 版本白名单改为最低稳定版本 `>=2.1.2` 后，新增版本边界验收覆盖 build metadata、后续 patch/minor/major、低版本、无效/缺失版本和预发布版本；未来稳定版本仍执行 AST 结构检查。版本比较使用仓库 lint 推荐的 `verkit@0.5.0`，不自行拆分版本字符串。再次通过 frozen install、`repo check --full`、tsd、pack check 及中文 release intent 检查，完整测试由首轮 291 项增至 305 项，ESM/CJS 入口和真实 2.1.2/2.2.0 解包消费者均通过。中英文文档通过 lint、typecheck、build 和 27 对语言页面检查。本次调整没有重跑浏览器或真实 IDE；上表对应证据来自此前完整升级验收。
 
 `repo doctor` 的 59 个提示为：54 个已定制/删除的模板路径、docs/runtime 两个历史生成实例仍为模板 2.3.1、Weapp Vite 上游示例来源没有可比的精确模板包版本，以及两项 override 转换造成的锁文件/安装状态证明限制（postcss-selector-parser）。根受管资产已更新到 2.3.3；业务示例模板未被回写。实际 frozen install 已通过，这些提示不被描述为静态证明成功。
 
@@ -128,6 +131,8 @@
 `Stylus → css → source-map-resolve → decode-uri-component` 旧链的 103 条 audit 路径全部消失，锁文件仅保留 `stylus@0.64.0`。`decode-uri-component` advisory 仍存在，但只剩两个 Taro 下载链路径：`@tarojs/cli → download-git-repo → download → got → cacheable-request → normalize-url → query-string → decode-uri-component@0.2.2`。因此不能宣称该模块的漏洞完全消失；锁文件同时保留 0.2.2 和已修复的 0.5.0。
 
 `phin`、`esbuild`、`braces` 的具体路径发生变化，但 advisory、受影响版本与 cohort 边界均保留；这是解析链/枚举路径变化，不是新增 advisory，也不能据此宣称这些模块已修复。最终同步兼容的 PostCSS override（8.5.29 → 8.5.30）后，与中间 `audit-after.json` 相比：64 个 advisory ID 完全相同、等级完全相同，总解析依赖 3298 → 3297；仅这三个模块的具体枚举路径变化（phin 101 → 100、esbuild 187 → 187、braces 104 → 104），各模块的受影响版本与 cohort 均相同。
+
+最低版本调整后的 `min-version-audit-final.json` 与初次提交的 `audit-final.json` 再次逐项比较：64 个 advisory ID、等级及受影响版本均相同，总解析依赖仍为 3297，新增/消失 advisory 均为 0。其余 findings 仅顺序变化；去重后的具体路径集合仍只在 phin、esbuild、braces 发生枚举变化（100 → 101、187 → 187、104 → 104），各模块的受影响版本与 cohort 边界不变。verkit 0.5.0 已在原锁文件中，此次新增 adapter 的直接依赖没有引入新告警。
 
 ## 按活跃 cohort 聚合
 

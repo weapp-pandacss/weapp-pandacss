@@ -7,7 +7,7 @@ sidebar:
 
 ## Configuration
 
-The adapter supports exactly `@pandacss/dev` **2.1.2** or **2.2.0**, with matching presets; new installations use **2.2.0**. It requires Node.js **22.18 or newer in the 22.x line, or 24.11 and newer**. Node.js 23 and earlier 24.x releases are outside the package's engine range.
+The adapter accepts stable `@pandacss/dev` releases from **2.1.2** onward (`>=2.1.2`), with matching presets; new installations use **2.2.0**. Real consumer tests cover **2.1.2** and **2.2.0**; AST checks still reject incompatible generated structures in later releases. It requires Node.js **22.18 or newer in the 22.x line, or 24.11 and newer**. Node.js 23 and earlier 24.x releases are outside the package's engine range.
 
 ~~~ts
 // panda.config.ts

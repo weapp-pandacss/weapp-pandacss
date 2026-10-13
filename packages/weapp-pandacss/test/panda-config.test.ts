@@ -45,19 +45,20 @@ it('leaves empty prefix properties and themes without recipes unchanged', async 
   expect(await resolve({ prefix: { className: '', cssVar: '' }, theme: { extend: {} } })).toMatchObject({ prefix: { className: '', cssVar: '' }, theme: { extend: {} } })
 })
 
-it('registers a synchronous generation hook that rejects invalid artifacts', () => {
+it.each(['2.1.2', '2.2.0', '3.0.0'])('retains structural validation for an accepted Panda version: %s', (version) => {
+  vi.mocked(getPandaVersion).mockReturnValue(version)
   const hook = weappPanda().hooks!['codegen:prepare'] as PandaHooks['codegen:prepare']
   expect(() => hook({ artifacts: [] } as never)).toThrow('Cannot find Panda helpers')
 })
 
-it.each(['2.1.2', '2.2.0'])('accepts the verified Panda version %s', (version) => {
+it.each(['2.1.2', '2.1.2+build.1', '2.1.3', '2.2.0', '2.2.1', '2.10.0', '3.0.0', '10.0.0'])('accepts stable Panda versions at or above the minimum: %s', (version) => {
   vi.mocked(getPandaVersion).mockReturnValue(version)
   expect(weappPanda().name).toBe('weapp-pandacss')
 })
 
-it.each(['2.1.3', '2.2.1', '3.0.0', undefined])('rejects unverified Panda version %s', (version) => {
+it.each(['0.99.0', '2.0.99', '2.1.1', '2.1.2-beta.1', '2.2.0-rc.1', '3.0.0-alpha.1', 'invalid', '2.1', '', undefined])('rejects missing, invalid, prerelease or below-minimum Panda versions: %s', (version) => {
   vi.mocked(getPandaVersion).mockReturnValue(version)
-  expect(() => weappPanda()).toThrow(`requires Panda CSS 2.1.2 or 2.2.0; found ${version ?? 'no installed Panda'}`)
+  expect(() => weappPanda()).toThrow(`requires Panda CSS >=2.1.2; found ${version ?? 'no installed Panda'}`)
 })
 
 it.each([false, true, { className: true, cssVar: false }])('preserves class hash %j and enables native CSS variable hashing', async (hash) => {

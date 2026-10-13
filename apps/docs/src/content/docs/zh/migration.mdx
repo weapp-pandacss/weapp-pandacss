@@ -10,7 +10,7 @@ sidebar:
 ## 升级顺序
 
 1. 停止项目中写入生成目录的 build/watch 进程，删除旧 `styled-system` 产物，包括 helper 备份与 weapp-panda 补丁文件。
-2. 固定 `@pandacss/dev`、`@pandacss/preset-base`、`@pandacss/preset-panda` 为 **2.2.0**；已有项目也可继续使用 **2.1.2**，三个包保持同一版本。注册 `weappPanda()`，设置 `polyfill: false`，使用支持的 `.js` 或 `.mjs` runtime 输出。
+2. 新安装固定 `@pandacss/dev`、`@pandacss/preset-base`、`@pandacss/preset-panda` 为 **2.2.0**。最低版本为 **2.1.2**，后续稳定版本不设上限，三个包保持同一版本。真实消费者测试覆盖 **2.1.2** 和 **2.2.0**，AST 结构校验保留。注册 `weappPanda()`，设置 `polyfill: false`，使用支持的 `.js` 或 `.mjs` runtime 输出。
 3. 将 `panda codegen && weapp-panda codegen` 改为 `panda codegen`，移除 adapter 子进程、`codegen:done` 补丁 hook 和跨平台 rollback 脚本。
 4. 仅注册 `weapp-pandacss/postcss: {}`，由它执行 import 展开 → Panda → 适配，按需单位规则配置在同一插件的 `units` 中。旧 adapter 配置文件的 CSS 选项移到此插件参数。
 5. 手写 class helper 改用 `@weapp-pandacss/runtime`，只编码原始手写名称一次，保留 `css()`、recipe、pattern 与 `cx()` 结果。
@@ -147,7 +147,7 @@ Uni-app Tailwind 对比示例分开维护 Panda/Tailwind 流程，新 portable �
 
 | 能力 | 边界 |
 | --- | --- |
-| Panda 生成 | 精确 **2.1.2** 或 **2.2.0**，覆盖 codegen 与 PostCSS 自动生成 |
+| Panda 生成 | 稳定版本 **>=2.1.2**，覆盖 codegen 与 PostCSS 自动生成；真实消费者测试覆盖 **2.1.2** 和 **2.2.0** |
 | 生成 runtime 扩展名 | `.js` / `.mjs`，拒绝 TS-only、未知或不完整结构 |
 | Portable 生成范围 | `css`、`cva`、`sva`、命名/slot recipes、compounds、patterns 与 styled 元数据 |
 | Runtime 行为 | `cx` 保持拼接，原始样式对象与元数据保留 Panda 语义 |

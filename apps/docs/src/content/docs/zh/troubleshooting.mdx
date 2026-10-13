@@ -21,11 +21,11 @@ sidebar:
 
 ## Panda 版本或 runtime 不支持
 
-**症状：** 出现 `weappPanda requires Panda CSS 2.1.2 or 2.2.0`、不支持的 runtime、缺少 helpers/sva 或 TS-only 输出诊断。
+**症状：** 出现 `weappPanda requires Panda CSS >=2.1.2`、不支持的 runtime、缺少 helpers/sva 或 TS-only 输出诊断。
 
-**根因：** 插件依赖已验收的 Panda 产物结构，不同版本、不支持的扩展名或不完整生成不能安全适配。
+**根因：** 版本门禁要求 Panda 稳定版本 >=2.1.2，插件还会检查生成产物的 AST 结构；不支持的扩展名、变更的 runtime 结构或不完整生成不能安全适配。
 
-**修复：** 固定 `@pandacss/dev`、`@pandacss/preset-base` 与 `@pandacss/preset-panda` 为同一受支持版本：新安装使用 **2.2.0**，已有项目也可继续使用精确的 **2.1.2**。使用 `outExtension: 'mjs'` 与 `forceImportExtension: true`，也可使用支持的 `.js` 输出。注册 `weappPanda()` 后完整重新生成，旧备份/补丁 hook 按[迁移步骤](/zh/migration/)移除。
+**修复：** 固定 `@pandacss/dev`、`@pandacss/preset-base` 与 `@pandacss/preset-panda` 为同一稳定版本 **>=2.1.2**。新安装使用 **2.2.0**，真实消费者测试覆盖 **2.1.2** 和 **2.2.0**。若后续版本未通过 AST 结构校验，先使用已测试版本并反馈不兼容产物。使用 `outExtension: 'mjs'` 与 `forceImportExtension: true`，也可使用支持的 `.js` 输出。注册 `weappPanda()` 后完整重新生成，旧备份/补丁 hook 按[迁移步骤](/zh/migration/)移除。
 
 **验证：** 重复 codegen 成功，helpers 与 slot runtime 带有 portable 生成标记，不依赖旧 helper 备份。不要吞掉诊断，也不要只修改一个生成文件而保留另一轮产物。
 

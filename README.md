@@ -2,7 +2,7 @@
 
 <img src="./assets/brand/logo.svg" alt="weapp-pandacss logo" width="128" height="128">
 
-Use Panda CSS 2.2.0 in WeChat and other mini-program runtimes. The adapter supports exactly Panda 2.1.2 and 2.2.0; the examples use 2.2.0.
+Use Panda CSS 2.2.0 in WeChat and other mini-program runtimes. The adapter accepts stable Panda releases from 2.1.2 onward (`>=2.1.2`); the examples use 2.2.0. Real consumer tests cover 2.1.2 and 2.2.0, and AST checks reject incompatible generated artifacts.
 
 Documentation: [English](https://panda.weapp.dev/) · [简体中文](https://panda.weapp.dev/zh/).
 
