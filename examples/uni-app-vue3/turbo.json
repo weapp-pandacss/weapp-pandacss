@@ -7,7 +7,8 @@
       "inputs": [
         "$TURBO_DEFAULT$",
         "postcss.config.cjs",
-        "../run-platform.mjs"
+        "../run-platform.mjs",
+        "../build-env.cjs"
       ],
       "outputs": [
         "dist/build/mp-weixin/**",
@@ -15,7 +16,7 @@
       ],
       "env": [
         "NODE_ENV",
-        "TARO_ENV"
+        "UNI_PLATFORM"
       ]
     },
     "typecheck": {
@@ -25,7 +26,9 @@
       ],
       "inputs": [
         "$TURBO_DEFAULT$",
-        "styled-system/**"
+        "styled-system/**",
+        "../build-env.cjs",
+        "../build-env.d.cts"
       ]
     }
   }

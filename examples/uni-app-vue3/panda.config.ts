@@ -1,6 +1,9 @@
 import process from 'node:process'
 import { defineConfig } from '@pandacss/dev'
 import { weappPanda } from 'weapp-pandacss/panda'
+import { resolveBuildEnv } from '../build-env.cjs'
+
+const { platform } = resolveBuildEnv('uni', process.env)
 
 export default defineConfig({
   plugins: [weappPanda()],
@@ -24,7 +27,7 @@ export default defineConfig({
   jsxFramework: 'vue',
 
   // The output directory for your css system
-  outdir: `styled-system/${process.env.UNI_PLATFORM || 'mp-weixin'}`,
+  outdir: `styled-system/${platform}`,
   importMap: 'styled-system',
   outExtension: 'mjs',
   forceImportExtension: true,

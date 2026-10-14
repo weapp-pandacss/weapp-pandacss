@@ -11,6 +11,18 @@
         "dist/**"
       ]
     },
+    "test": {
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "../../examples/build-env.cjs"
+      ]
+    },
+    "typecheck": {
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "../../examples/build-env.d.cts"
+      ]
+    },
     "tsd": {
       "dependsOn": [
         "build"

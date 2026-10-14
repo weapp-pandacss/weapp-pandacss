@@ -1,4 +1,7 @@
 const process = require('node:process')
+const { resolveBuildEnv } = require('../build-env.cjs')
+
+const { cssTarget } = resolveBuildEnv('uni', process.env)
 
 module.exports = {
   plugins: {
@@ -6,8 +9,8 @@ module.exports = {
     './panda-postcss.cjs': {
       imports: false,
       panda: false,
-      target: process.env.UNI_PLATFORM === 'h5' ? 'web' : 'weapp',
-      units: { rules: [{ from: 'rem', to: process.env.UNI_PLATFORM === 'h5' ? 'px' : 'rpx', factor: 32 }] },
+      target: cssTarget,
+      units: { rules: [{ from: 'rem', to: cssTarget === 'web' ? 'px' : 'rpx', factor: 32 }] },
     },
   },
 }

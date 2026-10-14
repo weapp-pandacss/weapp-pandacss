@@ -4,10 +4,12 @@ import process from 'node:process'
 import { defineConfig } from '@tarojs/cli'
 import TsconfigPathsPlugin from 'tsconfig-paths-webpack-plugin'
 import { ProgressPlugin } from 'webpack'
+import { resolveBuildEnv } from '../../build-env.cjs'
 import devConfig from './dev'
 import prodConfig from './prod'
 // https://taro-docs.jd.com/docs/next/config#defineconfig-辅助函数
 export default defineConfig(async (merge) => {
+  const { platform, cssTarget } = resolveBuildEnv('taro', process.env)
   const baseConfig: UserConfigExport = {
     projectName: 'taro-app',
     date: '2023-7-28',
@@ -26,7 +28,7 @@ export default defineConfig(async (merge) => {
       828: 1.81 / 2,
     },
     sourceRoot: 'src',
-    outputRoot: `dist/${process.env.TARO_ENV || 'weapp'}`,
+    outputRoot: `dist/${platform}`,
     plugins: ['@tarojs/plugin-html'],
     defineConstants: {
     },
@@ -37,13 +39,13 @@ export default defineConfig(async (merge) => {
       },
     },
     alias: {
-      'styled-system': path.resolve(__dirname, '..', 'styled-system', process.env.TARO_ENV || 'weapp'),
+      'styled-system': path.resolve(__dirname, '..', 'styled-system', platform),
     },
     framework: 'react',
     compiler: {
       type: 'webpack5',
       prebundle: {
-        enable: process.env.TARO_ENV === 'h5',
+        enable: cssTarget === 'web',
       },
     },
     cache: {

@@ -3,8 +3,11 @@ import process from 'node:process'
 import NutUIResolver from '@nutui/nutui-taro/dist/resolver'
 import Components from 'unplugin-vue-components/webpack'
 import { ProgressPlugin } from 'webpack'
+import { resolveBuildEnv } from '../../build-env.cjs'
 import devConfig from './dev'
 import prodConfig from './prod'
+
+const { platform } = resolveBuildEnv('taro', process.env)
 
 const config = {
   projectName: 'taro-app-vue3',
@@ -22,7 +25,7 @@ const config = {
     375: 2 / 1,
   },
   sourceRoot: 'src',
-  outputRoot: `dist/${process.env.TARO_ENV || 'weapp'}`,
+  outputRoot: `dist/${platform}`,
   plugins: ['@tarojs/plugin-html'],
   defineConstants: {},
   copy: {
@@ -30,7 +33,7 @@ const config = {
     options: {},
   },
   alias: {
-    'styled-system': path.resolve(__dirname, '..', 'styled-system', process.env.TARO_ENV || 'weapp'),
+    'styled-system': path.resolve(__dirname, '..', 'styled-system', platform),
   },
   framework: 'vue3',
   compiler: {

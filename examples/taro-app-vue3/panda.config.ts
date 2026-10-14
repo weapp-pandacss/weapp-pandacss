@@ -1,6 +1,9 @@
 import process from 'node:process'
 import { defineConfig } from '@pandacss/dev'
 import { weappPanda } from 'weapp-pandacss/panda'
+import { resolveBuildEnv } from '../build-env.cjs'
+
+const { platform } = resolveBuildEnv('taro', process.env)
 
 export default defineConfig({
   plugins: [weappPanda()],
@@ -22,7 +25,7 @@ export default defineConfig({
   staticCss: { css: [{ properties: { paddingLeft: ['unit-fixture'] } }] },
 
   // The output directory for your css system
-  outdir: `styled-system/${process.env.TARO_ENV || 'weapp'}`,
+  outdir: `styled-system/${platform}`,
   importMap: 'styled-system',
   outExtension: 'mjs',
   forceImportExtension: true,

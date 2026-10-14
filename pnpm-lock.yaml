@@ -216,6 +216,9 @@ importers:
       '@vitest/coverage-v8':
         specifier: ~5.0.4
         version: 5.0.4(vitest@5.0.4)
+      '@weapp-tailwindcss/env':
+        specifier: 0.1.0
+        version: 0.1.0
       eslint:
         specifier: ^10.12.0
         version: 10.12.0(jiti@2.7.0)(supports-color@10.2.2)
@@ -7583,6 +7586,10 @@ packages:
     peerDependenciesMeta:
       tailwindcss:
         optional: true
+
+  '@weapp-tailwindcss/env@0.1.0':
+    resolution: {integrity: sha512-n4BE9H+WUv33mrwvEiiJmIpti0Uqj+a5+mtD54pO004ZYJ7rBfAP1X1dk1C9vBjG/JOpl+B1Mx2vf1MVCtDk0Q==}
+    engines: {node: ^22.18.0 || >=24.11.0}
 
   '@weapp-tailwindcss/escape@0.0.2':
     resolution: {integrity: sha512-CXzC28KaICtqxq7H4mmyaZ/s4ORuA1ZesQeQcyv/ipZoDjUbCiQHTPu0gye3bU6J94WPjc2+THwXiq4utxqDiA==}
@@ -24484,6 +24491,8 @@ snapshots:
       postcss: 8.5.30
     optionalDependencies:
       tailwindcss: 4.3.3
+
+  '@weapp-tailwindcss/env@0.1.0': {}
 
   '@weapp-tailwindcss/escape@0.0.2': {}
 

@@ -20,6 +20,8 @@ The adapter accepts two CSS targets: `weapp` and `web`. These are different from
 
 Taro React/Vue and Uni-app repository artifact tests cover WeChat and H5, including cross-file imported styles. Other framework scripts and a `weapp` CSS target do not establish verification for every platform. See the [framework support matrix](/frameworks/).
 
+The repository's Taro and Uni-app configurations share [build-env.cjs](https://github.com/weapp-pandacss/weapp-pandacss/blob/main/examples/build-env.cjs). Its `resolveBuildEnv('taro' | 'uni', snapshot)` returns `{ platform, cssTarget }` using the root development dependency `@weapp-tailwindcss/env@0.1.0`. The framework's original platform value selects directories and aliases; only exact `h5` selects the `web` CSS target. Classification flags are not a support matrix. The standalone configuration below keeps this choice self-contained for applications outside the repository.
+
 ## Set the platform before codegen
 
 Panda reads its configuration before the framework build starts. A platform variable set only by the later framework command arrives too late for a preceding `panda codegen` process.
