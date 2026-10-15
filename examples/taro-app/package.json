@@ -67,6 +67,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.29.7",
+    "@babel/preset-react": "^7.29.7",
     "@pandacss/dev": "2.2.0",
     "@pandacss/preset-base": "2.2.0",
     "@pandacss/preset-panda": "2.2.0",

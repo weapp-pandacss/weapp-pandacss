@@ -49,7 +49,9 @@ overrides:
   '@jimp/jpeg>jpeg-js': ^0.4.4
   tinypool@2.1.0: 2.1.2
   '@babel/core@7.25.2': ^7.29.7
+  '@intlify/core-base@9.1.9': 9.1.11
   '@intlify/message-resolver@9.1.9': 9.1.11
+  '@intlify/message-resolver@9.1.10': 9.1.11
   body-parser@1.20.3: ^1.20.6
   lodash@4.17.21: ^4.18.1
   lodash-es@4.17.21: ^4.18.1
@@ -58,9 +60,12 @@ overrides:
   postcss@8.5.29: ^8.5.30
   qs@6.11.0: ^6.16.0
   qs@6.13.0: ^6.16.0
+  path-to-regexp@0.1.10: 0.1.13
   source-map-js@1.2.1: ^1.2.2
   # The official IDE automator's Jimp pins mkdirp 0.5.1, which pulls an
   # obsolete minimist. Stay in mkdirp's compatible 0.5 patch line.
   mkdirp@0.5.1: ^0.5.6
+  # Automator 0.13 pins an older debug patch with a known ReDoS advisory.
+  miniprogram-automator@0.13.0>debug: 4.4.3
   ws@8.18.0: ^8.21.0
   postcss-selector-parser: 7.1.6

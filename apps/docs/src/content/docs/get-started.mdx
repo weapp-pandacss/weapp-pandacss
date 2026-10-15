@@ -9,7 +9,9 @@ sidebar:
 
 ## Requirements
 
-The adapter declares Node.js `^22.18.0 || >=24.11.0`. The repository CI checks Node 22 and 24; use a supported release satisfying that range. The adapter accepts stable Panda releases from **2.1.2** onward (`>=2.1.2`, with no upper version bound); new installations use **2.2.0**. Keep Panda and both presets at the same supported version. The adapter rejects missing Panda, older or prerelease versions, and incompatible generated structures. Real offline consumer tests cover **2.1.2** and **2.2.0**; later versions still pass through the AST structure checks.
+The published adapter declares Node.js `^22.18.0 || >=24.11.0`; use a supported release satisfying that range and your application's framework requirements. Developing this repository, including its documentation, requires Node.js `^22.22.3 || ^24.16.0 || >=26.3.0`. Repository CI checks the Node 22 and 24 lines.
+
+The adapter accepts stable Panda releases from **2.1.2** onward (`>=2.1.2`, with no upper version bound); new installations use **2.2.0**. Keep Panda and both presets at the same supported version. The adapter rejects missing Panda, older or prerelease versions, and incompatible generated structures. Real offline consumer tests cover **2.1.2** and **2.2.0**; later versions still pass through the AST structure checks.
 
 ~~~sh
 pnpm add -D @pandacss/dev@2.2.0 @pandacss/preset-base@2.2.0 @pandacss/preset-panda@2.2.0 weapp-pandacss@^2 postcss

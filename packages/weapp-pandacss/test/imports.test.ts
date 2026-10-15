@@ -70,6 +70,19 @@ it('compiles one merged multi-file scope with normal, important, nested and unla
   ]))
 })
 
+it('keeps trailing empty layer declarations after imported layer blocks', async () => {
+  await files({
+    'entry.css': '@import "./base.css"; @import "./overrides.css";',
+    'base.css': '@layer base{.normal{color:red}.important{color:red!important}} @layer overrides;',
+    'overrides.css': '@layer overrides{.normal{color:blue}.important{color:blue!important}}',
+  })
+  const result = await compile('entry.css', 'weapp', 'error')
+  expect(declarations(result, '.normal')).toEqual(['red', 'blue'])
+  expect(declarations(result, '.important')).toEqual(['blue!', 'red!'])
+  expect(result.css).not.toMatch(/@import|@layer/)
+  expect(result.warnings()).toEqual([])
+})
+
 it('expands imported authored classes before encoding, including collision names and platform selectors', async () => {
   await files({
     'entry.css': '@layer base; @import "./authored.css";',

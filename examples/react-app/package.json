@@ -14,8 +14,8 @@
   },
   "dependencies": {
     "@weapp-pandacss/runtime": "workspace:*",
-    "react": "^19.3.0",
-    "react-dom": "^19.3.0"
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
   },
   "devDependencies": {
     "@pandacss/dev": "2.2.0",

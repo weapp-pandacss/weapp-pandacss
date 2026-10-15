@@ -12,15 +12,17 @@ import { execa } from 'execa'
 import automator from 'miniprogram-automator'
 import { encodeClassName } from '../../packages/runtime/src/index.ts'
 import { runFrameworks } from './frameworks.ts'
+import { createConnectionLifecycle, withCleanup } from './lifecycle.ts'
 
 // This is an opt-in real IDE test, separate from mpcore's logical runtime.
 // Version values are operator evidence; they are not auto-detected by the SDK.
 type MiniProgram = Awaited<ReturnType<typeof automator.connect>>
 type Page = NonNullable<Awaited<ReturnType<MiniProgram['reLaunch']>>>
+type Element = NonNullable<Awaited<ReturnType<Page['$']>>>
 
 async function compareAppViewport(baseline: string, current: string, top: number, screenWidth: number, evidence: string) {
   const browser = await chromium.launch({ headless: true })
-  try {
+  await withCleanup(async () => {
     const page = await browser.newPage()
     const images = await Promise.all([baseline, current].map(async file => `data:image/png;base64,${(await fs.readFile(file)).toString('base64')}`))
     const result = await page.evaluate(async ({ images, top, screenWidth }) => {
@@ -61,10 +63,7 @@ async function compareAppViewport(baseline: string, current: string, top: number
     await fs.writeFile(path.join(evidence, 'cli-viewport-current.png'), Buffer.from(currentPng.split(',')[1]!, 'base64'))
     await fs.writeFile(path.join(evidence, 'cli-viewport-compare.json'), JSON.stringify({ ...metrics, viewportTop: top, screenWidth }, null, 2))
     assert.equal(result.diffPixels, 0, 'Repeated CLI captures must have identical app viewport pixels')
-  }
-  finally {
-    await browser.close()
-  }
+  }, [() => browser.close()])
 }
 
 async function main() {
@@ -90,18 +89,20 @@ async function main() {
   let projectPath: string | undefined
   let miniProgram: MiniProgram | undefined
   let launchAttempted = false
+  let projectClosed = false
+  let projectRemoved = false
   const errors: unknown[] = []
   const consoleMessages: unknown[] = []
   const probes: unknown[] = []
   const cancellation = new AbortController()
+  const connection = createConnectionLifecycle<MiniProgram>(cancellation.signal)
   const cancel = () => {
     cancellation.abort(new Error('DevTools E2E cancelled or timed out'))
-    miniProgram?.disconnect()
   }
   process.once('SIGINT', cancel)
   process.once('SIGTERM', cancel)
   const timeout = setTimeout(cancel, 480_000)
-  try {
+  await withCleanup(async () => {
     async function wv(name: string, args: string[], visualComparison = false) {
       const output = await execa(process.execPath, [wvCli, ...args], { cwd: example, timeout: 60_000, cancelSignal: cancellation.signal, reject: false })
       await fs.writeFile(path.join(evidence, `${name}.log`), `${output.stdout}\n${output.stderr}\n`)
@@ -140,20 +141,27 @@ async function main() {
     while (!miniProgram) {
       cancellation.signal.throwIfAborted()
       try {
-        miniProgram = await automator.connect({ wsEndpoint: `ws://127.0.0.1:${address.port}` })
+        miniProgram = await connection.connect(() => automator.connect({ wsEndpoint: `ws://127.0.0.1:${address.port}` }))
       }
       catch (error) {
-        if (Date.now() >= deadline) {
+        if (cancellation.signal.aborted || Date.now() >= deadline) {
           throw error
         }
-        await delay(500)
+        await delay(500, undefined, { signal: cancellation.signal })
       }
     }
-    miniProgram.on('exception', error => errors.push(error))
-    const systemInfo = await miniProgram.systemInfo()
-    // The SDK enables logs without awaiting that request. Complete an awaited
-    // AppService handshake before subscribing so startup failures reach finally.
-    miniProgram.on('console', message => consoleMessages.push(message))
+    const runtime = miniProgram
+    runtime.on('exception', error => errors.push(error))
+    const systemInfo = await connection.request(() => runtime.systemInfo())
+    // SDK on('console') sends an unawaited request. Enable logging explicitly
+    // and use EventEmitter's listener so cancellation handles that request too.
+    await connection.request(() => runtime.send('App.enableLog'))
+    runtime.addListener('console', message => consoleMessages.push(message))
+    async function screenshot(file: string) {
+      const image = await connection.request(() => runtime.screenshot())
+      assert(typeof image === 'string', 'The SDK must return a screenshot')
+      await fs.writeFile(file, image, 'base64')
+    }
     assert.equal(systemInfo.SDKVersion, config.libVersion, 'The connected runtime must use the fixture\'s pinned formal base-library release.')
     await fs.writeFile(path.join(evidence, 'environment.json'), JSON.stringify({
       provider: 'devtools',
@@ -176,9 +184,9 @@ async function main() {
       assert.match(variable[1]!, /^--[\w-]+$/, 'Panda variables must be valid WXSS identifiers')
     }
     async function probe(page: Page, id: string, expected: Record<string, string | number>, markers: string[] = []) {
-      const node = await page.$(`#${id}`)
+      const node = await connection.request(() => page.$(`#${id}`))
       assert(node, `Missing rendered probe ${id}`)
-      const classes = (await node.attribute('class')).trim().split(/\s+/)
+      const classes = (await connection.request(() => node.attribute('class'))).trim().split(/\s+/)
       assert(classes.length && classes[0], `${id} must have classes`)
       for (const name of classes) {
         assert.match(name, /^[A-Z_][\w-]*$/i, `${id} has an unsafe class`)
@@ -186,7 +194,7 @@ async function main() {
       }
       const styles: Record<string, string> = {}
       for (const [property, value] of Object.entries(expected)) {
-        styles[property] = await node.style(property)
+        styles[property] = await connection.request(() => node.style(property))
         if (typeof value === 'number') {
           assert(Math.abs(Number.parseFloat(styles[property]!) - value) < 0.15, `${id}.${property}: expected ${value}px, got ${styles[property]}`)
         }
@@ -199,28 +207,29 @@ async function main() {
     }
     const observed: unknown[] = []
     async function layerStyles(page: Page, active: boolean) {
-      const normal = await page.$('#layer-normal')
-      const important = await page.$('#layer-important')
+      const normal = await connection.request(() => page.$('#layer-normal'))
+      const important = await connection.request(() => page.$('#layer-important'))
       assert(normal && important, 'Layer probes must render')
       const expected = active ? ['layer-normal-accent', 'layer-important-accent'] : ['layer-normal-neutral', 'layer-important-neutral']
-      assert.equal(await normal.attribute('class'), expected[0])
-      assert.equal(await important.attribute('class'), expected[1])
+      assert.equal(await connection.request(() => normal.attribute('class')), expected[0])
+      assert.equal(await connection.request(() => important.attribute('class')), expected[1])
       expected.forEach(name => assert(selectors.has(name), `Missing WXSS selector ${name}`))
-      const color = await normal.style('color')
-      const importantColor = await important.style('color')
+      const color = await connection.request(() => normal.style('color'))
+      const importantColor = await connection.request(() => important.style('color'))
       assert.equal(color, active ? 'rgb(22, 163, 74)' : 'rgb(2, 132, 199)')
       assert.equal(importantColor, active ? 'rgb(234, 88, 12)' : 'rgb(124, 58, 237)')
       observed.push({ active, color, importantColor, classes: expected })
     }
     async function buttonOn(page: Page) {
-      const component = await page.$('panda-button')
+      const component = await connection.request(() => page.$('panda-button'))
       assert(component, 'PandaButton component must be registered')
-      const button = await component.$('#variant-button')
+      const button = await connection.request(() => component.$('#variant-button'))
       assert(button, 'PandaButton must render its button')
-      const classes = await button.attribute('class')
+      const classes = await connection.request(() => button.attribute('class'))
       assert(classes.trim(), 'The button must have generated classes')
       assert('data' in component && typeof component.data === 'function', 'The registered component must expose runtime data')
-      const runtimeClasses = String(await component.data('buttonClass')).trim().split(/\s+/)
+      const readData = component.data.bind(component)
+      const runtimeClasses = String(await connection.request(() => readData('buttonClass'))).trim().split(/\s+/)
       const renderedClasses = classes.trim().split(/\s+/).map(name => name.replace(/^PandaButton--/, ''))
       // The WeChat renderer scopes component class attributes. Match its exact
       // known scope to actual AppService data, then check the original WXSS.
@@ -232,11 +241,15 @@ async function main() {
       }
       return button
     }
+    async function buttonRequest<T>(page: Page, request: (button: Element) => Promise<T>) {
+      const button = await buttonOn(page)
+      return connection.request(() => request(button))
+    }
     async function expectStatus(page: Page, expected: string, id = 'status') {
       const deadline = Date.now() + 5000
       while (Date.now() < deadline) {
-        const status = await page.$(`#${id}`)
-        if (status && (await status.text()).trim() === expected) {
+        const status = await connection.request(() => page.$(`#${id}`))
+        if (status && (await connection.request(() => status.text())).trim() === expected) {
           return
         }
         await delay(50)
@@ -246,7 +259,7 @@ async function main() {
     // Launch once; reLaunch resets the page between scenarios.
     for (let scenario = 0; scenario < 2; scenario++) {
       cancellation.signal.throwIfAborted()
-      const page: Page | undefined = await miniProgram.reLaunch('/pages/index/index')
+      const page: Page | undefined = await connection.request(() => runtime.reLaunch('/pages/index/index'))
       assert(page, 'The example route must launch')
       await expectStatus(page, 'neutral')
       await probe(page, 'title', { 'color': 'oklch(0.588 0.158 241.966)', 'font-weight': '700' })
@@ -254,32 +267,32 @@ async function main() {
       assert.equal(await probe(page, 'manual', { color: 'rgb(255, 0, 0)' }), encodeClassName('manual/中文_wp_2e_'))
       await probe(page, 'token', { 'padding-top': Math.floor(4 * systemInfo.windowWidth / 750) })
       await layerStyles(page, false)
-      const initial = await (await buttonOn(page)).attribute('class')
-      const background = await (await buttonOn(page)).style('background-color')
-      await (await buttonOn(page)).tap()
+      const initial = await buttonRequest(page, button => button.attribute('class'))
+      const background = await buttonRequest(page, button => button.style('background-color'))
+      await buttonRequest(page, button => button.tap())
       await expectStatus(page, 'accent')
       await layerStyles(page, true)
-      assert.notEqual(await (await buttonOn(page)).attribute('class'), initial)
-      assert.notEqual(await (await buttonOn(page)).style('background-color'), background)
-      await miniProgram.screenshot({ path: path.join(evidence, `accent-${scenario}.png`) })
-      await (await buttonOn(page)).tap()
+      assert.notEqual(await buttonRequest(page, button => button.attribute('class')), initial)
+      assert.notEqual(await buttonRequest(page, button => button.style('background-color')), background)
+      await screenshot(path.join(evidence, `accent-${scenario}.png`))
+      await buttonRequest(page, button => button.tap())
       await expectStatus(page, 'neutral')
       await layerStyles(page, false)
-      assert.equal(await (await buttonOn(page)).attribute('class'), initial)
+      assert.equal(await buttonRequest(page, button => button.attribute('class')), initial)
     }
     for (let scenario = 0; scenario < 2; scenario++) {
-      const page: Page | undefined = await miniProgram.reLaunch('/pages/acceptance/index')
+      const page: Page | undefined = await connection.request(() => runtime.reLaunch('/pages/acceptance/index'))
       assert(page, 'Runtime acceptance route must launch')
       await expectStatus(page, 'neutral', 'acceptance-status')
-      const pageSize = await page.size()
+      const pageSize = await connection.request(() => page.size())
       const viewportWidth = systemInfo.windowWidth
       // The pinned WebView renderer truncates positive rpx dimensions to CSS
       // pixels. Negative token calc() negates the already resolved dimension.
       // page.size() includes overflowing content; rpx uses the window viewport.
       const rpx = (value: number) => Math.floor(value * viewportWidth / 750)
-      const atomicNode = await page.$('#atomic')
+      const atomicNode = await connection.request(() => page.$('#atomic'))
       assert(atomicNode)
-      await fs.writeFile(path.join(evidence, 'viewport.json'), JSON.stringify({ systemWidth: systemInfo.windowWidth, pageSize, atomic: { fontSize: await atomicNode.style('font-size'), padding: await atomicNode.style('padding-top'), width: await atomicNode.style('width') } }, null, 2))
+      await fs.writeFile(path.join(evidence, 'viewport.json'), JSON.stringify({ systemWidth: systemInfo.windowWidth, pageSize, atomic: { fontSize: await connection.request(() => atomicNode.style('font-size')), padding: await connection.request(() => atomicNode.style('padding-top')), width: await connection.request(() => atomicNode.style('width')) } }, null, 2))
       await probe(page, 'atomic', { 'color': 'rgb(220, 38, 38)', 'font-size': rpx(48), 'padding-top': rpx(16), 'width': (viewportWidth - 2 * rpx(16)) / 2 })
       await probe(page, 'variable-token', { 'padding-top': rpx(4) })
       await probe(page, 'value-token', { 'padding-top': rpx(4) })
@@ -317,19 +330,19 @@ async function main() {
           }, [encodeClassName('inline/card__label')])
         }
         if (cycle < 4) {
-          const toggle: Awaited<ReturnType<Page['$']>> = await page.$('#toggle')
+          const toggle: Element | null = await connection.request((): Promise<Element | null> => page.$('#toggle'))
           assert(toggle)
-          await toggle.tap()
+          await connection.request(() => toggle.tap())
         }
       }
-      await miniProgram.screenshot({ path: path.join(evidence, `runtime-${scenario}.png`) })
+      await screenshot(path.join(evidence, `runtime-${scenario}.png`))
     }
     assert.deepEqual(errors, [], 'Real AppService exceptions must not be swallowed')
     await fs.writeFile(path.join(evidence, 'layer-styles.json'), JSON.stringify(observed, null, 2))
     await fs.writeFile(path.join(evidence, 'runtime-probes.json'), JSON.stringify(probes, null, 2))
     // CLI acceptance reuses the same project's explicit endpoint. Release the
     // suite connection before CLI commands; none may launch another project.
-    miniProgram.disconnect()
+    await connection.disconnect()
     miniProgram = undefined
     const endpoint = ['--project', projectPath, '--port', String(address.port), '--no-runtime-service', '--json']
     await wv('cli-relaunch', ['relaunch', '/pages/acceptance/index', ...endpoint])
@@ -349,34 +362,39 @@ async function main() {
     await wv('cli-accent-screenshot', ['screenshot', ...endpoint, '--output', path.join(evidence, 'cli-accent.png')])
     await runFrameworks({ root, evidence, appid, cliPath, wvCli, libVersion: config.libVersion, signal: cancellation.signal })
     process.stdout.write(`DevTools E2E passed: ${probes.length} rendered style probes, runtime APIs, repeated toggles, WXSS matching, reLaunch reset and weapp-vite CLI capture/compare.\n`)
-  }
-  finally {
-    try {
-      await fs.writeFile(path.join(evidence, 'console.json'), JSON.stringify({ exceptions: errors, messages: consoleMessages }, null, 2))
-      await fs.writeFile(path.join(evidence, 'runtime-probes.json'), JSON.stringify(probes, null, 2))
-    }
-    finally {
-      miniProgram?.disconnect()
-      try {
-        // The wv close helper has global recovery behavior. Use the verified
-        // official CLI with an explicit project to preserve borrowed windows.
-        if (launchAttempted && projectPath) {
-          await execa(cliPath, ['close', '--project', projectPath], { timeout: 30_000 })
-        }
-        if (projectPath) {
-          await fs.rm(projectPath, { recursive: true, force: true })
-          await fs.writeFile(path.join(evidence, 'cleanup.json'), JSON.stringify({ projectPath, closed: true, removed: true }, null, 2))
-        }
+  }, [
+    () => cancellation.signal.throwIfAborted(),
+    () => connection.dispose(),
+    () => fs.writeFile(path.join(evidence, 'console.json'), JSON.stringify({ exceptions: errors, messages: consoleMessages }, null, 2)),
+    () => fs.writeFile(path.join(evidence, 'runtime-probes.json'), JSON.stringify(probes, null, 2)),
+    async () => {
+      // The wv close helper has global recovery behavior. Use the verified
+      // official CLI with an explicit project to preserve borrowed windows.
+      if (launchAttempted && projectPath) {
+        await execa(cliPath, ['close', '--project', projectPath], { timeout: 30_000 })
+        projectClosed = true
       }
-      finally {
-        clearTimeout(timeout)
-        process.removeListener('SIGINT', cancel)
-        process.removeListener('SIGTERM', cancel)
-        await lock.close()
-        await fs.rm(lockPath)
+    },
+    async () => {
+      if (projectPath) {
+        await fs.rm(projectPath, { recursive: true, force: true })
+        projectRemoved = true
       }
-    }
-  }
+    },
+    async () => {
+      if (projectPath) {
+        await fs.writeFile(path.join(evidence, 'cleanup.json'), JSON.stringify({ projectPath, closed: projectClosed, removed: projectRemoved }, null, 2))
+      }
+    },
+    () => {
+      clearTimeout(timeout)
+      process.removeListener('SIGINT', cancel)
+      process.removeListener('SIGTERM', cancel)
+    },
+    () => lock.close(),
+    () => fs.rm(lockPath),
+    () => cancellation.signal.throwIfAborted(),
+  ])
 }
 
 main().catch((error) => {

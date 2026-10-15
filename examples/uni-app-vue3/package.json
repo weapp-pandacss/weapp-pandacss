@@ -89,6 +89,6 @@
     "vite": "5.2.8",
     "vue-tsc": "^3.3.13",
     "weapp-pandacss": "workspace:*",
-    "weapp-tailwindcss": "^5.6.1"
+    "weapp-tailwindcss": "^5.6.3"
   }
 }

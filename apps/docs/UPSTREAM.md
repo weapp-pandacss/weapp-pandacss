@@ -7,7 +7,7 @@ This template adapts the static empty starter from [Cloudflare Nimbus](https://g
 - Initial template Nimbus package: `@cloudflare/nimbus-docs@0.16.0`
 - Initial template Astro: `7.3.6`
 
-Nimbus declares Astro `>=7.2.6 <8`; Astro requires Node `>=22.12.0`, so this workspace retains its stricter Node `>=22.13.0` baseline. Builds, Astro diagnostics and TypeScript checks were verified with the repository's TypeScript `6.0.3` and Vite `8.3.3` constraints. Resolved dependencies are recorded in the monorepo's root `pnpm-lock.yaml`; generated projects use their own root workspace lockfile.
+Nimbus declares Astro `>=7.2.6 <8`. The private repository and documentation workspace require Node `^22.22.3 || ^24.16.0 || >=26.3.0` to satisfy the documentation toolchain. The published adapter retains its separate Node engine range, `^22.18.0 || >=24.11.0`. Resolved dependencies are recorded in the monorepo's root `pnpm-lock.yaml`; generated projects use their own root workspace lockfile.
 
 Agent endpoint routes and the content-loading approach come from that starter. The bilingual layout, navigation, search interface, examples and workspace checks are repoctl adaptations. These files are maintained locally; generating a project never downloads the upstream starter.
 
@@ -31,3 +31,8 @@ scopes or a version switcher. Existing discovery routes are framework-owned.
 `nimbus-docs migrate --yes --json` recorded the new reviewed baseline after
 that review. Build, discovery, search and language switching are covered by
 the workspace validation recorded in `docs/dependency-review-2026-10-13.md`.
+
+On 2026-10-15, the project reviewed Nimbus `0.18.1`. The official
+`nimbus-docs migrate --dry-run --json` preview from the `0.18.0` baseline
+reported no source migrations, review items or errors.
+`nimbus-docs migrate --yes --json` recorded the reviewed `0.18.1` baseline.

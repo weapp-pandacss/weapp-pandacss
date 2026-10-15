@@ -20,7 +20,7 @@ Adapter 只有 `weapp` 与 `web` 两个 CSS target，它们与框架的平台名
 
 仓库 Taro React/Vue 与 Uni-app 产物测试覆盖微信和 H5，包括跨文件导入样式。框架具备某个脚本，或 CSS 选择 `weapp`，都不能证明所有平台已验收。详见[框架支持矩阵](/zh/frameworks/)。
 
-仓库 Taro 与 Uni-app 配置共用 [build-env.cjs](https://github.com/weapp-pandacss/weapp-pandacss/blob/main/examples/build-env.cjs)。`resolveBuildEnv('taro' | 'uni', snapshot)` 使用根目录开发依赖 `@weapp-tailwindcss/env@0.1.0`，返回 `{ platform, cssTarget }`。目录与别名仍采用框架原始平台值，只有精确的 `h5` 选择 `web` CSS target；分类标志不能作为支持矩阵。下方独立应用配置保留自包含的平台判断，方便在仓库外直接使用。
+仓库 Taro 与 Uni-app 配置共用 [build-env.cjs](https://github.com/weapp-pandacss/weapp-pandacss/blob/main/examples/build-env.cjs)。`resolveBuildEnv('taro' | 'uni', snapshot)` 使用根目录开发依赖 `@weapp-tailwindcss/env@0.2.0`，返回 `{ platform, cssTarget }`。目录与别名仍采用框架原始平台值，只有精确的 `h5` 选择 `web` CSS target；分类标志不能作为支持矩阵。下方独立应用配置保留自包含的平台判断，方便在仓库外直接使用。
 
 ## 平台必须先于 codegen 设置
 

@@ -16,7 +16,7 @@
     "url": "https://github.com/weapp-pandacss/weapp-pandacss/issues"
   },
   "engines": {
-    "node": ">=22.13.0"
+    "node": "^22.22.3 || ^24.16.0 || >=26.3.0"
   },
   "scripts": {
     "dev": "astro dev",
@@ -33,7 +33,7 @@
     "deploy:check": "pnpm build && wrangler deploy --dry-run"
   },
   "dependencies": {
-    "@cloudflare/nimbus-docs": "0.18.0",
+    "@cloudflare/nimbus-docs": "0.18.1",
     "astro": "7.3.8"
   },
   "devDependencies": {
@@ -44,6 +44,6 @@
     "eslint-plugin-mdx": "^3.8.1",
     "pagefind": "^1.5.2",
     "typescript": "catalog:",
-    "wrangler": "^4.149.0"
+    "wrangler": "^4.151.0"
   }
 }

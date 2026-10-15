@@ -1,3 +1,4 @@
+import type { SdkRequest } from './lifecycle.ts'
 import assert from 'node:assert/strict'
 import fs from 'node:fs/promises'
 import net from 'node:net'
@@ -12,6 +13,7 @@ import { execa } from 'execa'
 import automator from 'miniprogram-automator'
 import postcss from 'postcss'
 import { encodeClassName } from '../../packages/runtime/src/index.ts'
+import { createConnectionLifecycle, withCleanup } from './lifecycle.ts'
 
 type MiniProgram = Awaited<ReturnType<typeof automator.connect>>
 type Page = NonNullable<Awaited<ReturnType<MiniProgram['reLaunch']>>>
@@ -42,8 +44,8 @@ async function stylesheets(root: string): Promise<string> {
   return contents.join('\n')
 }
 
-async function find(root: Page | Element, selector: string, components: string[], depth = 0): Promise<Element | null> {
-  const direct = await root.$(selector)
+async function find(root: Page | Element, selector: string, components: string[], request: SdkRequest, depth = 0): Promise<Element | null> {
+  const direct = await request(() => root.$(selector))
   if (direct) {
     return direct
   }
@@ -51,8 +53,8 @@ async function find(root: Page | Element, selector: string, components: string[]
     return null
   }
   for (const tag of components) {
-    for (const child of await root.$$(tag) as Element[]) {
-      const node = await find(child, selector, components, depth + 1)
+    for (const child of await request(() => root.$$(tag)) as Element[]) {
+      const node = await find(child, selector, components, request, depth + 1)
       if (node) {
         return node
       }
@@ -83,11 +85,12 @@ export async function runFrameworks(context: Context) {
     const example = path.join(context.root, 'examples', app.folder)
     const project = await fs.mkdtemp(path.join(os.tmpdir(), `weapp-panda-${app.name}-`))
     let miniProgram: MiniProgram | undefined
-    const disconnect = () => miniProgram?.disconnect()
-    context.signal.addEventListener('abort', disconnect)
+    const connection = createConnectionLifecycle<MiniProgram>(context.signal)
     let opened = false
+    let closed = false
+    let removed = false
     const exceptions: unknown[] = []
-    try {
+    await withCleanup(async () => {
       await fs.cp(path.join(example, app.dist), path.join(project, 'dist'), { recursive: true })
       await fs.writeFile(path.join(project, 'project.config.json'), JSON.stringify({
         appid: context.appid,
@@ -112,17 +115,18 @@ export async function runFrameworks(context: Context) {
       while (!miniProgram) {
         context.signal.throwIfAborted()
         try {
-          miniProgram = await automator.connect({ wsEndpoint: `ws://127.0.0.1:${port}` })
+          miniProgram = await connection.connect(() => automator.connect({ wsEndpoint: `ws://127.0.0.1:${port}` }))
         }
         catch (error) {
-          if (Date.now() >= deadline) {
+          if (context.signal.aborted || Date.now() >= deadline) {
             throw error
           }
-          await delay(500)
+          await delay(500, undefined, { signal: context.signal })
         }
       }
-      miniProgram.on('exception', error => exceptions.push(error))
-      const systemInfo = await miniProgram.systemInfo()
+      const runtime = miniProgram
+      runtime.on('exception', error => exceptions.push(error))
+      const systemInfo = await connection.request(() => runtime.systemInfo())
       assert.equal(systemInfo.SDKVersion, context.libVersion)
       const css = await stylesheets(path.join(project, 'dist'))
       const selectors = new Set([...css.matchAll(/\.([\w-]+)/g)].map(match => match[1]!))
@@ -132,7 +136,7 @@ export async function runFrameworks(context: Context) {
       // transforms. Do not compare Uni's RGB output to Panda's pre-build OKLCH.
       const references = new Map<string, { authored: string, variable: string, compiled: string, computed: string }>()
       const browser = await chromium.launch({ headless: true })
-      try {
+      await withCleanup(async () => {
         const reference = await browser.newPage()
         for (const fixture of app.probes) {
           for (const name of Object.values(fixture.styles)) {
@@ -160,21 +164,18 @@ export async function runFrameworks(context: Context) {
             references.set(name, { authored: token(name), variable, compiled: value, computed })
           }
         }
-      }
-      finally {
-        await browser.close()
-      }
+      }, [() => browser.close()])
       const pageConfig = JSON.parse(await fs.readFile(path.join(project, 'dist/pages/index/index.json'), 'utf8'))
       const components = Object.keys(pageConfig.usingComponents)
       for (let cycle = 0; cycle < 2; cycle++) {
-        const page: Page | undefined = await miniProgram.reLaunch('/pages/index/index')
+        const page: Page | undefined = await connection.request(() => runtime.reLaunch('/pages/index/index'))
         assert(page)
         for (const fixture of app.probes) {
           const className = encodeClassName(fixture.raw)
           let node: Element | null = null
           const deadline = Date.now() + 10_000
           while (!node && Date.now() < deadline) {
-            node = await find(page, `.${className}`, components)
+            node = await find(page, `.${className}`, components, connection.request)
             if (!node) {
               await delay(100)
             }
@@ -182,11 +183,11 @@ export async function runFrameworks(context: Context) {
           assert(node, `${app.name}: missing real rendered ${className}`)
           const actual: Record<string, string> = {}
           assert(selectors.has(className), `${app.name}: missing WXSS selector ${className}`)
-          const classes = (await node.attribute('class')).split(/\s+/).map(name => name.replace(/^(?:comp|ice-button-panda)--/, ''))
+          const classes = (await connection.request(() => node.attribute('class'))).split(/\s+/).map(name => name.replace(/^(?:comp|ice-button-panda)--/, ''))
           assert(classes.includes(className))
           const expected: Record<string, unknown> = {}
           for (const [property, name] of Object.entries(fixture.styles)) {
-            actual[property] = await node.style(property)
+            actual[property] = await connection.request(() => node.style(property))
             const reference = references.get(name)!
             let matchingDeclaration = false
             compiled.walkRules((rule) => {
@@ -205,26 +206,29 @@ export async function runFrameworks(context: Context) {
           }
           observed.push({ app: app.name, cycle, className, styles: actual, references: expected, sdkVersion: systemInfo.SDKVersion })
         }
-        await miniProgram.screenshot({ path: path.join(context.evidence, `${app.name}-${cycle}.png`) })
+        const image = await connection.request(() => runtime.screenshot())
+        assert(typeof image === 'string', 'The SDK must return a screenshot')
+        await fs.writeFile(path.join(context.evidence, `${app.name}-${cycle}.png`), image, 'base64')
       }
       assert.deepEqual(exceptions, [], `${app.name}: AppService exceptions`)
       process.stdout.write(`${app.name}: real rendered Panda styles, WXSS matching and repeated reLaunch passed.\n`)
-    }
-    finally {
-      context.signal.removeEventListener('abort', disconnect)
-      miniProgram?.disconnect()
-      try {
+    }, [
+      () => context.signal.throwIfAborted(),
+      () => connection.dispose(),
+      async () => {
         if (opened) {
           await execa(context.cliPath, ['close', '--project', project], { timeout: 30_000 })
+          closed = true
         }
+      },
+      async () => {
         await fs.rm(project, { recursive: true, force: true })
-        cleaned.push({ app: app.name, project, closed: true, removed: true })
-      }
-      finally {
-        await fs.writeFile(path.join(context.evidence, 'framework-probes.json'), JSON.stringify(observed, null, 2))
-        await fs.writeFile(path.join(context.evidence, 'framework-cleanup.json'), JSON.stringify(cleaned, null, 2))
-        await fs.writeFile(path.join(context.evidence, `${app.name}-exceptions.json`), JSON.stringify(exceptions, null, 2))
-      }
-    }
+        removed = true
+      },
+      () => cleaned.push({ app: app.name, project, closed, removed }),
+      () => fs.writeFile(path.join(context.evidence, 'framework-probes.json'), JSON.stringify(observed, null, 2)),
+      () => fs.writeFile(path.join(context.evidence, 'framework-cleanup.json'), JSON.stringify(cleaned, null, 2)),
+      () => fs.writeFile(path.join(context.evidence, `${app.name}-exceptions.json`), JSON.stringify(exceptions, null, 2)),
+    ])
   }
 }

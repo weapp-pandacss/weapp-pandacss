@@ -60,7 +60,7 @@
     "@tarojs/shared": "4.3.0",
     "@tarojs/taro": "4.3.0",
     "@weapp-pandacss/runtime": "workspace:*",
-    "vue": "^3.5.43"
+    "vue": "^3.5.44"
   },
   "devDependencies": {
     "@babel/core": "^7.29.7",
@@ -73,7 +73,7 @@
     "@types/node": "^26.6.5",
     "@types/webpack-env": "^1.18.8",
     "@vue/babel-plugin-jsx": "^1.5.0",
-    "@vue/compiler-sfc": "^3.5.43",
+    "@vue/compiler-sfc": "^3.5.44",
     "babel-loader": "^10.1.1",
     "babel-preset-taro": "4.3.0",
     "css-loader": "^7.1.5",

@@ -54,7 +54,7 @@ The historical Linaria example remains in `examples/taro-app-linaria` as referen
 
 ## Development
 
-Use a Node.js version matching the root `engines` field and the pnpm version declared by `packageManager`. CI verifies Node 22 and 24:
+Workspace development requires Node.js `^22.22.3 || ^24.16.0 || >=26.3.0`, matching the root `engines` field and the installed lint tools. Use the pnpm version declared by `packageManager`. Published package engine ranges remain independent of this development requirement. CI verifies Node 22 and 24:
 
 ```bash
 corepack enable

@@ -38,7 +38,7 @@ export default {
           name: 'wevu-vue3',
           workspaces: ['examples/weapp-vite-app'],
           dependencies: ['vue'],
-          reason: 'Pin the integration fixture to the tested Weapp Vite / Wevu 7.5.0 Vue cohort.',
+          reason: 'Pin the integration fixture to the tested Weapp Vite / Wevu 7.5.0 and Vue 3.5.44 cohort.',
         },
         {
           name: 'taro-react18',
@@ -49,7 +49,7 @@ export default {
         {
           name: 'taro-babel7',
           workspaces: ['examples/taro-app', 'examples/taro-app-vue3'],
-          dependencies: ['@babel/core', '@babel/runtime'],
+          dependencies: ['@babel/core', '@babel/preset-react', '@babel/runtime'],
           reason: 'Taro webpack5 and its Babel preset require Babel 7.',
         },
         {
