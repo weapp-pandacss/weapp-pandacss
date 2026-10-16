@@ -145,3 +145,5 @@ H5 精确断言曾在三个引擎同时发现 Vue 配方 padding 预期约 8.32p
 `e2e-artifacts/devtools/2026-10-16T14-05-32.244Z/` 是当前候选的完整 IDE 单轮通过证据：Wevu、Taro React、Taro Vue、Uni 和 native tarball consumer 均完成两次 reLaunch、四次连续切换、状态/class/实际样式恢复及 CLI tap/capture/compare；90 个渲染探针通过，所有截图比较为 0，AppService 异常和应用错误为 0，项目/端点/临时目录清理全部为 true。环境仍是 IDE 2.02.2608080、SDK 3.13.2、iPhone 12/13 Pro、390×753 应用视口。该证据是未提交候选的第一轮，目标要求提交后同一 SHA 再连续通过两轮。
 
 受控诊断中，未固定设备缩放的 `--disable-gpu` 会在 Taro Vue 的两张截图间产生 734→367 尺寸漂移；仅 `--force-color-profile=srgb` 仍有 132 像素差异。因此最终验收必须保留固定设备缩放和禁用 GPU 的官方 IDE 启动条件，并在每轮环境记录中核对实际进程参数；没有改变零像素判定、加入容差或自动重试。
+
+提交后的首次完整验收在消费者声明探针处发现 TypeScript 6 的 `TS5112`（fixture 存在 `tsconfig.json` 时不能同时指定文件列表）。修复提交 `181552e` 只让完整上游声明探针传入 `--ignoreConfig`，正常消费者类型检查仍加载 fixture 配置；四个 Node/Panda 组合已重新通过。修复后的 IDE 单轮也重新通过，随后必须在该新 SHA 上重新累计完整串行门禁和两轮 IDE。
