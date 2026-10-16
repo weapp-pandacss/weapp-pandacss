@@ -14,6 +14,10 @@ import automator from 'miniprogram-automator'
 import postcss from 'postcss'
 import { encodeClassName } from '../../packages/runtime/src/index.ts'
 import { createConnectionLifecycle, withCleanup } from './lifecycle.ts'
+import { createAppLogs } from './logs.ts'
+import { ProjectCleanupError, readCompilerSettings, waitForEndpointClosed } from './project.ts'
+import { runSharedScenarios } from './scenarios.ts'
+import { compareAppViewport } from './viewport.ts'
 
 type MiniProgram = Awaited<ReturnType<typeof automator.connect>>
 type Page = NonNullable<Awaited<ReturnType<MiniProgram['reLaunch']>>>
@@ -44,7 +48,7 @@ async function stylesheets(root: string): Promise<string> {
   return contents.join('\n')
 }
 
-async function find(root: Page | Element, selector: string, components: string[], request: SdkRequest, depth = 0): Promise<Element | null> {
+export async function find(root: Page | Element, selector: string, components: string[], request: SdkRequest, depth = 0): Promise<Element | null> {
   const direct = await request(() => root.$(selector))
   if (direct) {
     return direct
@@ -61,6 +65,48 @@ async function find(root: Page | Element, selector: string, components: string[]
     }
   }
   return null
+}
+
+async function runNutUI(page: Page, runtime: MiniProgram, components: string[], request: SdkRequest, evidence: string, cycle: number) {
+  const observed: unknown[] = []
+  async function node(selector: string): Promise<Element> {
+    const element = await find(page, selector, components, request)
+    assert(element, `NutUI: missing rendered ${selector}`)
+    return element
+  }
+  async function state(open: boolean) {
+    const deadline = Date.now() + 5000
+    while (true) {
+      const status = (await request(async () => (await node('#scenario-nut-status')).text())).trim()
+      const toast = await node('.scenario-nut-toast')
+      const display = await request(() => toast.style('display'))
+      const opacity = Number.parseFloat(await request(() => toast.style('opacity')))
+      if (status === (open ? 'open' : 'closed') && (open ? display !== 'none' && opacity === 1 : display === 'none')) {
+        const text = (await request(() => toast.text())).trim()
+        const size = await request(() => toast.size())
+        if (open) {
+          assert.equal(text, '你成功了～', 'NutUI must render its actual message')
+          assert(Number.parseFloat(size.width) > 0 && Number.parseFloat(size.height) > 0, 'NutUI overlay must occupy the actual viewport')
+        }
+        observed.push({ open, status, text, display, opacity, size })
+        return toast
+      }
+      assert(Date.now() < deadline, `NutUI: ${open ? 'open' : 'closed'} data and rendering did not settle`)
+      await delay(50)
+    }
+  }
+  await state(false)
+  await withCleanup(async () => {
+    for (let interaction = 0; interaction < 2; interaction++) {
+      await request(async () => (await node('#scenario-nut-trigger')).tap())
+      const toast = await state(true)
+      const screenshot = await request(() => runtime.screenshot())
+      assert(typeof screenshot === 'string')
+      await fs.writeFile(path.join(evidence, `taro-vue-${cycle}-nutui-${interaction}.png`), screenshot, 'base64')
+      await request(() => toast.tap())
+      await state(false)
+    }
+  }, [() => fs.writeFile(path.join(evidence, `taro-vue-${cycle}-nutui.json`), JSON.stringify(observed, null, 2))])
 }
 
 /** Real framework probes share the parent suite lock and run sequentially. */
@@ -80,17 +126,28 @@ export async function runFrameworks(context: Context) {
   ]
   const observed: unknown[] = []
   const cleaned: unknown[] = []
+  const failures: { name: string, error: string, settings: Record<string, unknown> }[] = []
+  async function recordFailure(name: string, error: unknown, settings: Record<string, unknown>) {
+    failures.push({ name, error: (error instanceof Error ? error.stack ?? error.message : String(error)).replaceAll(context.appid, '<authorized-appid>'), settings })
+    await fs.writeFile(path.join(context.evidence, 'framework-failures.json'), JSON.stringify(failures, null, 2))
+  }
   for (const app of apps) {
     context.signal.throwIfAborted()
+    const previousFailures = failures.length
     const example = path.join(context.root, 'examples', app.folder)
+    const compilerConfig = path.join(example, app.name === 'uni-app' ? app.dist : '.', 'project.config.json')
+    const settings: Record<string, unknown> = { es6: true, enhance: false, postcss: false, minified: false, compileHotReLoad: false }
     const project = await fs.mkdtemp(path.join(os.tmpdir(), `weapp-panda-${app.name}-`))
     let miniProgram: MiniProgram | undefined
     const connection = createConnectionLifecycle<MiniProgram>(context.signal)
     let opened = false
     let closed = false
     let removed = false
-    const exceptions: unknown[] = []
+    let port: number | undefined
+    let endpointClosed = false
+    const logs = createAppLogs(app.name)
     await withCleanup(async () => {
+      Object.assign(settings, await readCompilerSettings(compilerConfig))
       await fs.cp(path.join(example, app.dist), path.join(project, 'dist'), { recursive: true })
       await fs.writeFile(path.join(project, 'project.config.json'), JSON.stringify({
         appid: context.appid,
@@ -98,7 +155,7 @@ export async function runFrameworks(context: Context) {
         miniprogramRoot: 'dist/',
         compileType: 'miniprogram',
         libVersion: context.libVersion,
-        setting: { es6: true, enhance: false, postcss: false, minified: false, compileHotReLoad: false },
+        setting: settings,
       }, null, 2))
       await fs.writeFile(path.join(project, 'project.private.config.json'), JSON.stringify({ condition: { miniprogram: { list: [{ name: app.name, pathName: 'pages/index/index', query: '' }] } } }, null, 2))
       const server = net.createServer()
@@ -106,11 +163,11 @@ export async function runFrameworks(context: Context) {
         server.once('error', reject)
         server.listen(0, '127.0.0.1', resolve)
       })
-      const port = (server.address() as net.AddressInfo).port
+      port = (server.address() as net.AddressInfo).port
       await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()))
       opened = true
       const launch = await execa(process.execPath, [context.wvCli, 'auto', '--project', project, '--auto-port', String(port), '--trust-project'], { timeout: 60_000, cancelSignal: context.signal })
-      await fs.writeFile(path.join(context.evidence, `${app.name}-cli.log`), `${launch.stdout}\n${launch.stderr}\n`)
+      await fs.writeFile(path.join(context.evidence, `${app.name}-cli.log`), `${launch.stdout}\n${launch.stderr}\n`.replaceAll(context.appid, '<authorized-appid>'))
       const deadline = Date.now() + 30_000
       while (!miniProgram) {
         context.signal.throwIfAborted()
@@ -125,9 +182,13 @@ export async function runFrameworks(context: Context) {
         }
       }
       const runtime = miniProgram
-      runtime.on('exception', error => exceptions.push(error))
+      await logs.start(runtime, connection.request)
+      const toolInfo = await connection.request(() => runtime.send('Tool.getInfo'))
+      assert.equal(toolInfo.version, process.env['WEAPP_VITE_E2E_DEVTOOLS_STABLE_VERSION'], `${app.name}: actual stable IDE host version`)
+      assert.equal(toolInfo.SDKVersion, context.libVersion)
       const systemInfo = await connection.request(() => runtime.systemInfo())
       assert.equal(systemInfo.SDKVersion, context.libVersion)
+      await fs.writeFile(path.join(context.evidence, `${app.name}-environment.json`), JSON.stringify({ systemInfo, toolInfo, cliPath: context.cliPath, compilerConfig, settings }, null, 2))
       const css = await stylesheets(path.join(project, 'dist'))
       const selectors = new Set([...css.matchAll(/\.([\w-]+)/g)].map(match => match[1]!))
       const compiled = postcss.parse(css)
@@ -206,15 +267,31 @@ export async function runFrameworks(context: Context) {
           }
           observed.push({ app: app.name, cycle, className, styles: actual, references: expected, sdkVersion: systemInfo.SDKVersion })
         }
+        await runSharedScenarios({
+          name: app.name,
+          page,
+          runtime,
+          request: connection.request,
+          find: selector => find(page, selector, components, connection.request),
+          css,
+          systemInfo,
+          evidence: context.evidence,
+          cycle,
+          compare: (baseline, current, evidence) => compareAppViewport(baseline, current, systemInfo.screenTop, systemInfo.screenWidth, evidence),
+        }).catch(error => recordFailure(`${app.name}/${cycle}/shared`, error, settings))
+        if (app.name === 'taro-vue') {
+          await runNutUI(page, runtime, components, connection.request, context.evidence, cycle).catch(error => recordFailure(`${app.name}/${cycle}/nutui`, error, settings))
+        }
         const image = await connection.request(() => runtime.screenshot())
         assert(typeof image === 'string', 'The SDK must return a screenshot')
         await fs.writeFile(path.join(context.evidence, `${app.name}-${cycle}.png`), image, 'base64')
       }
-      assert.deepEqual(exceptions, [], `${app.name}: AppService exceptions`)
-      process.stdout.write(`${app.name}: real rendered Panda styles, WXSS matching and repeated reLaunch passed.\n`)
     }, [
-      () => context.signal.throwIfAborted(),
-      () => connection.dispose(),
+      async () => {
+        if (miniProgram && !context.signal.aborted) {
+          await logs.drain(miniProgram, connection.request)
+        }
+      },
       async () => {
         if (opened) {
           await execa(context.cliPath, ['close', '--project', project], { timeout: 30_000 })
@@ -222,13 +299,31 @@ export async function runFrameworks(context: Context) {
         }
       },
       async () => {
+        if (opened) {
+          assert(port)
+          await waitForEndpointClosed(port, app.name)
+          endpointClosed = true
+        }
+      },
+      () => connection.dispose(),
+      () => logs.assertClean(),
+      async () => {
         await fs.rm(project, { recursive: true, force: true })
         removed = true
       },
-      () => cleaned.push({ app: app.name, project, closed, removed }),
+      () => cleaned.push({ app: app.name, project, port, closed, endpointClosed, removed }),
       () => fs.writeFile(path.join(context.evidence, 'framework-probes.json'), JSON.stringify(observed, null, 2)),
       () => fs.writeFile(path.join(context.evidence, 'framework-cleanup.json'), JSON.stringify(cleaned, null, 2)),
-      () => fs.writeFile(path.join(context.evidence, `${app.name}-exceptions.json`), JSON.stringify(exceptions, null, 2)),
-    ])
+      () => fs.writeFile(path.join(context.evidence, `${app.name}-exceptions.json`), JSON.stringify(logs.exceptions, null, 2).replaceAll(context.appid, '<authorized-appid>')),
+      () => fs.writeFile(path.join(context.evidence, `${app.name}-console.json`), JSON.stringify(logs.messages, null, 2).replaceAll(context.appid, '<authorized-appid>')),
+      () => context.signal.throwIfAborted(),
+    ]).catch(error => recordFailure(`${app.name}/project`, error, settings))
+    if (!removed || (opened && (!closed || !endpointClosed))) {
+      throw new ProjectCleanupError(`Stop IDE launches after incomplete ${app.name} cleanup:\n${failures.map(failure => `${failure.name}: ${failure.error}`).join('\n')}`)
+    }
+    process.stdout.write(`${app.name}: ${failures.length === previousFailures ? 'passed' : 'failed; see framework-failures.json'}.\n`)
+  }
+  if (failures.length) {
+    throw new AggregateError(failures, `Framework acceptance failed:\n${failures.map(failure => `${failure.name}: ${failure.error}`).join('\n')}`)
   }
 }

@@ -99,7 +99,7 @@ Tailwind PostCSS generator。`panda.css` 通过 Vite 虚拟入口把真实 `pand
 保留原生 layer 和 selector，在后续框架 PostCSS 才执行 Web adapter；过早的 portable 标记会让
 Tailwind 展平 H5 layer。单位转换只在最终框架阶段执行一次；Tailwind 入口使用同一入口的 `{ imports: false, panda: false, adapter: false, units: ... }` 仅转换单位，保留自己的 class 命名。导入与生成依赖加入 Vite watch。
 
-默认 ordered 内核现由 `@weapp-tailwindcss/css-compat@0.1.1` 承担，并记录 minor 发布意图，
+默认 ordered 内核现由 `@weapp-tailwindcss/css-compat@0.1.2` 承担，并记录 minor 发布意图，
 不改变公开配置、命名或原 csstools legacy 路径。源码仍可使用普通 `@import`，
 但进入 ordered 前必须完整展开导入图；所有残留 import（包括普通、带 layer、远程）都会失败。
 不能删掉 import 来绕过检查。三个 `WP_LAYER_*` 文本前缀继续兼容，结构化诊断使用 `LAYER_*`，

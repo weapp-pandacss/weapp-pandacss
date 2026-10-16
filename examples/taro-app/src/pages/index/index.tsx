@@ -2,9 +2,11 @@ import { Cell, Button as NButton } from '@nutui/nutui-react-taro'
 import { Button, Input, Text, View } from '@tarojs/components'
 import { useLoad } from '@tarojs/taro'
 import { encodeClassList } from '@weapp-pandacss/runtime'
+import { useState } from 'react'
 import { css, cx } from 'styled-system/css/index.mjs'
 import { styled } from 'styled-system/jsx/index.mjs'
 import IceButton from '@/components/Button'
+import { scenarioImports, scenarioRecipe, scenarioSlots, scenarioTokenClass } from '../../scenarios'
 
 const StyledView = styled(View)
 
@@ -34,6 +36,8 @@ const styles0 = css({
   p: '10px 15px',
 })
 export default function Index() {
+  const [scenarioActive, setScenarioActive] = useState(false)
+  const slots = scenarioSlots({ active: scenarioActive })
   useLoad(() => {
     console.log('Page loaded.')
   })
@@ -47,6 +51,26 @@ export default function Index() {
   return (
     // nutui 样式错乱？
     <View>
+      <View id="scenario-panel" className="scenario-panel">
+        <Button id="scenario-toggle" onClick={() => setScenarioActive(active => !active)}>
+          Switch styles
+        </Button>
+        <Text id="scenario-status">{scenarioActive ? 'accent' : 'neutral'}</Text>
+        <View id="scenario-recipe" className={scenarioRecipe({ active: scenarioActive })}>Recipe compound</View>
+        <IceButton id="scenario-props" visual={scenarioActive ? 'outline' : 'solid'} size={scenarioActive ? 'lg' : 'sm'}>
+          {scenarioActive ? 'accent' : 'neutral'}
+        </IceButton>
+        <View id="scenario-slot-root" className={slots.root}>
+          <Text id="scenario-slot-label" className={slots.label}>Slot recipe</Text>
+        </View>
+        <View id="scenario-variable" className="scenario-variable" style={`--scenario-tone:${scenarioActive ? '#be123c' : '#0f766e'};--scenario-space:${scenarioActive ? '12px' : '8px'}`}>
+          Dynamic CSS variables
+        </View>
+        <Text id="scenario-normal" className={scenarioActive ? 'scenario-normal-accent' : 'scenario-normal-neutral'}>Cascade layers</Text>
+        <Text id="scenario-important" className={scenarioActive ? 'scenario-important-accent' : 'scenario-important-neutral'}>Important layers</Text>
+        <View id="scenario-token" className={scenarioTokenClass}>Spacing token</View>
+        {scenarioImports.map(item => <View key={item.id} id={item.id} className={item.className}>{item.id}</View>)}
+      </View>
       {['sass', 'less', 'stylus'].map(language => (
         <View key={language} id={`preprocess-${language}`} className={encodeClassList(`preprocess/${language}-中文 active preprocess/import-${language}`)}>
           {language}
@@ -68,7 +92,7 @@ export default function Index() {
         size="lg"
         visual="outline"
         className={css({
-          color: 'pink.500',
+          color: 'pink.500 !important',
         })}
       >
         11

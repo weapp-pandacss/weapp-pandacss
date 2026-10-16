@@ -70,7 +70,12 @@
     "test:e2e:web": "turbo run build --filter=@weapp-pandacss/react-app... && playwright test",
     "test:e2e:weapp": "turbo run build --filter=@weapp-pandacss/weapp-vite-app... && vitest run examples/weapp-vite-app/test --coverage.enabled=false",
     "test:e2e:devtools": "turbo run build --filter=@weapp-pandacss/weapp-vite-app... --filter=@weapp-pandacss/taro-app --filter=@weapp-pandacss/taro-app-vue3 --filter=@weapp-pandacss/uni-app-vue3 && node --experimental-strip-types e2e/devtools/run.ts",
-    "test:e2e": "pnpm test:e2e:weapp && pnpm test:e2e:web"
+    "test:e2e": "pnpm test:e2e:weapp && pnpm test:e2e:web",
+    "test:consumer:matrix": "node --experimental-strip-types packages/weapp-pandacss/test/consumer-acceptance.ts",
+    "test:e2e:h5": "turbo run build --filter=weapp-pandacss --filter=@weapp-pandacss/runtime && pnpm -r --workspace-concurrency=1 --filter=@weapp-pandacss/taro-app --filter=@weapp-pandacss/taro-app-vue3 --filter=@weapp-pandacss/uni-app-vue3 run build:h5 && playwright test -c e2e/h5/playwright.config.ts",
+    "test:e2e:dev": "node --experimental-strip-types e2e/devtools/watch.ts",
+    "audit:acceptance": "node --experimental-strip-types e2e/audit.ts",
+    "test:acceptance": "node --experimental-strip-types e2e/acceptance.ts"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.3",

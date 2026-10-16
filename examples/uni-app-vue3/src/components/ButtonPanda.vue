@@ -3,7 +3,7 @@ import type { RecipeVariantProps } from 'styled-system/css/index.mjs'
 import type { PropType } from 'vue'
 import { cva } from 'styled-system/css/index.mjs'
 // tailwindcss
-import { defineComponent } from 'vue'
+import { computed, defineComponent } from 'vue'
 
 const button = cva({
   base: {
@@ -63,6 +63,7 @@ type StyleProps = RecipeVariantProps<typeof button>
 
 export default defineComponent({
   props: {
+    probeId: String,
     intent: {
       type: [String] as PropType<StyleProps['intent']>,
     },
@@ -72,17 +73,17 @@ export default defineComponent({
   },
   setup(props) {
     return {
-      className: button({
+      className: computed(() => button({
         intent: props.intent,
         size: props.size,
-      }),
+      })),
     }
   },
 })
 </script>
 
 <template>
-  <view :class="className">
+  <view :id="probeId" :class="className">
     <slot />
   </view>
 </template>

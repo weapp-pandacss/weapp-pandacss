@@ -7,7 +7,7 @@ sidebar:
 
 已有原生微信项目可以在构建期使用 Panda，无需把生成 ESM 导入小程序。本方案在 Node 中计算有限 class 状态，写入普通 CommonJS 数据模块，再通过 PostCSS 生成配套 `app.wxss`。
 
-仓库**暂无独立原生项目示例或原生 E2E 验收**。这是一份接入方案，生成的项目需要在所选微信开发者工具与真机验证。[Weapp Vite 指南](/zh/frameworks/weapp-vite/)提供了已有编译产物/headless 测试的集成路线。
+仓库会从已安装的包 tarball 生成独立原生测试 fixture，覆盖编译产物，以及真实微信开发者工具中的状态切换、重新启动复位和组件样式隔离检查。完整验收矩阵**尚未通过**。本指南仍是一份接入方案，生成的项目需要在所选微信开发者工具与真机验证。[Weapp Vite 指南](/zh/frameworks/weapp-vite/)提供了另一条已有编译产物/headless 测试的集成路线。
 
 ## 安装构建依赖
 

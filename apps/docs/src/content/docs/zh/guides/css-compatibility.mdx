@@ -13,7 +13,7 @@ sidebar:
 
 ## 普通声明的 layer 顺序
 
-Panda 配置保持 `polyfill: false`，让 adapter 读到原始 layer。默认 `cascadeLayers.mode` 为 `ordered`，通过兼容适配层调用 `@weapp-tailwindcss/css-compat@0.1.1`，原有适配配置继续支持，新增组合阶段默认启用，class 命名沿用原有契约。编译器在 layer 首次声明时登记顺序，即使样式块出现顺序不同，也按登记顺序输出。
+Panda 配置保持 `polyfill: false`，让 adapter 读到原始 layer。默认 `cascadeLayers.mode` 为 `ordered`，通过兼容适配层调用 `@weapp-tailwindcss/css-compat@0.1.2`，原有适配配置继续支持，新增组合阶段默认启用，class 命名沿用原有契约。编译器在 layer 首次声明时登记顺序，即使样式块出现顺序不同，也按登记顺序输出。
 
 ~~~css
 .probe { color: green; }

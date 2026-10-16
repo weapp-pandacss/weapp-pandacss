@@ -31,7 +31,7 @@ module.exports = {
 
 It expands CSS imports, runs official Panda and adapts mini-program CSS by default. Keep Panda's config, `weappPanda()` and a global `.css` layer entry; H5 uses `{ target: 'web' }`. `imports`, `panda` and `adapter` can be disabled individually; `disabled: true` bypasses all stages. Sass/Less/Stylus are compiled by the framework. Unit conversion is built in and opt-in through `units`, defaulting to `false` for both targets with no inferred ratio. Configure `units: { rules: [{ from: 'rem', to: 'rpx', factor: 32 }] }` on the same plugin when needed; helpers and types come from the root package.
 
-Source `@import` remains supported: the composed plugin expands the local graph before Panda and mini-program ordered compilation. The ordered core uses pinned `@weapp-tailwindcss/css-compat@0.1.1`; unresolved plain, layer-qualified or remote imports fail rather than silently changing precedence. Existing adapter and legacy options remain available. See [CSS compatibility](https://panda.weapp.dev/guides/css-compatibility/) / [CSS 兼容](https://panda.weapp.dev/zh/guides/css-compatibility/) for diagnostics and the source-input boundary.
+Source `@import` remains supported: the composed plugin expands the local graph before Panda and mini-program ordered compilation. The ordered core uses pinned `@weapp-tailwindcss/css-compat@0.1.2`; unresolved plain, layer-qualified or remote imports fail rather than silently changing precedence. Existing adapter and legacy options remain available. See [CSS compatibility](https://panda.weapp.dev/guides/css-compatibility/) / [CSS 兼容](https://panda.weapp.dev/zh/guides/css-compatibility/) for diagnostics and the source-input boundary.
 
 ## Brand assets
 

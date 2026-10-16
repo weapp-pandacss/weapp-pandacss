@@ -84,7 +84,7 @@ Layer conversion is order compatibility, not full native cascade equivalence. Re
 
 ## Shared ordered-compiler update
 
-The source update replaces the local ordered core with pinned `@weapp-tailwindcss/css-compat@0.1.1` and records **minor release intent**. It does not assign or publish a new adapter version; consult the package/release for the installed version. The published guide already required imports and nesting to be expanded before adaptation. The shared core now validates that requirement for **every residual import**, including ordinary and remote imports, rather than only layer-qualified imports.
+The source update replaces the local ordered core with pinned `@weapp-tailwindcss/css-compat@0.1.2` and records **minor release intent**. It does not assign or publish a new adapter version; consult the package/release for the installed version. The published guide already required imports and nesting to be expanded before adaptation. The shared core now validates that requirement for **every residual import**, including ordinary and remote imports, rather than only layer-qualified imports.
 
 1. Keep source `@import` declarations. Check their graph is combined before Panda and the adapter, using the [PostCSS pipeline](/postcss/) or your framework's importer. Do not remove imports to make validation pass.
 2. Use the default composed PostCSS plugin on Taro React/Vue, React Vite and Weapp Vite. For the Uni-app Panda virtual entry, pass the real `pandaEntry` filename and forward imported-file/Panda dependencies to watch; the virtual entry sets `units: false`, H5 also sets `adapter: false`, and the final framework pass adapts and converts units once.

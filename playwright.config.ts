@@ -7,10 +7,11 @@ export default defineConfig({
   workers: 1,
   forbidOnly: Boolean(process.env.CI),
   failOnFlakyTests: true,
-  retries: process.env.CI ? 1 : 0,
+  retries: 0,
+  outputDir: './test-results/web',
   timeout: 30_000,
   expect: { timeout: 5000 },
-  reporter: [['line'], ['html', { open: 'never' }]],
+  reporter: [['line'], ['html', { outputFolder: './playwright-report/web', open: 'never' }]],
   use: {
     baseURL: 'http://127.0.0.1:4179',
     headless: true,

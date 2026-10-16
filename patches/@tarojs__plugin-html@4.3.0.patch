@@ -1,0 +1,26 @@
+diff --git a/dist/runtime.js b/dist/runtime.js
+index c48861da1c8d577ef52af8f4454bbfeaf6324ceb..8584c2e1563aa76668b2d4a5e32a0863b538c82d 100644
+--- a/dist/runtime.js
++++ b/dist/runtime.js
+@@ -224,7 +224,7 @@ function defineMappedProp(obj, propName, mapName) {
+ }
+ 
+ hooks.tap('modifyHydrateData', (data, node) => {
+-    const nodeName = data["nn" /* Shortcuts.NodeName */];
++    const nodeName = node.nodeName;
+     if (!isHtmlTags(nodeName))
+         return;
+     process.env.NODE_ENV !== 'production' && warn(data["nn" /* Shortcuts.NodeName */] === 'select', '请使用 Picker 组件代替 <select>');
+diff --git a/src/runtime.ts b/src/runtime.ts
+index e4b036d8498ee7809ccfbeed6fee8ea0db97e602..2f277a77fb1a5baf973adcb410fdcbf46edf9214 100644
+--- a/src/runtime.ts
++++ b/src/runtime.ts
+@@ -13,7 +13,7 @@ import {
+ } from './utils'
+ 
+ hooks.tap('modifyHydrateData', (data, node) => {
+-  const nodeName = data[Shortcuts.NodeName]
++  const nodeName = node.nodeName
+   if (!isHtmlTags(nodeName)) return
+ 
+   process.env.NODE_ENV !== 'production' && warn(data[Shortcuts.NodeName] === 'select', '请使用 Picker 组件代替 <select>')

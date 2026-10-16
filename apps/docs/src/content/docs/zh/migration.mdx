@@ -84,7 +84,7 @@ Layer 转换提供顺序兼容，不是完整原生 cascade 等价。权重告�
 
 ## 共享 ordered 内核更新
 
-源码更新将本地 ordered 内核替换为固定的 `@weapp-tailwindcss/css-compat@0.1.1`，记录 **minor 发布意图**，尚不指定或发布新 adapter 版本，实际安装版本以包与 release 为准。已发布指南原本就要求在适配前展开 import 和 nesting；共享内核现在校验**每个残留 import**，包括普通与远程导入，而非只校验带 layer 的导入。
+源码更新将本地 ordered 内核替换为固定的 `@weapp-tailwindcss/css-compat@0.1.2`，记录 **minor 发布意图**，尚不指定或发布新 adapter 版本，实际安装版本以包与 release 为准。已发布指南原本就要求在适配前展开 import 和 nesting；共享内核现在校验**每个残留 import**，包括普通与远程导入，而非只校验带 layer 的导入。
 
 1. 保留源码 `@import`，按 [PostCSS 流水线](/zh/postcss/)或框架 importer 在 Panda、adapter 前合并完整导入图，不删除 import 绕过校验。
 2. Taro React/Vue、React Vite、Weapp Vite 都使用默认三合一 PostCSS 插件。Uni-app Panda 虚拟入口传真实 `pandaEntry` 文件名，向 watch 透传导入与 Panda 依赖；H5 在该阶段使用 `adapter: false`，随后仅执行 Web 适配。

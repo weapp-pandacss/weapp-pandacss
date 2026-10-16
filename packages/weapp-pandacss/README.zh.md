@@ -177,7 +177,7 @@ v2 直接移除旧的文件补丁/配置 API、`weapp-panda` / `weapp-pandacss` 
 
 ## Cascade layer 顺序兼容
 
-小程序默认使用 `cascadeLayers: { mode: 'ordered', onConflict: 'warning' }`。Ordered 由适配层调用固定的 `@weapp-tailwindcss/css-compat@0.1.1` 内核，应用无需直接导入该包。编译器按首次声明注册层，展开嵌套、匿名及重复层，输出普通选择器，不生成 `:not(n)` 权重占位。普通声明按层顺序输出，未分层声明最后；重要声明按层逆序输出，未分层重要声明最先。同层内保留原始顺序。
+小程序默认使用 `cascadeLayers: { mode: 'ordered', onConflict: 'warning' }`。Ordered 由适配层调用固定的 `@weapp-tailwindcss/css-compat@0.1.2` 内核，应用无需直接导入该包。编译器按首次声明注册层，展开嵌套、匿名及重复层，输出普通选择器，不生成 `:not(n)` 权重占位。普通声明按层顺序输出，未分层声明最后；重要声明按层逆序输出，未分层重要声明最先。同层内保留原始顺序。
 
 这是**顺序兼容**，并非完整的原生 layer polyfill。在 WXSS 中，低优先层的高权重选择器仍可能覆盖高优先层。适配器通过 PostCSS 警告给出潜在冲突，包含层名、选择器、属性和源码位置。简写、逻辑属性和未知函数选择器采用保守检查；警告不代表两个选择器一定会命中同一元素。设置 `onConflict: 'error'` 可将诊断变为构建失败。
 

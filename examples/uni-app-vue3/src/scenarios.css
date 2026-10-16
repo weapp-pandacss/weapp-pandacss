@@ -1,0 +1,56 @@
+/* Native H5 resets are unlayered. Application spacing overrides must join
+   that cascade scope so their imported lengths remain visible at runtime. */
+@import './imports/nested.css';
+@import './imports/portable.css';
+@layer scenario.base, scenario.utilities;
+
+/* Source order must not override the declared cascade layer order. */
+@layer scenario.utilities {
+  .scenario-normal-neutral {
+    color: #0284c7;
+  }
+
+  .scenario-normal-accent {
+    color: #16a34a;
+  }
+
+  .scenario-important-neutral,
+  .scenario-important-accent {
+    color: blue !important;
+  }
+}
+
+@layer scenario.base {
+  .scenario-normal-neutral,
+  .scenario-normal-accent {
+    color: red;
+  }
+
+  .scenario-important-neutral {
+    color: #7c3aed !important;
+  }
+
+  .scenario-important-accent {
+    color: #ea580c !important;
+  }
+}
+
+.scenario-important-neutral,
+.scenario-important-accent {
+  color: black !important;
+}
+
+.scenario-panel {
+  box-sizing: border-box;
+  width: 100%;
+
+  /* Exercise real page scrolling even when all probes fit a tall viewport. */
+  min-height: calc(100vh + 2rem);
+  padding: 0.5rem;
+  text-align: left;
+}
+
+.scenario-variable {
+  padding-left: var(--scenario-space);
+  color: var(--scenario-tone);
+}

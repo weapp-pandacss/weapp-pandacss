@@ -1,0 +1,101 @@
+diff --git a/dist/utils/index.js b/dist/utils/index.js
+index 4c4f80d3253f1df282c16a27113597a9ba491440..ac8ca0e1b4a8ae748b188c6d6fc1fcc9835838c3 100644
+--- a/dist/utils/index.js
++++ b/dist/utils/index.js
+@@ -66,10 +66,18 @@ function getCacheDir(appPath, env = '') {
+ }
+ exports.getCacheDir = getCacheDir;
+ function getDefines(chain) {
+-    let defines;
++    let defines = {};
++    const nodeEnv = chain.optimization.get('nodeEnv');
++    const mode = chain.get('mode');
++    if (typeof nodeEnv === 'string') {
++        defines['process.env.NODE_ENV'] = JSON.stringify(nodeEnv);
++    }
++    else if (nodeEnv !== false && ['production', 'development'].includes(mode)) {
++        defines['process.env.NODE_ENV'] = JSON.stringify(mode);
++    }
+     if (chain.plugins.has('definePlugin')) {
+         chain.plugin('definePlugin').tap(args => {
+-            defines = Object.assign({}, args[0]);
++            defines = Object.assign(defines, args[0]);
+             Object.keys(defines).forEach(name => {
+                 if (typeof defines[name] !== 'string') {
+                     delete defines[name];
+@@ -138,7 +146,8 @@ function formatDepsString(deps) {
+ }
+ exports.formatDepsString = formatDepsString;
+ function getMfHash(obj) {
+-    return (0, helper_1.getHash)(JSON.stringify(obj));
++    // Invalidate remote output generated before IDs were isolated from the host.
++    return (0, helper_1.getHash)(JSON.stringify(Object.assign({ runtimeNamespace: 'taro-prebundle-v1' }, obj)));
+ }
+ exports.getMfHash = getMfHash;
+ function commitMeta(appPath, metadataPath, metadata) {
+diff --git a/dist/webpack/TaroContainerPlugin.js b/dist/webpack/TaroContainerPlugin.js
+index c4269493ae651aa82bf2c33b3e5a90ed2aed0f7c..fbb774dcd557acb486bdf13c4c0d8d24254ec41a 100644
+--- a/dist/webpack/TaroContainerPlugin.js
++++ b/dist/webpack/TaroContainerPlugin.js
+@@ -40,6 +40,20 @@ class TaroContainerPlugin extends ContainerPlugin_1.default {
+             name: PLUGIN_NAME,
+             stage: 100
+         }, compilation => {
++            // Remote and host share a runtime, but assign IDs in separate compilations.
++            const prefixId = id => id == null || String(id).startsWith('taro-prebundle-') ? id : `taro-prebundle-${id}`;
++            compilation.hooks.afterOptimizeModuleIds.tap(PLUGIN_NAME, modules => {
++                for (const module of modules) {
++                    const id = compilation.chunkGraph.getModuleId(module);
++                    if (id != null) compilation.chunkGraph.setModuleId(module, prefixId(id));
++                }
++            });
++            compilation.hooks.afterOptimizeChunkIds.tap(PLUGIN_NAME, chunks => {
++                for (const chunk of chunks) {
++                    chunk.id = prefixId(chunk.id);
++                    if (chunk.ids) chunk.ids = chunk.ids.map(prefixId);
++                }
++            });
+             /**
+              * 收集打包 Remote 应用时使用到的 Webpack runtime 工具函数。
+              * Remote 应用与 Host 应用的 runtime 可以共用减少重复代码加载，
+diff --git a/dist/webpack/TaroContainerReferencePlugin.js b/dist/webpack/TaroContainerReferencePlugin.js
+index 750702d367f82aa98cff6287e641bf79eec43251..a05cb9227aefa549327b1808bd32b625990352c5 100644
+--- a/dist/webpack/TaroContainerReferencePlugin.js
++++ b/dist/webpack/TaroContainerReferencePlugin.js
+@@ -11,6 +11,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
+ const node_path_1 = __importDefault(require("node:path"));
+ const helper_1 = require("@tarojs/helper");
+ const ContainerReferencePlugin_1 = __importDefault(require("webpack/lib/container/ContainerReferencePlugin"));
++const { parseOptions } = require("webpack/lib/container/options");
+ const RemoteModule_1 = __importDefault(require("webpack/lib/container/RemoteModule"));
+ const utils_1 = require("../utils");
+ const constant_1 = require("../utils/constant");
+@@ -25,6 +26,15 @@ const slashCode = '/'.charCodeAt(0);
+ class TaroContainerReferencePlugin extends ContainerReferencePlugin_1.default {
+     constructor(options, params) {
+         super(options);
++        // Own the normalized state instead of inheriting Webpack's private fields.
++        this._remoteType = options.remoteType;
++        this._remotes = parseOptions(options.remotes, item => ({
++            external: Array.isArray(item) ? item : [item],
++            shareScope: options.shareScope || 'default'
++        }), item => ({
++            external: Array.isArray(item.external) ? item.external : [item.external],
++            shareScope: item.shareScope || options.shareScope || 'default'
++        }));
+         this.params = params;
+         const { remotes = {} } = options;
+         const remoteName = Object.keys(remotes)[0] || constant_1.MF_NAME;
+diff --git a/dist/webpack/TaroModuleFederationPlugin.js b/dist/webpack/TaroModuleFederationPlugin.js
+index 0280b2cf0542846c5936bedadcb96164520532a2..1d96ee9e57c2cba51da80667d6b244ab89dc815a 100644
+--- a/dist/webpack/TaroModuleFederationPlugin.js
++++ b/dist/webpack/TaroModuleFederationPlugin.js
+@@ -17,6 +17,8 @@ const PLUGIN_NAME = 'TaroModuleFederationPlugin';
+ class TaroModuleFederationPlugin extends ModuleFederationPlugin_1.default {
+     constructor(options, params) {
+         super(options);
++        // Own this state: recent Webpack versions no longer initialize _options.
++        this._options = options;
+         this.params = params;
+         this.deps = params.deps;
+         this.isBuildPlugin = params.isBuildPlugin || false;

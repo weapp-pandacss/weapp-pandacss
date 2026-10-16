@@ -69,3 +69,6 @@ overrides:
   miniprogram-automator@0.13.0>debug: 4.4.3
   ws@8.18.0: ^8.21.0
   postcss-selector-parser: 7.1.6
+patchedDependencies:
+  '@tarojs/plugin-html@4.3.0': patches/@tarojs__plugin-html@4.3.0.patch
+  '@tarojs/webpack5-prebundle@4.3.0': patches/@tarojs__webpack5-prebundle@4.3.0.patch

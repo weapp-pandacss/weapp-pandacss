@@ -13,7 +13,7 @@ This adapts a stylesheet's syntax and order. It does not add a CSS engine, make 
 
 ## Normal layer order
 
-Keep `polyfill: false` in Panda configuration so the adapter receives original layers. By default, `cascadeLayers.mode` is `ordered`, using `@weapp-tailwindcss/css-compat@0.1.1` through a compatibility adapter. Existing adapter configuration remains supported, with the new composition stages enabled by default; class naming keeps its existing contract. The compiler registers layers at their first declaration and emits rules in layer order even if their blocks appear in a different order.
+Keep `polyfill: false` in Panda configuration so the adapter receives original layers. By default, `cascadeLayers.mode` is `ordered`, using `@weapp-tailwindcss/css-compat@0.1.2` through a compatibility adapter. Existing adapter configuration remains supported, with the new composition stages enabled by default; class naming keeps its existing contract. The compiler registers layers at their first declaration and emits rules in layer order even if their blocks appear in a different order.
 
 ~~~css
 .probe { color: green; }

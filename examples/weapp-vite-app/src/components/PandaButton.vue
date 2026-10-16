@@ -2,7 +2,7 @@
 import { computed } from 'wevu'
 import { cva } from '../../styled-system/css/index.mjs'
 
-const props = defineProps<{ active: boolean }>()
+const props = defineProps<{ active: boolean, probeId?: string }>()
 
 const emit = defineEmits<{ toggle: [] }>()
 
@@ -22,7 +22,7 @@ const buttonClass = computed(() => button({ tone: props.active ? 'accent' : 'neu
 </script>
 
 <template>
-  <button id="variant-button" :class="buttonClass" @tap="emit('toggle')">
+  <button :id="props.probeId || 'variant-button'" :class="buttonClass" @tap="emit('toggle')">
     <slot />
   </button>
 </template>

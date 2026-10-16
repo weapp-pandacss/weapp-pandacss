@@ -6,7 +6,9 @@ export default defineConfig({
   testDir: '.',
   workers: 1,
   forbidOnly: Boolean(process.env.CI),
-  retries: process.env.CI ? 1 : 0,
+  failOnFlakyTests: true,
+  retries: 0,
+  outputDir: '../../test-results/docs',
   reporter: [['line']],
   use: {
     baseURL: 'http://127.0.0.1:4180',

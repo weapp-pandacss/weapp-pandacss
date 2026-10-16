@@ -7,7 +7,7 @@ sidebar:
 
 For an existing native WeChat project, you can run Panda at build time without importing generated ESM into the mini-program. This recipe computes a finite set of class names in Node, writes an ordinary CommonJS data module, and produces matching `app.wxss` with PostCSS.
 
-There is **no independent native-project example or native E2E acceptance** in this repository. This is an integration recipe; test the resulting project in your selected WeChat IDE and device. The [Weapp Vite guide](/frameworks/weapp-vite/) offers an existing integration with compiled-artifact/headless tests.
+The repository generates an independent native test fixture from the installed package tarballs. It covers compiled artifacts and real WeChat IDE checks for state changes, relaunch reset and component style isolation. The complete acceptance matrix has **not yet passed**. This guide remains an integration recipe; validate your resulting project in the selected WeChat IDE and on a device. The [Weapp Vite guide](/frameworks/weapp-vite/) offers another integration with compiled-artifact/headless tests.
 
 ## Install build dependencies
 
