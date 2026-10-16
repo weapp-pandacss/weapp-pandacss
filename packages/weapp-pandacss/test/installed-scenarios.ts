@@ -223,7 +223,11 @@ export async function runInstalledScenario(root: string, node = process.execPath
   const typeArguments = ['--strict', '--module', 'nodenext', '--target', 'es2022', '--types', 'node', '--rootDir', 'typed', 'typed/consumer.mts', 'typed/consumer.cts']
   let upstreamDeclarationDiagnostics: string[] = []
   try {
-    await run(node, [compiler, '--noEmit', ...typeArguments], { cwd: root, timeout: 120_000 })
+    // TypeScript 6 refuses a file list when a fixture tsconfig is present
+    // unless the declaration-only probe explicitly opts out of config loading.
+    // The consumer check below still uses the fixture's normal config and
+    // skipLibCheck policy.
+    await run(node, [compiler, '--noEmit', '--ignoreConfig', ...typeArguments], { cwd: root, timeout: 120_000 })
   }
   catch (error) {
     const failure = error as { stdout: string, stderr: string }
