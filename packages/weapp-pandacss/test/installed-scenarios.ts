@@ -225,8 +225,9 @@ export async function runInstalledScenario(root: string, node = process.execPath
   try {
     // TypeScript 6 refuses a file list when a fixture tsconfig is present
     // unless the declaration-only probe explicitly opts out of config loading.
-    // The consumer check below still uses the fixture's normal config and
-    // skipLibCheck policy.
+    // The consumer check below uses the same explicit compiler options and
+    // skipLibCheck policy, while also opting out of the fixture config to
+    // satisfy TypeScript 6's file-list rule.
     await run(node, [compiler, '--noEmit', '--ignoreConfig', ...typeArguments], { cwd: root, timeout: 120_000 })
   }
   catch (error) {
@@ -236,7 +237,7 @@ export async function runInstalledScenario(root: string, node = process.execPath
     assert(upstreamDeclarationDiagnostics.length > 0)
     assert(upstreamDeclarationDiagnostics.every(line => /node_modules\/.*@pandacss\/types\/dist\/index\.d\.ts.*error TS2308:.*(?:Recursive|LiteralUnion|Primitive|Token)/.test(line)), 'Unexpected declaration error: inspect upstream-declarations.log')
   }
-  await step('consumer-typecheck', [compiler, '--skipLibCheck', '--outDir', 'built', '--listFiles', ...typeArguments])
+  await step('consumer-typecheck', [compiler, '--skipLibCheck', '--ignoreConfig', '--outDir', 'built', '--listFiles', ...typeArguments])
   await step('typed-esm', ['built/consumer.mjs'])
   await step('typed-cjs', ['built/consumer.cjs'])
   const output = await step('build-scenario', ['build-scenario.mjs'])
