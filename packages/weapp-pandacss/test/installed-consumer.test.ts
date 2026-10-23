@@ -19,7 +19,7 @@ afterAll(async () => {
   }
 })
 
-it.each(pandaVersions)('installs both local tarballs with Panda %s and executes extracted/static runtime scenarios', async (version) => {
+it.each(pandaVersions)('installs both local tarballs offline with empty metadata and Panda %s, then executes extracted/static runtime scenarios', async (version) => {
   const consumer = path.join(root, `consumer-${version}`)
   const { resolution } = await installPackedConsumer(consumer, packages, version)
   await writeInstalledScenario(consumer)
