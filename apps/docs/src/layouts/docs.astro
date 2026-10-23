@@ -7,6 +7,7 @@ import DocIcon from '../components/doc-icon.astro'
 import IconControl from '../components/icon-control.astro'
 import Search from '../components/search/index.astro'
 import Sidebar from '../components/sidebar.astro'
+import { documentationDeployment, documentationUrls } from '../lib/deployment'
 import { labels } from '../lib/locale'
 import { documentationSections } from '../lib/navigation'
 import '../styles/site.css'
@@ -20,10 +21,11 @@ const indexUrl = withBase(chinese ? '/zh/llms.txt' : '/llms.txt', base)
 const home = Astro.url.pathname === withBase(root, base)
 const activeSection = sidebar === false ? undefined : sidebar.find(group => group.type === 'group' && group.children.some(link => link.type === 'link' && withBase(link.href, base) === Astro.url.pathname))?.label
 const sections = documentationSections(chinese)
+const stableUrl = new URL(Astro.url.pathname, documentationUrls.stable)
 ---
 
 <!doctype html>
-<html lang={chinese ? 'zh-CN' : 'en'}>
+<html lang={chinese ? 'zh-CN' : 'en'} data-docs-channel={documentationDeployment.channel}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -79,6 +81,9 @@ const sections = documentationSections(chinese)
         <IconControl id="rail-index" class="index-link" icon="bot" label={text.index} href={indexUrl} />
       </aside>
       <main id="main-content" tabindex="-1">
+        {documentationDeployment.preview && <aside class="preview-notice" aria-label={text.previewLabel} data-pagefind-ignore>
+          <p><strong>{text.previewLabel}</strong> {text.previewNotice} <a href={stableUrl}>{text.stableDocumentation}</a></p>
+        </aside>}
         <nav class="breadcrumbs" aria-label={chinese ? '面包屑' : 'Breadcrumbs'}>
           <ol>{breadcrumbs.map((crumb, index) => <li>{crumb.href && index !== breadcrumbs.length - 1 ? <a href={withBase(crumb.href, base)}>{index === 0 && <DocIcon name="home" size={14} />}{crumb.label}</a> : <span aria-current={index === breadcrumbs.length - 1 ? 'page' : undefined}>{crumb.label}</span>}</li>)}</ol>
         </nav>

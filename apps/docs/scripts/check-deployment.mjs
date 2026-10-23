@@ -3,12 +3,13 @@ import { readdir, readFile } from 'node:fs/promises'
 import path from 'node:path'
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
+import { resolveDocumentationDeployment } from '../src/lib/deployment.ts'
 
 assert(process.argv.length <= 3, 'Usage: node scripts/check-deployment.mjs [dist-directory]')
 const dist = path.resolve(process.argv[2] ?? fileURLToPath(new URL('../dist/', import.meta.url)))
 const source = new URL('../src/content/docs/', import.meta.url)
-const metadata = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'))
-const site = new URL(`${metadata.homepage.replace(/\/$/, '')}/`)
+const deployment = resolveDocumentationDeployment(process.env)
+const site = new URL(`${deployment.site}/`)
 const decoder = new TextDecoder('utf-8', { fatal: true })
 
 function assetPath(value) {
@@ -56,6 +57,12 @@ function expectHeader(route, name, value) {
   assert.deepEqual(headerValues(route, name), [value], `${route}: generated ${name} rule`)
 }
 
+const robotsRules = rules.filter(rule => rule.headers.some(([name]) => name === 'x-robots-tag'))
+assert.equal(robotsRules.length, deployment.preview ? 1 : 0, 'Only preview deployments may set a global robots header')
+for (const route of ['/', '/zh/api/runtime/', '/llms.txt', '/llms-full.txt', '/.well-known/ard.json', '/assets/example.js']) {
+  assert.deepEqual(headerValues(route, 'x-robots-tag'), deployment.preview ? ['noindex, nofollow'] : [], `${route}: ${deployment.channel} indexing policy`)
+}
+
 for (const route of ['/.well-known/ard.json', '/.well-known/ai-catalog.json']) {
   expectHeader(route, 'content-type', 'application/json')
   expectHeader(route, 'access-control-allow-origin', '*')
@@ -90,6 +97,9 @@ for (const [rel, route, type] of [
 
 const robots = await textAsset('/robots.txt')
 expectHeader('/robots.txt', 'content-type', 'text/plain; charset=utf-8')
+assert.match(robots, /^User-agent:\s*\*\s*$/m, 'Robots rules must apply to every crawler')
+const crawlerRules = [...robots.matchAll(/^(Allow|Disallow):\s*(\S+)\s*$/gm)].map(match => [match[1], match[2]])
+assert.deepEqual(crawlerRules, [[deployment.preview ? 'Disallow' : 'Allow', '/']], `${deployment.channel} robots policy`)
 const sitemapIndexes = [...robots.matchAll(/^Sitemap:\s*(\S+)\s*$/gm)].map(match => match[1])
 assert.deepEqual(sitemapIndexes, [new URL('/sitemap-index.xml', site).href], 'Robots must advertise the documentation sitemap index')
 const sitemaps = new Set()
@@ -123,7 +133,11 @@ for (const file of pages) {
 }
 assert.deepEqual([...locations].sort(), expectedPages.sort(), 'Sitemap must include every published source page exactly once')
 for (const url of locations) {
-  await textAsset(url)
+  const html = await textAsset(url)
+  assert(html.includes(`data-docs-channel="${deployment.channel}"`), `HTML must identify its deployment channel: ${url}`)
+  assert(html.includes(`rel="canonical" href="${url}"`), `Canonical URL must match the deployment sitemap: ${url}`)
+  const indexing = [...html.matchAll(/<meta\s+name="robots"\s+content="([^"]+)"\s*\/?>/g)].map(match => match[1])
+  assert.deepEqual(indexing, deployment.preview ? ['noindex, nofollow'] : [], `HTML robots policy must match its deployment channel: ${url}`)
   for (const extension of ['md', 'mdx']) {
     await textAsset(new URL(`index.${extension}`, url))
   }
@@ -155,4 +169,4 @@ expectHeader('/llms-full.txt', 'content-type', 'text/plain; charset=utf-8')
 for (const url of locations) {
   assert(full.includes(`Source: ${url} · Markdown: ${new URL('index.md', url).href}`), `Full LLM export must contain the sitemap page: ${url}`)
 }
-console.log(`Deployment artifacts checked: ${locations.length} sitemap pages, ${locations.length * 2} text exports, ${directories.size} LLM directories and ${ard.entries.length} discovery entries; generated header rules verified.`)
+console.log(`${deployment.channel} deployment artifacts checked: ${locations.length} sitemap pages, ${locations.length * 2} text exports, ${directories.size} LLM directories and ${ard.entries.length} discovery entries; generated header rules and indexing policy verified.`)

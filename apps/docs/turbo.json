@@ -1,0 +1,12 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "build": {
+      "inputs": ["$TURBO_DEFAULT$"],
+      "env": ["REPO_DOCS_CHANNEL", "REPO_DOCS_URL"]
+    },
+    "dev": {
+      "env": ["REPO_DOCS_CHANNEL", "REPO_DOCS_URL"]
+    }
+  }
+}

@@ -3,7 +3,7 @@
   "path": ".agents/skills/repoctl/references/dependencies.md",
   "source": {
     "package": "@icebreakers/monorepo-templates",
-    "version": "2.3.3",
+    "version": "3.0.1",
     "assetPath": ".agents/skills/repoctl/references/dependencies.md",
     "hash": "4059953b1305ce1ee5cb8b5f8fe59a49b18c4666f1e2a114fcf7459e496bba10"
   },

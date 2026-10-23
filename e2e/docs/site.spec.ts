@@ -1,6 +1,10 @@
 import type { Locator, Page } from '@playwright/test'
-import { readdir } from 'node:fs/promises'
+import { readdir, readFile } from 'node:fs/promises'
+import process from 'node:process'
 import { expect, test } from '@playwright/test'
+import { resolveDocumentationDeployment } from '../../apps/docs/src/lib/deployment.ts'
+
+const { channel, preview, site } = resolveDocumentationDeployment(process.env)
 
 const themeLabels = {
   en: { title: 'Color theme', system: 'System', light: 'Light', dark: 'Dark' },
@@ -56,8 +60,16 @@ test('every translated page has HTML, reciprocal language links and text exports
     const english = chinese ? route.slice(3) : route
     expect(html, route).toContain('<h1>')
     expect(html).toContain(`lang="${chinese ? 'zh-CN' : 'en'}"`)
-    expect(html).toContain(`hreflang="en" href="https://panda.weapp.dev${english}"`)
-    expect(html).toContain(`hreflang="zh-CN" href="https://panda.weapp.dev/zh${english}"`)
+    expect(html).toContain(`data-docs-channel="${channel}"`)
+    expect(html).toContain(`rel="canonical" href="${site}${route}"`)
+    expect(html).toContain(`hreflang="en" href="${site}${english}"`)
+    expect(html).toContain(`hreflang="zh-CN" href="${site}/zh${english}"`)
+    if (preview) {
+      expect(html).toContain('name="robots" content="noindex, nofollow"')
+    }
+    else {
+      expect(html).not.toContain('name="robots"')
+    }
     for (const extension of ['md', 'mdx']) {
       const exported = await request.get(`${route}index.${extension}`)
       expect(exported.ok(), route + extension).toBeTruthy()
@@ -67,6 +79,7 @@ test('every translated page has HTML, reciprocal language links and text exports
   const index = await request.get('/llms.txt')
   expect(index.ok()).toBeTruthy()
   const directory = await index.text()
+  expect(directory).toContain(`${site}/llms-full.txt`)
   for (const section of ['api', 'frameworks', 'guides', 'zh']) {
     expect(directory).toContain(`/${section}/llms.txt`)
   }
@@ -89,12 +102,59 @@ test('every translated page has HTML, reciprocal language links and text exports
   expect(complete).not.toMatch(/<(?:LinkGrid|LinkCard|BuildFlow|FlowStep|svg)\b/i)
 })
 
+test('robots, sitemap and Cloudflare headers match the documentation channel', async ({ request }) => {
+  const robots = await request.get('/robots.txt')
+  expect(robots.ok()).toBeTruthy()
+  const rules = await robots.text()
+  expect(rules).toContain(preview ? 'Disallow: /' : 'Allow: /')
+  expect(rules).toContain(`Sitemap: ${site}/sitemap-index.xml`)
+  const index = await request.get('/sitemap-index.xml')
+  expect(index.ok()).toBeTruthy()
+  const sitemaps = [...(await index.text()).matchAll(/<loc>([^<]+)<\/loc>/g)].map(match => match[1])
+  expect(sitemaps.length).toBeGreaterThan(0)
+  for (const sitemap of sitemaps) {
+    expect(new URL(sitemap).origin).toBe(site)
+    const response = await request.get(new URL(sitemap).pathname)
+    expect(response.ok()).toBeTruthy()
+    const locations = [...(await response.text()).matchAll(/<loc>([^<]+)<\/loc>/g)].map(match => match[1])
+    expect(locations.length).toBeGreaterThan(0)
+    for (const location of locations) {
+      expect(new URL(location).origin).toBe(site)
+    }
+    expect(locations).toContain(`${site}/api/runtime/`)
+    expect(locations).toContain(`${site}/zh/api/runtime/`)
+  }
+  // Astro preview does not interpret Cloudflare's deployment headers file.
+  const headers = await readFile(new URL('../../apps/docs/dist/_headers', import.meta.url), 'utf8')
+  const indexingRules = [...headers.matchAll(/^[ \t]+X-Robots-Tag:([^\r\n]*)$/gim)].map(match => match[1].trim())
+  expect(indexingRules).toEqual(preview ? ['noindex, nofollow'] : [])
+  expect(headers).toContain('Content-Type: application/json')
+  expect(headers).toContain('Access-Control-Allow-Origin: *')
+  expect(headers).toContain(`Link: <${site}/.well-known/ard.json>; rel="ard"`)
+  expect(headers).toContain(`Link: <${site}/llms.txt>; rel="describedby"; type="text/plain"`)
+})
+
 for (const locale of ['en', 'zh'] as const) {
   const prefix = locale === 'zh' ? '/zh' : ''
   const entries = ['get-started', 'frameworks', 'guides', 'api', 'troubleshooting']
   const flowTitles = locale === 'zh'
     ? ['编写样式', '生成兼容的 class', '对齐 WXSS 选择器']
     : ['Author a style', 'Generate a portable class', 'Match the WXSS selector']
+
+  test(`${locale} preview notice links to the same stable page and is absent on stable`, async ({ page }) => {
+    await page.goto(`${prefix}/api/runtime/`)
+    const notice = page.locator('.preview-notice')
+    if (preview) {
+      await expect(notice).toBeVisible()
+      await expect(notice).toHaveAccessibleName(locale === 'zh' ? '预览文档' : 'Preview documentation')
+      await expect(notice).toContainText(locale === 'zh' ? '尚未正式发布' : 'unreleased changes')
+      await expect(notice.getByRole('link')).toHaveAttribute('href', `https://panda.weapp.dev${prefix}/api/runtime/`)
+      await expect(notice).toHaveAttribute('data-pagefind-ignore', '')
+    }
+    else {
+      await expect(notice).toHaveCount(0)
+    }
+  })
 
   test(`${locale} homepage entries and build flow retain their content in text exports`, async ({ page, request }) => {
     await page.goto(`${prefix}/`)

@@ -29,7 +29,7 @@ export const gates: Stage[] = [
   { name: 'web', args: ['test:e2e:web'] },
   { name: 'h5', args: ['test:e2e:h5'] },
   { name: 'docs-examples', args: ['--filter', '@weapp-pandacss/docs', 'check:examples'] },
-  { name: 'docs-browser', args: ['--filter', '@weapp-pandacss/docs', 'test:e2e'] },
+  { name: 'docs-browser', args: ['docs:test:e2e'] },
   { name: 'docs-deploy-dry-run', args: ['--filter', '@weapp-pandacss/docs', 'deploy:check'] },
   { name: 'dev-watch', args: ['test:e2e:dev'], timeout: 35 * 60_000 },
   { name: 'ide-build', args: ['exec', 'turbo', 'run', 'build', '--force', '--filter=@weapp-pandacss/weapp-vite-app...', '--filter=@weapp-pandacss/taro-app', '--filter=@weapp-pandacss/taro-app-vue3', '--filter=@weapp-pandacss/uni-app-vue3'] },

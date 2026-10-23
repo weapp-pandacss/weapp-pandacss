@@ -17,7 +17,7 @@ pnpm exec repo new <name> --template <key>
 | API / Hono service       | `hono-server` |
 | TypeScript library / SDK | `tsdown`      |
 | Vue component library    | `vue-lib`     |
-| Documentation site       | `vitepress`   |
+| Documentation site       | `nimbus`      |
 | CLI                      | `cli`         |
 
 Preview without writing files: `pnpm exec repo new <name> --template <key> --dry-run`.
@@ -52,6 +52,6 @@ pnpm exec repo check
 
 ## Requirements
 
-- Node.js 22.18+ or 24.11+
+- Node.js `^22.23.4 || ^24.22.1 || >=26.12.1`; use Node 24.22.1 from `.nvmrc` for local development
 - pnpm (run `corepack enable` so the declared workspace version is used)
 - CLI output is English by default; `--lang zh-CN` or `REPOCTL_LANG=zh-CN` selects Simplified Chinese

@@ -6,7 +6,7 @@ packages:
 catalog:
   postcss: ^8.5.30
   typescript: ~6.0.3
-  vitest: ~5.0.4
+  vitest: ~5.0.5
 minimumReleaseAge: 0
 pmOnFail: error
 packageExtensions:
@@ -41,6 +41,7 @@ allowBuilds:
   vue-demi: true
   workerd: true
   weapp-tailwindcss: false
+  lefthook: true
 overrides:
   # NutUI publishes its documentation uploader as a runtime dependency; no
   # distributed component imports it and its postinstall is disabled above.

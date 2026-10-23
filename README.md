@@ -54,7 +54,7 @@ The historical Linaria example remains in `examples/taro-app-linaria` as referen
 
 ## Development
 
-Workspace development requires Node.js `^22.22.3 || ^24.16.0 || >=26.3.0`, matching the root `engines` field and the installed lint tools. Use the pnpm version declared by `packageManager`. Published package engine ranges remain independent of this development requirement. CI verifies Node 22 and 24:
+Repository development requires Node.js `^22.23.4 || ^24.22.1 || >=26.12.1` and the pnpm version declared by `packageManager`. Use Node 24.22.1 from `.nvmrc`; CI verifies Node 22.23.4 and 24.22.1 on Linux, Windows and macOS. Published packages retain their own consumer engine requirements.
 
 ```bash
 corepack enable
@@ -80,10 +80,28 @@ pnpm --filter @weapp-pandacss/weapp-vite-app dev
 
 Use `pnpm exec repo doctor` and `pnpm exec repo check` to validate workspace health. `pnpm change` records release intent; repoctl manages the release workflow. See each package manifest for its version. Generated `dist`, coverage and example `styled-system` directories are ignored; real Panda fixtures are generated in isolated temporary directories during tests.
 
+Git hooks use Lefthook. Installation enables staged ESLint and Stylelint fixes, affected workspace typechecks and commit-message validation; pre-push runs lint and typecheck. Run `pnpm exec lefthook install` to reinstall the hooks when needed.
+
 Run `pnpm --filter @weapp-pandacss/docs dev` to edit the bilingual site. See [the documentation workspace](./apps/docs/README.md) for build, validation and Cloudflare deployment commands.
 
 See the [2.0 plugin migration guide](./docs/panda-plugin-migration.md), [current dependency review](./docs/dependency-review-2026-10-13.md) for framework version cohorts and [the Wevu example guide](./examples/weapp-vite-app/README.md) for its development workflow. The [earlier dependency notes](./docs/dependency-upgrade.md) remain as upgrade history.
 
+## Releases and documentation channels
+
+Stable packages use the npm `latest` tag. The managed Release workflow checks `main` for nightly changes every day at 08:00 Asia/Shanghai and also supports manual nightly runs. repoctl publishes verified snapshots of both public packages under `snapshot-nightly`, preserving stable versions and release intents.
+
+```bash
+pnpm add -D weapp-pandacss@snapshot-nightly
+# For applications that import the standalone runtime:
+pnpm add @weapp-pandacss/runtime@snapshot-nightly
+```
+
+[Preview documentation](https://preview.panda.weapp.dev/) follows `main` and describes unreleased changes. [Production documentation](https://panda.weapp.dev/) advances after a complete stable package release and uses that release's verified source snapshot. Documentation-only corrections use repoctl's stable documentation flow. Both sites retain the English `/` and Chinese `/zh/` routes.
+
+To inspect nightly without publishing, run the `Release` workflow on `main` with `mode=nightly` and `dry-run=true`. Failed runs retain their reports and package artifacts for diagnosis; retry through the managed workflow without editing versions, dist-tags or release ledgers. For a documentation deployment retry, use the `Documentation` workflow with the same channel and source/release inputs. See [deployment and recovery](./apps/docs/README.md#deployment--部署) for credentials, stable documentation corrections and receipt recovery. Before the first repoctl 6 stable completion record exists, the production site keeps its current content.
+
 ## Testing
 
 [Testing strategy and E2E acceptance](./docs/testing-strategy.md) · [中文测试指南](./docs/testing-strategy.zh.md)
+
+`pnpm docs:test` checks the documentation deployment adapters. `pnpm docs:test:e2e` validates the stable and preview site builds, including locale behavior, canonical URLs and preview indexing controls.

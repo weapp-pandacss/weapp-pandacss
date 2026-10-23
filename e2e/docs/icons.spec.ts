@@ -35,16 +35,19 @@ async function expectIconControl(control: Locator, name: string) {
   await expect(control).toHaveAttribute('aria-describedby', (await tooltip.getAttribute('id'))!)
   const bounds = await control.boundingBox()
   expect(bounds).not.toBeNull()
-  expect(bounds!.width).toBeGreaterThanOrEqual(44)
-  expect(bounds!.height).toBeGreaterThanOrEqual(44)
+  // Firefox can report 43.999755859375 for a 44px control far down a long page.
+  // Allow only sub-millipixel coordinate rounding, not an undersized touch target.
+  const coordinateEpsilon = 0.001
+  expect(bounds!.width).toBeGreaterThanOrEqual(44 - coordinateEpsilon)
+  expect(bounds!.height).toBeGreaterThanOrEqual(44 - coordinateEpsilon)
 }
 
 for (const locale of ['en', 'zh'] as const) {
   const prefix = locale === 'zh' ? '/zh' : ''
   const text = labels[locale]
 
-  test(`${locale} icon tools have localized names, decorative SVGs and touch-sized targets`, async ({ page }) => {
-    for (const width of [1440, 390, 375]) {
+  for (const width of [1440, 390, 375]) {
+    test(`${locale} icon tools have localized names, decorative SVGs and touch-sized targets at ${width}px`, async ({ page }) => {
       await page.setViewportSize({ width, height: 900 })
       await page.goto(`${prefix}/api/runtime/`)
       await page.mouse.move(1, 1)
@@ -65,11 +68,11 @@ for (const locale of ['en', 'zh'] as const) {
         await expectIconControl(control, label!)
         await expect(control.locator('[role="tooltip"]')).not.toBeVisible()
       }
-      for (const svg of await page.locator('svg').all()) {
-        await expect(svg).toHaveAttribute('aria-hidden', 'true')
-      }
-      for (const link of await page.locator('#site-navigation nav a, .section-tabs a, .previous-next a').all()) {
-        expect((await link.textContent())?.trim()).toBeTruthy()
+      await expect(page.locator('svg')).not.toHaveCount(0)
+      await expect(page.locator('svg:not([aria-hidden="true"])')).toHaveCount(0)
+      const linkLabels = await page.locator('#site-navigation nav a, .section-tabs a, .previous-next a').allTextContents()
+      for (const label of linkLabels) {
+        expect(label.trim()).toBeTruthy()
       }
       await expect(page.locator('#site-navigation [aria-current="page"]')).toHaveAttribute('href', `${prefix}/api/runtime/`)
       if (width <= 390) {
@@ -84,8 +87,8 @@ for (const locale of ['en', 'zh'] as const) {
       await expectIconControl(search.getByRole('button', { name: text.close, exact: true }), text.close)
       await expectIconControl(search.getByRole('button', { name: text.submit, exact: true }), text.submit)
       await page.keyboard.press('Escape')
-    }
-  })
+    })
+  }
 
   test(`${locale} tooltips support hover, keyboard focus and persistent Escape dismissal`, async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' })

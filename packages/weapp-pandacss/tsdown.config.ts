@@ -9,6 +9,13 @@ export default defineConfig({
   },
   format: ['esm', 'cjs'],
   dts: true,
+  deps: {
+    onlyBundle: ['@pandacss/types'],
+    dts: {
+      // Keep Panda's public hook contract without exposing its upstream declaration barrel.
+      alwaysBundle: ['@pandacss/types'],
+    },
+  },
   clean: true,
   shims: true,
   target: 'node22',
