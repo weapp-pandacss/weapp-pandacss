@@ -84,7 +84,10 @@ jobs:
       - name: Check package contents
         run: pnpm pack:check
 
-      - name: Check workspace health
+      - name: Check workspace health (development Node version)
+        # Doctor requires the active runtime to match .nvmrc exactly. Node 22
+        # remains covered by every build, type, test and package check above.
+        if: ${{ matrix.node-version == '24.22.1' }}
         run: pnpm exec repo doctor
 
       - name: Upload coverage reports to Codecov
