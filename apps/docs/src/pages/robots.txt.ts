@@ -7,7 +7,8 @@ export const prerender = true
 export function GET() {
   const body = [
     'User-agent: *',
-    documentationDeployment.preview ? 'Disallow: /' : 'Allow: /',
+    // Outrank the `Allow: /` prepended by Cloudflare's managed robots policy.
+    documentationDeployment.preview ? 'Disallow: /*' : 'Allow: /',
     '',
     `Sitemap: ${new URL(withBase('/sitemap-index.xml', import.meta.env.BASE_URL), config.site).href}`,
     '',

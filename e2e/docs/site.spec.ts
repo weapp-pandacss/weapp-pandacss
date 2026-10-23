@@ -106,7 +106,7 @@ test('robots, sitemap and Cloudflare headers match the documentation channel', a
   const robots = await request.get('/robots.txt')
   expect(robots.ok()).toBeTruthy()
   const rules = await robots.text()
-  expect(rules).toContain(preview ? 'Disallow: /' : 'Allow: /')
+  expect(rules).toMatch(preview ? /^Disallow: \/\*$/m : /^Allow: \/$/m)
   expect(rules).toContain(`Sitemap: ${site}/sitemap-index.xml`)
   const index = await request.get('/sitemap-index.xml')
   expect(index.ok()).toBeTruthy()

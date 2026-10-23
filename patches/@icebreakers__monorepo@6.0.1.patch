@@ -1,0 +1,18 @@
+diff --git a/dist/commands-D1KtdxnV.mjs b/dist/commands-D1KtdxnV.mjs
+index 79b651dba83031ed6f414bbc9d7afe77d49ab0a1..326f06453b2880541ccdbfc265c69cce576205cb 100644
+--- a/dist/commands-D1KtdxnV.mjs
++++ b/dist/commands-D1KtdxnV.mjs
+@@ -12628,7 +12628,12 @@ async function verifyNightlyConsumer(report, options) {
+ 				dependencies: Object.fromEntries(report.packages.map((pkg) => [pkg.name, report.provider === "npm" ? "snapshot-nightly" : pkg.locator])),
+ 				...!report.packages.some((pkg) => pkg.name === "@types/node") ? { devDependencies: { "@types/node": nodeTypes.version } } : {}
+ 			}, null, 2)}\n`),
+-			writeFile(path$1.join(directory, "pnpm-workspace.yaml"), "packages: []\n"),
++			writeFile(path$1.join(directory, "pnpm-workspace.yaml"), `${JSON.stringify({
++				packages: [],
++				// These exact artifacts have already passed publication and identity checks.
++				// Keep pnpm's release-age policy for every other package and version.
++				...report.provider === "npm" ? { minimumReleaseAgeExclude: report.packages.map((pkg) => `${pkg.name}@${pkg.version}`) } : {}
++			}, null, 2)}\n`),
+ 			writeFile(path$1.join(directory, "user.npmrc"), ""),
+ 			writeFile(path$1.join(directory, "global.npmrc"), "")
+ 		]);

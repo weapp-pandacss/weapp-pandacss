@@ -71,5 +71,6 @@ overrides:
   ws@8.18.0: ^8.21.0
   postcss-selector-parser: 7.1.6
 patchedDependencies:
+  '@icebreakers/monorepo@6.0.1': patches/@icebreakers__monorepo@6.0.1.patch
   '@tarojs/plugin-html@4.3.0': patches/@tarojs__plugin-html@4.3.0.patch
   '@tarojs/webpack5-prebundle@4.3.0': patches/@tarojs__webpack5-prebundle@4.3.0.patch

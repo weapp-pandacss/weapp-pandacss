@@ -62,6 +62,8 @@ channel's domain. Preview HTML displays a translated notice linking to the same 
 sets `noindex, nofollow`, and disallows crawling in `robots.txt`. The generated Cloudflare
 `_headers` applies `X-Robots-Tag: noindex, nofollow` to all preview assets, including text exports.
 Stable builds remove that preview policy. Site search remains available in both channels.
+Preview uses `Disallow: /*` so it outranks the `Allow: /` rule that Cloudflare's
+managed robots policy may prepend. Keep this wildcard when changing crawler rules.
 
 Nimbus's `/_nimbus/shiki.css` defines token color variables; `src/styles/code.css`
 applies them to the selected light/dark theme. Check system, explicit light and explicit dark
