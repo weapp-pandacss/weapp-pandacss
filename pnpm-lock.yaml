@@ -199,6 +199,7 @@ overrides:
 packageExtensionsChecksum: sha256-lO9cJcYEJiv7X5GwgEM/OgZyE9dzDxPAx69gSbZ+I6w=
 
 patchedDependencies:
+  '@icebreakers/monorepo@6.0.1': f147715e5db18a115ebdf320110e1968f143723919e60152bd3e4e6167c77dea
   '@tarojs/plugin-html@4.3.0': eb5b15865c2fd8d2bda5a30c2ce677b909c1a5b0f0562843b55a57e229862c8f
   '@tarojs/webpack5-prebundle@4.3.0': 7c22c86fadfa48c9aa7cc1cbc403a9ccd68120eff62c92b0ed3d5b047a806cea
 
@@ -20309,7 +20310,7 @@ snapshots:
     transitivePeerDependencies:
       - '@types/node'
 
-  '@icebreakers/monorepo@6.0.1(b22fec4e8b1922a71651c61cd51ddc15)':
+  '@icebreakers/monorepo@6.0.1(patch_hash=f147715e5db18a115ebdf320110e1968f143723919e60152bd3e4e6167c77dea)(b22fec4e8b1922a71651c61cd51ddc15)':
     dependencies:
       '@arethetypeswrong/core': 0.18.5
       '@babel/parser': 7.29.9
@@ -32323,7 +32324,7 @@ snapshots:
 
   repoctl@6.0.1(906b7930dec442ce09e1221e97528998):
     dependencies:
-      '@icebreakers/monorepo': 6.0.1(b22fec4e8b1922a71651c61cd51ddc15)
+      '@icebreakers/monorepo': 6.0.1(patch_hash=f147715e5db18a115ebdf320110e1968f143723919e60152bd3e4e6167c77dea)(b22fec4e8b1922a71651c61cd51ddc15)
     optionalDependencies:
       '@commitlint/cli': 21.2.3(@types/node@26.6.5)(conventional-commits-parser@7.1.3)(typescript@6.0.3)
       eslint: 10.12.0(jiti@2.7.0)(supports-color@10.2.2)
