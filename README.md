@@ -104,4 +104,6 @@ To inspect nightly without publishing, run the `Release` workflow on `main` with
 
 [Testing strategy and E2E acceptance](./docs/testing-strategy.md) · [中文测试指南](./docs/testing-strategy.zh.md)
 
+The root Vitest scripts use one outer worker because integration tests launch their own framework builders and compilers. This keeps those processes from competing for CI resources while preserving test timeouts and per-file 100% coverage requirements.
+
 `pnpm docs:test` checks the documentation deployment adapters. `pnpm docs:test:e2e` validates the stable and preview site builds, including locale behavior, canonical URLs and preview indexing controls.
