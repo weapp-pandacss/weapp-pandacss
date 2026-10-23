@@ -3,7 +3,7 @@
   "path": ".agents/skills/repoctl/references/knip.md",
   "source": {
     "package": "@icebreakers/monorepo-templates",
-    "version": "2.3.3",
+    "version": "3.0.1",
     "assetPath": ".agents/skills/repoctl/references/knip.md",
     "hash": "3474ac9151cd4f63890f61ddbf19347742737e8689341c57e1f87d4a86e48edf"
   },

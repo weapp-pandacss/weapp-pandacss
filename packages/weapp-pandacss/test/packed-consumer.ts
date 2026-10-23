@@ -1,9 +1,13 @@
+import type { PackedManifest } from './installed-consumer-lock.ts'
 import assert from 'node:assert/strict'
 import { execFile } from 'node:child_process'
+import { createHash } from 'node:crypto'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import process from 'node:process'
 import { promisify } from 'node:util'
+import { stringify } from 'yaml'
+import { createInstalledConsumerLock } from './installed-consumer-lock.ts'
 
 export const run = promisify(execFile)
 export const adapterRoot = path.resolve(import.meta.dirname, '..')
@@ -91,22 +95,29 @@ export async function packedConsumer(root: string, packages: PackedPackages, ver
 export async function installPackedConsumer(root: string, packages: PackedPackages, version: PandaVersion, node = process.execPath) {
   await fs.mkdir(root, { recursive: true })
   const physicalRoot = await fs.realpath(root)
+  const packed = {} as Record<keyof PackedPackages, { manifest: PackedManifest, integrity: string, reference: string }>
+  for (const kind of ['runtime', 'adapter'] as const) {
+    const tarball = packages[kind]
+    packed[kind] = {
+      manifest: JSON.parse((await run('tar', ['-xOf', tarball, 'package/package.json'])).stdout),
+      integrity: `sha512-${createHash('sha512').update(await fs.readFile(tarball)).digest('base64')}`,
+      reference: `file:${path.relative(root, tarball).split(path.sep).join('/')}`,
+    }
+  }
+  const lock = createInstalledConsumerLock(await fs.readFile(path.join(workspaceRoot, 'pnpm-lock.yaml'), 'utf8'), packed, version)
   await fs.writeFile(path.join(root, 'package.json'), JSON.stringify({
     private: true,
     type: 'module',
-    dependencies: {
-      'weapp-pandacss': `file:${packages.adapter}`,
-      '@weapp-pandacss/runtime': `file:${packages.runtime}`,
-      '@pandacss/dev': version,
-      '@pandacss/preset-base': version,
-      '@pandacss/preset-panda': version,
-      'postcss': '8.5.30',
-      'typescript': '6.0.3',
-      '@types/node': '26.6.5',
-    },
+    dependencies: Object.fromEntries(Object.entries(lock.importers['.'].dependencies).map(([name, dependency]) => [name, dependency.specifier])),
   }, null, 2))
-  await fs.writeFile(path.join(root, 'pnpm-workspace.yaml'), `packages: []\nminimumReleaseAge: 0\nstrictPeerDependencies: true\noverrides:\n  '@weapp-pandacss/runtime': ${JSON.stringify(`file:${packages.runtime}`)}\n`)
-  const installation = await pnpm(['install', '--offline', '--ignore-scripts', '--reporter=append-only'], root)
+  await fs.writeFile(path.join(root, 'pnpm-workspace.yaml'), stringify({ packages: [], minimumReleaseAge: 0, strictPeerDependencies: true, overrides: lock.overrides }))
+  await fs.writeFile(path.join(root, 'pnpm-lock.yaml'), stringify(lock))
+  // A frozen workspace install populates the content store, not registry
+  // metadata. Always use a fresh metadata cache so local history cannot hide
+  // unresolved dependencies; the store comes explicitly from this workspace.
+  const cache = await fs.mkdtemp(path.join(root, '.pnpm-cache-'))
+  const store = (await pnpm(['store', 'path'], workspaceRoot)).stdout.trim()
+  const installation = await pnpm(['install', '--offline', '--frozen-lockfile', '--ignore-scripts', '--reporter=append-only', `--store-dir=${store}`, `--config.cache-dir=${cache}`], root)
   await fs.writeFile(path.join(root, 'install.log'), installation.stdout + installation.stderr)
   const resolution = JSON.parse((await run(node, ['--input-type=module', '-e', `
     import fs from 'node:fs'; import {createRequire} from 'node:module';

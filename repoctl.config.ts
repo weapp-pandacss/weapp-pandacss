@@ -2,6 +2,49 @@ import type { MonorepoConfig } from 'repoctl'
 
 export default {
   commands: {
+    release: {
+      nightly: {
+        provider: 'npm',
+        schedule: '0 0 * * *',
+      },
+      qualityScripts: ['build', 'lint', 'typecheck', 'tsd', 'test'],
+    },
+    docs: {
+      sites: {
+        website: {
+          packages: ['weapp-pandacss', '@weapp-pandacss/runtime'],
+          releaseInputs: {
+            'weapp-pandacss': [
+              'packages/weapp-pandacss/src/**',
+              'packages/weapp-pandacss/package.json',
+              'packages/weapp-pandacss/tsdown.config.ts',
+              'packages/weapp-pandacss/tsconfig.json',
+              'tsconfig.json',
+            ],
+            '@weapp-pandacss/runtime': [
+              'packages/runtime/src/**',
+              'packages/runtime/package.json',
+              'packages/runtime/tsdown.config.ts',
+              'packages/runtime/tsconfig.json',
+              'tsconfig.json',
+            ],
+          },
+          buildScript: 'docs:build',
+          preview: {
+            deployScript: 'docs:deploy:preview',
+            url: 'https://preview.panda.weapp.dev',
+          },
+          stable: {
+            deployScript: 'docs:deploy:stable',
+            url: 'https://panda.weapp.dev',
+          },
+          patchPaths: [
+            'apps/docs/src/content/docs/**/*.{md,mdx}',
+            'apps/docs/public/**/*.{png,jpg,jpeg,webp,svg}',
+          ],
+        },
+      },
+    },
     init: {
       skipReadme: true,
       skipPkgJson: true,
@@ -67,7 +110,19 @@ export default {
     upgrade: {
       skipOverwrite: false,
       // Framework-owned Vite/PostCSS cohorts must not inherit global overrides.
-      targets: ['.agents', 'eslint.config.js', 'stylelint.config.js', 'vitest.config.ts', 'turbo.json', '.github/workflows/release-intent-auto.yml', '.github/ISSUE_TEMPLATE/config.yml'],
+      targets: [
+        '.agents',
+        'eslint.config.js',
+        'stylelint.config.js',
+        'vitest.config.ts',
+        'turbo.json',
+        'lefthook.yml',
+        '.github/workflows/release.yml',
+        '.github/workflows/release-intent-auto.yml',
+        '.github/workflows/repoctl-docs.yml',
+        '.github/workflows/repoctl-docs-deploy.yml',
+        '.github/ISSUE_TEMPLATE/config.yml',
+      ],
       mergeTargets: false,
     },
   },
@@ -100,9 +155,7 @@ export default {
         'media-feature-range-notation': 'prefix',
       },
     },
-    lintStaged: {
-      repoCommand: 'pnpm exec repo',
-    },
+
     vitest: {
       includeWorkspaceRootConfig: false,
       coverageExclude: ['**/dist/**'],

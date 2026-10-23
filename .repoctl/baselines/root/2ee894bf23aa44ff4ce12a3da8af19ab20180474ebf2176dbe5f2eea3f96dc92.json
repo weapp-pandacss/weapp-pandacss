@@ -3,7 +3,7 @@
   "path": "vitest.config.ts",
   "source": {
     "package": "@icebreakers/monorepo-templates",
-    "version": "2.3.3",
+    "version": "3.0.1",
     "assetPath": "vitest.config.ts",
     "hash": "877732600228088446fcca30b7ec9742ab0f4387dc5235e6f21b32a07b60df7f"
   },

@@ -1,6 +1,7 @@
 ---
 import { withBase } from '@cloudflare/nimbus-docs/runtime'
 import { config } from 'virtual:nimbus/config'
+import { documentationDeployment } from '../lib/deployment'
 import { alternatePath } from '../lib/locale'
 
 interface Props {
@@ -32,7 +33,7 @@ const structuredData = JSON.stringify({
 <title>{fullTitle}</title>
 <meta name="generator" content={Astro.generator} />
 <meta name="description" content={description} />
-{noindex && <meta name="robots" content="noindex" />}
+{(documentationDeployment.preview || noindex) && <meta name="robots" content={documentationDeployment.preview ? 'noindex, nofollow' : 'noindex'} />}
 <link rel="icon" type="image/svg+xml" href={withBase('/favicon.svg', base)} />
 <link rel="stylesheet" href={withBase('/_nimbus/shiki.css', base)} />
 <link rel="canonical" href={canonical} />
