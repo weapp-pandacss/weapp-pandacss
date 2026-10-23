@@ -32,3 +32,8 @@ weapp-pandacss@2.3.0:
   dir: packages/weapp-pandacss
   intents:
     - nice-kids-train
+weapp-pandacss@2.3.1:
+  dir: packages/weapp-pandacss
+  intents:
+    - clever-bears-trade
+    - small-foxes-watch

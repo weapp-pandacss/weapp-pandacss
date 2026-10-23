@@ -1,5 +1,13 @@
 # weapp-pandacss
 
+## 2.3.1
+
+### Patch Changes
+
+- 升级 CSS 兼容与 PostCSS 导入依赖，修复多文件导入的层顺序并完善兼容回归验证。
+
+- Bundle Panda plugin declarations so strict ESM and CommonJS consumers can typecheck without inheriting upstream declaration errors.
+
 ## 2.3.0
 
 ### Minor Changes
